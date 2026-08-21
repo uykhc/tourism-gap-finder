@@ -8,7 +8,7 @@
 repo/
   COLLABORATION.md      이 문서
   contracts/            공용 계약 패키지 (타입·Protocol·지역 마스터)
-  hankkeut-proto/       A — 과제 1
+  <A의 폴더>/            A — 과제 1
   <B의 폴더>/            B — 과제 2
 ```
 
@@ -265,38 +265,7 @@ API마다 코드 체계가 다르다. 변환은 각자 폴더에서 처리하고
 
 ---
 
-## 7. 데이터 현실 (B 필독)
-
-활용신청은 전부 승인됐지만 **값을 주는 API는 하나뿐이다.**
-
-| API | 상태 |
-|---|---|
-| `DataLabService/locgoRegnVisitrDDList` | ✅ 2023-01 ~ 2026-06 일별 |
-| `AreaTarDemDsService` 체류·소비 강도 | ⚠ `resultCode 0000` / `totalCount 0` |
-| `AreaTarResDemService` 관광자원 수요 | ⚠ 동일 |
-| `AreaTarDivService` 관광 다양성 | ⚠ 동일 |
-
-빈 응답은 파라미터 문제가 아니다. `areaCd` 01~60과 5자리를 전수 조회하고 `baseYm`을
-2023-01~2026-06으로 훑어도 전부 0건이며, 미정의 파라미터는 `INVALID_REQUEST_PARAMETER_ERROR`로
-거부된다(수용: `areaCd`·`signguCd`·`baseYm`). **데이터 미공개 상태다. 추측하며 헤매지 말 것.**
-
-DataLab 응답 필드:
-
-```
-signguCode  법정동 시군구 코드    touDivCd  1=현지인 2=외지인 3=외국인
-signguNm    시군구명             touNum    방문자 수
-daywkDivCd  요일 코드            baseYmd   기준일자 YYYYMMDD
-```
-
-한 달치(약 24,000행)를 한 번에 받는다. 일별×요일×방문자 구분이라 계절 분산, 주말/평일 비율,
-성수기 집중도, 방문 안정성 등 아직 안 쓴 정보가 많다. **개편 이전 지역 코드를 쓴다.**
-
-새 API를 붙일 때: 실호출로 `totalCount > 0` 확인 → raw 응답 저장 → **저장된 응답을 보고**
-필드 매핑 작성. **필드명을 추측하지 않는다.**
-
----
-
-## 8. 과제 3 합류
+## 7. 과제 3 합류
 
 착수 조건 — 완벽할 필요는 없고 더 이상 흔들리지 않으면 된다.
 
@@ -313,7 +282,7 @@ benchmark 0개일 때 무엇을 보여줄지 · 수요 데이터가 끝내 안 �
 
 ---
 
-## 9. 코딩 에이전트 지시문
+## 8. 코딩 에이전트 지시문
 
 ### A용
 
