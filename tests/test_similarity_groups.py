@@ -1,6 +1,6 @@
 import unittest
 
-from hankkeut_analysis.similarity_groups import (
+from hankkeut_analysis.peer_finder.similarity_groups import (
     DOMAIN_WEIGHTS,
     SimilarityRegion,
     build_similarity_result,

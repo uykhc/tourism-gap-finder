@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .analysis import analyze_portfolio
-from .config import resolve_portfolio_service_key
+from ..tourism_data.config import resolve_portfolio_service_key
 from .output import write_csv, write_json
 from .portfolio_benchmark import (
     PortfolioBenchmarkRegionResult,
@@ -25,7 +25,7 @@ from .portfolio_benchmark_output import (
 )
 from .tour_api import TourApiClient, TourApiError
 
-DEFAULT_CONFIG_PATH = Path("config/gyeonggi_portfolio_benchmarks.json")
+DEFAULT_CONFIG_PATH = Path("config/gyeonggi/portfolio_benchmark.json")
 
 
 def build_parser() -> argparse.ArgumentParser:

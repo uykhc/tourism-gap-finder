@@ -1,11 +1,11 @@
 import unittest
 
-from hankkeut_analysis.visitor_api import DailyRegionalVisitor
-from hankkeut_analysis.visitor_portfolio_benchmark import (
+from hankkeut_analysis.tourism_data.visitor_api import DailyRegionalVisitor
+from hankkeut_analysis.performance_evaluator.visitor_portfolio_benchmark import (
     aggregate_daily_visitor_sums,
     build_city_tourism_scores,
 )
-from hankkeut_analysis.tourism_demand_api import TourismDemandRecord
+from hankkeut_analysis.tourism_data.tourism_demand_api import TourismDemandRecord
 
 
 class VisitorPortfolioBenchmarkTest(unittest.TestCase):

@@ -21,7 +21,7 @@ from .benchmark_output import (
     write_benchmark_failure_csv,
     write_benchmark_json,
 )
-from .config import resolve_hub_service_key, resolve_portfolio_service_key
+from ..tourism_data.config import resolve_hub_service_key, resolve_portfolio_service_key
 from .hub_api import HubTourApiClient, HubTourApiError
 from .stay_analysis import analyze_stay_transition
 from .stay_models import StayTransitionReport
@@ -32,7 +32,7 @@ from .stay_output import (
 )
 from .tour_api import TourApiClient, TourApiError
 
-DEFAULT_CONFIG_PATH = Path("config/gyeonggi_benchmarks.json")
+DEFAULT_CONFIG_PATH = Path("config/gyeonggi/anchor_benchmark.json")
 
 
 def build_parser() -> argparse.ArgumentParser:

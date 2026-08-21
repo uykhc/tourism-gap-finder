@@ -11,20 +11,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .config import resolve_visitor_service_key
-from .portfolio_benchmark import (
+from ..tourism_data.config import resolve_visitor_service_key
+from ..gap_analyzer.portfolio_benchmark import (
     build_portfolio_distributions,
     portfolio_region_result_from_dict,
 )
-from .visitor_api import DailyRegionalVisitor, VisitorApiClient, VisitorApiError
-from .tourism_demand_api import (
+from ..tourism_data.visitor_api import DailyRegionalVisitor, VisitorApiClient, VisitorApiError
+from ..tourism_data.tourism_demand_api import (
     TourismDemandApiClient,
     TourismDemandApiError,
     TourismDemandRecord,
     previous_months,
 )
 
-DEFAULT_CONFIG_PATH = Path("config/gyeonggi_visitor_portfolio_benchmark.json")
+DEFAULT_CONFIG_PATH = Path("config/gyeonggi/performance_evaluator.json")
 DEFAULT_OUTPUT_DIR = Path("results/portfolio_benchmarks")
 
 # 경기도 군(연천·가평·양평)은 표본이 3개뿐이므로 이번 선정·수집에서는 제외한다.

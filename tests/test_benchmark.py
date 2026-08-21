@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hankkeut_analysis.benchmark import (
+from hankkeut_analysis.gap_analyzer.benchmark import (
     BenchmarkRegion,
     BenchmarkRegionResult,
     BenchmarkRunReport,
@@ -12,12 +12,12 @@ from hankkeut_analysis.benchmark import (
     load_benchmark_config,
     validate_tour_region_codes,
 )
-from hankkeut_analysis.benchmark_output import (
+from hankkeut_analysis.gap_analyzer.benchmark_output import (
     write_benchmark_anchor_csv,
     write_benchmark_distribution_csv,
 )
-from hankkeut_analysis.models import HubTouristSpot, TourismResource
-from hankkeut_analysis.stay_analysis import analyze_stay_transition
+from hankkeut_analysis.gap_analyzer.models import HubTouristSpot, TourismResource
+from hankkeut_analysis.gap_analyzer.stay_analysis import analyze_stay_transition
 
 
 def _region_definition(name):
