@@ -1,0 +1,26 @@
+region_code,region_name,province_name,administrative_type,population,population_density,area_square_km,forest_ratio,water_ratio,mean_elevation_m,gateway_access_minutes,rail_access_score,expressway_access_score,core_products,commercial_facility_ratio,industrial_facility_ratio,residential_facility_ratio,annual_mean_temperature_c,annual_precipitation_mm,temperature_range_c
+*** Add File: /Users/imoo/Desktop/hankkeut-analysis/docs/similarity-data-sources.md
+# 유사 지역 그룹 입력 데이터
+
+`hankkeut-similarity-groups`는 경기도와 전국에 공통으로 사용할 CSV를 입력으로 받는다. `similarity_input_template.csv`의 열을 사용하며, 관광 콘텐츠 총개수·밀도·유형 비율은 유사도에 넣지 않고 다음 단계의 관광 빈칸 진단에 사용한다.
+
+| 유사도 영역 | 입력 열 | 권장 출처 | 수집 방식 |
+|---|---|---|---|
+| 도시 규모·밀도 | `population`, `population_density` | 행정안전부 주민등록 인구통계 또는 통계청 SGIS | 시군구별 최신 연말 인구 스냅샷 |
+| 지리·자연환경 | `area_square_km`, `forest_ratio`, `water_ratio`, `mean_elevation_m` | SGIS 행정구역 경계 + 환경부 토지피복지도 | 경계를 기준으로 GIS 공간집계 |
+| 접근성·생활권 | `gateway_access_minutes`, `rail_access_score`, `expressway_access_score` | 국가교통정보센터·국가교통DB 또는 지도 길찾기 API | 대표 중심점에서 권역 거점까지 동일 출발시각으로 계산 |
+| 핵심 관광 상품 | `core_products` | 기존 TourAPI 콘텐츠·중심 관광지 정보 | `자연|역사문화|레저|도시상업|가족체험` 등 팀 분류체계 |
+| 일반 시설 구조 | `commercial_facility_ratio`, `industrial_facility_ratio`, `residential_facility_ratio` | 통계청 SGIS 전국사업체조사·인구주택총조사 | 업종·용도별 비율로 집계 |
+| 기후 | `annual_mean_temperature_c`, `annual_precipitation_mm`, `temperature_range_c` | 기상청 ASOS 일자료 | 관측소 매칭 또는 공간 보간 후 최근 10년 평년값 산출 |
+
+## 기준 통일
+
+- 행정구역 코드: 전국은 법정 시군구 5자리 코드로 통일한다.
+- 기준시점: 인구·사업체·토지피복은 같은 기준연도 또는 가장 가까운 연도로 맞춘다.
+- 비율: 0~1 사이 소수로 저장한다. 예: 35%는 `0.35`.
+- 접근시간: 모든 지역에서 같은 목적지 정의와 동일한 평일 출발시각을 사용한다.
+- 결측: 가능한 한 보완한다. 결측 영역은 코드가 남은 영역 가중치를 재정규화하므로, 결과 JSON의 `available_domains`를 반드시 확인한다.
+
+## 제공 API 여부
+
+현재 프로젝트가 사용하는 한국관광공사 API는 관광 콘텐츠·방문자·관광수요지수에는 사용할 수 있지만, 인구·토지피복·교통 접근성·기후를 모두 제공하지는 않는다. SGIS는 인구·사업체 통계 및 행정경계를 제공하지만 별도 인증키가 필요하다. 기상청 ASOS는 관측소 단위 기후 데이터이므로 시군구 단위 변환 과정이 필요하다.

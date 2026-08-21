@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hankkeut-analysis"
+version = "0.1.0"
+description = "TourAPI 기반 시군구 관광자원 포트폴리오 분석기"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+hankkeut-portfolio = "hankkeut_analysis.cli:main"
+hankkeut-hubs = "hankkeut_analysis.hub_cli:main"
+hankkeut-stay = "hankkeut_analysis.stay_cli:main"
+hankkeut-benchmark = "hankkeut_analysis.benchmark_cli:main"
+hankkeut-discover = "hankkeut_analysis.discovery_cli:main"
+hankkeut-portfolio-benchmark = "hankkeut_analysis.portfolio_benchmark_cli:main"
+hankkeut-visitor-portfolio = "hankkeut_analysis.visitor_portfolio_benchmark:main"
+hankkeut-similarity-groups = "hankkeut_analysis.similarity_cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

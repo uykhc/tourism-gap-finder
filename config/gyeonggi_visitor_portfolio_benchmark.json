@@ -1,0 +1,16 @@
+{
+  "benchmark_name": "경기도 시 관광 수요 기반 우수 관광 지역 선정",
+  "output_slug": "gyeonggi_visitor_portfolio_benchmark",
+  "start_ymd": "20250101",
+  "end_ymd": "20251231",
+  "top_region_count": 5,
+  "demand_area_code": "41",
+  "demand_lookback_months": 24,
+  "weights": {
+    "visitor": 0.4,
+    "resource_demand": 0.3,
+    "demand_intensity": 0.3
+  },
+  "visitor_type_names": [],
+  "source_url": "https://www.data.go.kr/data/15101972/openapi.do"
+}
