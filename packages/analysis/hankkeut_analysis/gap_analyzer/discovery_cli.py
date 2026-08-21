@@ -9,10 +9,10 @@ from collections import Counter
 from pathlib import Path
 
 from .benchmark import load_benchmark_config
-from .config import resolve_hub_service_key
+from ..tourism_data.config import resolve_hub_service_key
 from .hub_api import HubTourApiClient, HubTourApiError
 
-DEFAULT_CONFIG_PATH = Path("config/gyeonggi_benchmarks.json")
+DEFAULT_CONFIG_PATH = Path("config/gyeonggi/anchor_benchmark.json")
 DEFAULT_CATEGORIES = ("자연관광", "레저스포츠", "기타관광")
 
 

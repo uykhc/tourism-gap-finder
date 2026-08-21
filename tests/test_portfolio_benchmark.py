@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from hankkeut_analysis.analysis import analyze_portfolio
-from hankkeut_analysis.models import TourismResource
-from hankkeut_analysis.portfolio_benchmark import (
+from hankkeut_analysis.gap_analyzer.analysis import analyze_portfolio
+from hankkeut_analysis.gap_analyzer.models import TourismResource
+from hankkeut_analysis.gap_analyzer.portfolio_benchmark import (
     PortfolioBenchmarkRegion,
     PortfolioBenchmarkRegionResult,
     build_portfolio_distributions,
