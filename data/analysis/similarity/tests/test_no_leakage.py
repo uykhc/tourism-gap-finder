@@ -9,16 +9,33 @@ from __future__ import annotations
 
 import unittest
 
-from tourgap.config import (
-    CONTEXT_CATEGORIES,
-    EXCLUDED_CATEGORIES,
-    GAP_CATEGORIES,
-    LCLS1_NAMES,
-    SIMILARITY_FEATURES,
-)
+from tourgap.config import SIMILARITY_FEATURES
 from tourgap.similarity import feature_columns, feature_weights
-from tourgap.sources.kto_performance import PERFORMANCE_COLUMNS
-from tourgap.supply import SUPPLY_METRICS
+
+CONTENT_CATEGORY_CODES = {"NA", "HS", "VE", "EX", "LS", "EV", "SH", "FD", "AC", "C01"}
+CONTENT_CATEGORY_NAMES = {
+    "자연관광",
+    "역사관광",
+    "문화관광",
+    "체험관광",
+    "레저스포츠",
+    "축제",
+    "공연",
+    "행사",
+    "쇼핑",
+    "음식",
+    "숙박",
+    "추천코스",
+}
+SUPPLY_METRICS = {"raw_count", "share", "per_10k_pop", "per_100km2"}
+PERFORMANCE_METRICS = {
+    "stay_intensity",
+    "consumption_intensity",
+    "visitor_level",
+    "visitor_yoy_growth",
+    "outsider_ratio",
+    "foreign_ratio",
+}
 
 
 class SimilarityIsolationTest(unittest.TestCase):
@@ -29,9 +46,8 @@ class SimilarityIsolationTest(unittest.TestCase):
         안의 'sh'를 쇼핑(SH)으로 오인하면 안 되기 때문이다.
         """
         forbidden = {
-            *(c.lower() for c in GAP_CATEGORIES),
-            *(c.lower() for c in CONTEXT_CATEGORIES),
-            *(name.lower() for name in LCLS1_NAMES.values()),
+            *(c.lower() for c in CONTENT_CATEGORY_CODES),
+            *(name.lower() for name in CONTENT_CATEGORY_NAMES),
         }
         for feature in feature_columns():
             tokens = {feature.lower(), *feature.lower().split("_")}
@@ -50,7 +66,7 @@ class SimilarityIsolationTest(unittest.TestCase):
     def test_no_performance_metric_in_similarity_features(self) -> None:
         """성과 지표가 유사성 feature에 없어야 한다(원칙 1·3)."""
         features = set(feature_columns())
-        self.assertEqual(features & set(PERFORMANCE_COLUMNS), set())
+        self.assertEqual(features & PERFORMANCE_METRICS, set())
 
     def test_similarity_features_are_structural_only(self) -> None:
         """유사성 feature는 허용된 구조 변수 목록 안에서만 쓴다.
@@ -82,26 +98,6 @@ class SimilarityIsolationTest(unittest.TestCase):
             f"허용 목록 밖의 feature: {set(feature_columns()) - allowed}",
         )
         self.assertEqual(tuple(feature_columns()), SIMILARITY_FEATURES)
-
-
-class CategorySplitTest(unittest.TestCase):
-    def test_gap_and_context_do_not_overlap(self) -> None:
-        self.assertEqual(set(GAP_CATEGORIES) & set(CONTEXT_CATEGORIES), set())
-
-    def test_every_category_is_classified(self) -> None:
-        classified = {
-            *GAP_CATEGORIES,
-            *CONTEXT_CATEGORIES,
-            *EXCLUDED_CATEGORIES,
-        }
-        self.assertEqual(classified, set(LCLS1_NAMES))
-
-    def test_endowment_categories_are_excluded_from_ranking(self) -> None:
-        """자연·역사는 원천 여건이므로 공백 랭킹 대상이 아니다."""
-        self.assertIn("NA", CONTEXT_CATEGORIES)
-        self.assertIn("HS", CONTEXT_CATEGORIES)
-        self.assertNotIn("NA", GAP_CATEGORIES)
-        self.assertNotIn("HS", GAP_CATEGORIES)
 
 
 class WeightTest(unittest.TestCase):

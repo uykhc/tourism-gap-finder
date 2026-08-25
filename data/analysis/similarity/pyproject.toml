@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tourgap"
 version = "0.1.0"
-description = "韓끗 — 유사 지역 비교로 시군구 관광 콘텐츠 공백을 찾는 분석 프로토타입"
+description = "韓끗 — 구조 특성 기반 시군구 유사 지역 탐색"
 requires-python = ">=3.11"
 dependencies = [
     "pandas>=2.0",

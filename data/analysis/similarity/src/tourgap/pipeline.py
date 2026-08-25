@@ -1,16 +1,4 @@
-"""분석 파이프라인 조립.
-
-    입력 시군구
-      -> [1] 데이터 로딩
-      -> [2] 유사성 feature
-      -> [3] peer 탐색
-      -> [4] peer 성과 계산
-      -> [5] benchmark 선정
-      -> [6] 콘텐츠 공급 비교
-      -> [7] 공백 계산
-      -> [8] 수요 보정
-      -> [9] 부족 콘텐츠 ranking
-"""
+"""과제 1 PeerFinder용 데이터셋 조립."""
 
 from __future__ import annotations
 
@@ -20,20 +8,15 @@ from pathlib import Path
 import pandas as pd
 
 from .config import (
-    CONTEXT_CATEGORIES,
     PROCESSED_DIR,
-    data_go_kr_key,
     env_allows_mock_structural,
     get_config,
     sgis_credentials,
 )
-from .gap import calculate_gap, context_table, drilldown
 from .peers import compare_values, find_peers
-from .performance import score_performance, select_benchmarks, target_rank
 from .provenance import Provenance, SourceRecord, SourceType
-from .regions import build_region_master, load_lcls_names, load_resources
+from .regions import build_region_master, load_resources
 from .similarity import available_features, build_similarity_features
-from .sources import kto_datalab, kto_demand, kto_performance
 from .sources.sgis import SgisClient
 from .sources.structural import (
     MockStructuralProvider,
@@ -41,62 +24,26 @@ from .sources.structural import (
     load_coastal_flags,
     region_centroids,
 )
-from .supply import build_supply, registration_quality
 
 
 @dataclass
-class AnalysisResult:
+class PeerAnalysisResult:
     target: pd.Series
     peers: pd.DataFrame
     contribution: pd.DataFrame
     feature_comparison: pd.DataFrame
-    performance: pd.DataFrame
-    target_performance_rank: tuple[int, int]
-    benchmark_ids: list[str]
-    benchmarks: pd.DataFrame
-    gaps: pd.DataFrame
-    drilldown: pd.DataFrame
-    context: pd.DataFrame
-    quality: pd.Series
     provenance: Provenance
     features: pd.DataFrame = field(repr=False)
-    supply: pd.DataFrame = field(repr=False)
 
 
 @dataclass
-class Dataset:
-    """지역 단위로 준비된 모든 표. 지역을 바꿔 가며 재사용한다."""
+class SimilarityDataset:
+    """PeerFinder가 쓰는 지역 마스터와 구조 feature 표."""
 
     regions: pd.DataFrame
     resources: pd.DataFrame
     features: pd.DataFrame
-    supply_lcls1: pd.DataFrame
-    supply_lcls2: pd.DataFrame
-    performance: pd.DataFrame
-    demand: pd.DataFrame
-    quality: pd.DataFrame
-    lcls_names: dict[str, str]
     provenance: Provenance
-
-
-def _performance_provider():
-    """방문자 데이터(DataLab)가 있으면 실데이터, 없으면 Mock.
-
-    체류·소비 강도는 API가 아직 빈 응답을 주므로 결측으로 남고,
-    성과 점수는 남은 지표끼리 가중치를 다시 정규화해 계산한다.
-    """
-    try:
-        return kto_performance.DataLabPerformanceProvider(
-            kto_datalab.DataLabClient(data_go_kr_key())
-        )
-    except RuntimeError:
-        return kto_performance.MockPerformanceProvider()
-
-
-def _demand_provider():
-    if all(kto_demand.FIELD_MAP.values()) and kto_demand.DEMAND_CATEGORY_MAP:
-        return kto_demand.KtoDemandProvider(data_go_kr_key())
-    return kto_demand.NeutralDemandProvider()
 
 
 def _structural_provider():
@@ -146,7 +93,7 @@ def _merge_static_features(base: pd.DataFrame, static: pd.DataFrame) -> pd.DataF
     return merged
 
 
-def load_dataset() -> Dataset:
+def load_dataset() -> SimilarityDataset:
     provenance = Provenance()
 
     resources = load_resources()
@@ -162,7 +109,6 @@ def load_dataset() -> Dataset:
         )
     )
 
-    # -- 구조 변수 (유사성 전용) -----------------------------------------
     structural = _structural_provider().load(regions, provenance)
 
     centroids = region_centroids(resources)
@@ -237,101 +183,28 @@ def load_dataset() -> Dataset:
 
     features = build_similarity_features(regions, structural, centroids, coastal)
 
-    # -- 공급 (공백 전용) --------------------------------------------------
-    supply_lcls1 = build_supply(resources, structural, provenance, level="lcls1")
-    supply_lcls2 = build_supply(resources, structural, provenance, level="lcls2")
-
-    # -- 성과 (benchmark 전용) --------------------------------------------
-    performance = _performance_provider().load(regions, provenance)
-
-    # -- 수요 (공백 보정) --------------------------------------------------
-    demand = _demand_provider().load(regions, provenance)
-
-    return Dataset(
+    return SimilarityDataset(
         regions=regions,
         resources=resources,
         features=features,
-        supply_lcls1=supply_lcls1,
-        supply_lcls2=supply_lcls2,
-        performance=performance,
-        demand=demand,
-        quality=registration_quality(resources),
-        lcls_names=load_lcls_names(),
         provenance=provenance,
     )
 
 
-def analyze(dataset: Dataset, target: pd.Series) -> AnalysisResult:
+def analyze(dataset: SimilarityDataset, target: pd.Series) -> PeerAnalysisResult:
     target_id = target["region_id"]
-
     peers, contribution = find_peers(dataset.features, target_id)
     peer_ids = peers["region_id"].tolist()
-
-    scored = score_performance(dataset.performance, peer_ids, target_id)
-    scored = scored.merge(
-        dataset.regions[["region_id", "province_name", "region_name"]],
-        on="region_id",
-        how="left",
-    )
-    benchmark_ids = select_benchmarks(scored, target_id)
-
-    # 입력 지역이 peer group 1위면 벤치마킹할 상위 지역이 없다.
-    # 성과가 더 낮은 지역과의 콘텐츠 차이는 롤모델이 아니므로 계산하지 않는다.
-    if benchmark_ids:
-        gaps = calculate_gap(
-            dataset.supply_lcls1, target_id, benchmark_ids, dataset.demand
-        )
-        top_categories = gaps.head(get_config().gap.drilldown_top_n)[
-            "category"
-        ].tolist()
-        detail = drilldown(
-            dataset.supply_lcls2,
-            target_id,
-            benchmark_ids,
-            top_categories,
-            dataset.lcls_names,
-        )
-        context = context_table(
-            dataset.supply_lcls1, target_id, benchmark_ids, CONTEXT_CATEGORIES
-        )
-    else:
-        gaps = pd.DataFrame()
-        detail = pd.DataFrame()
-        context = pd.DataFrame()
-
-    quality_row = dataset.quality[dataset.quality["region_id"] == target_id]
-    quality = (
-        quality_row.iloc[0]
-        if len(quality_row)
-        else pd.Series(
-            {
-                "region_id": target_id,
-                "total_resources": 0,
-                "fresh_ratio": 0.0,
-                "low_sample": True,
-                "stale": True,
-            }
-        )
-    )
-
-    return AnalysisResult(
+    comparison = compare_values(dataset.features, target_id, peer_ids)
+    return PeerAnalysisResult(
         target=target,
         peers=peers,
         contribution=contribution,
-        feature_comparison=compare_values(dataset.features, target_id, benchmark_ids),
-        performance=scored,
-        target_performance_rank=target_rank(scored, target_id),
-        benchmark_ids=benchmark_ids,
-        benchmarks=scored[scored["region_id"].isin(benchmark_ids)],
-        gaps=gaps,
-        drilldown=detail,
-        context=context,
-        quality=quality,
+        feature_comparison=comparison,
         provenance=dataset.provenance,
         features=dataset.features,
-        supply=dataset.supply_lcls1,
     )
 
 
-def similarity_feature_names(dataset: Dataset) -> list[str]:
+def similarity_feature_names(dataset: SimilarityDataset) -> list[str]:
     return available_features(dataset.features)

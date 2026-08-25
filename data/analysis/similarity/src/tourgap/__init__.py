@@ -1,4 +1,4 @@
-"""韓끗 관광 공백 분석 프로토타입."""
+"""韓끗 과제 1 PeerFinder 구현."""
 
 from .peers import TourgapPeerFinder
 

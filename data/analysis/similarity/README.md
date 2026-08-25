@@ -258,8 +258,8 @@ SGIS_API_BASE_URL=https://sgisapi.kostat.go.kr/OpenAPI3
 합성 구조 변수를 명시적으로 허용한다.
 
 ```bash
-TOURGAP_ALLOW_MOCK_STRUCTURAL=1 python -m tourgap.main --region 경주시 --no-save
-python -m tourgap.main --region 경주시 --no-save --allow-mock-structural
+TOURGAP_ALLOW_MOCK_STRUCTURAL=1 python -m tourgap.main --region 경주시
+python -m tourgap.main --region 경주시 --allow-mock-structural
 ```
 
 mock 결과는 정책 판단이나 검증 보고에 쓰면 안 된다.
@@ -273,7 +273,7 @@ python -m pip install -e ../../../contracts
 python -m pip install -e .
 cp .env.example .env
 python -m unittest discover -s tests
-python -m tourgap.main --region 경주시 --no-save
+python -m tourgap.main --region 경주시
 ```
 
 루트에서 패키지 설치 없이 실행:
@@ -283,7 +283,7 @@ PYTHONPATH=data/analysis/similarity/src:contracts \
   python -m unittest discover -s data/analysis/similarity/tests
 
 PYTHONPATH=data/analysis/similarity/src:contracts \
-  python -m tourgap.main --region 경주시 --no-save
+  python -m tourgap.main --region 경주시
 ```
 
 ## 산출물
@@ -294,5 +294,9 @@ PYTHONPATH=data/analysis/similarity/src:contracts \
 - 원자료 로딩 어댑터: `src/tourgap/data_sources.py`
 - 검증 문서: `docs/peer-validation.md`
 - 테스트: `tests/`
+
+이 폴더는 benchmark 선정, 관광 성과 평가, 콘텐츠 공급 공백 계산을
+구현하지 않는다. 해당 작업은 `contracts`의 `PerformanceEvaluator`,
+`GapAnalyzer` 계약을 따르는 별도 분석 폴더에서 수행한다.
 
 `data/raw/`, `results/`, `.env`, `__pycache__/`는 `.gitignore` 대상이다.

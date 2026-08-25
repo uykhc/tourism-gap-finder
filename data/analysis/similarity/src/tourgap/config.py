@@ -15,7 +15,6 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
 REFERENCE_DIR = DATA_DIR / "reference"
-RESULTS_DIR = PROJECT_ROOT / "results"
 
 
 # ---------------------------------------------------------------------------
@@ -110,34 +109,6 @@ DEFAULT_K = 15
 
 
 # ---------------------------------------------------------------------------
-# 관광 콘텐츠 분류 (TourAPI 신분류체계 lclsSystm1)
-# ---------------------------------------------------------------------------
-# 공식 명칭은 KorService2/lclsSystmCode2 에서 확인했다(2026-08-17).
-LCLS1_NAMES: dict[str, str] = {
-    "NA": "자연관광",
-    "HS": "역사관광",
-    "VE": "문화관광",
-    "EX": "체험관광",
-    "LS": "레저스포츠",
-    "EV": "축제/공연/행사",
-    "SH": "쇼핑",
-    "FD": "음식",
-    "AC": "숙박",
-    "C01": "추천코스",
-}
-
-# 정책·사업으로 만들 수 있는 콘텐츠 → 공백 랭킹 대상.
-GAP_CATEGORIES: tuple[str, ...] = ("EX", "VE", "LS", "EV", "SH", "FD", "AC")
-
-# 원천 자원(endowment)에 가까움 → 랭킹에서 빼고 맥락으로만 보여 준다.
-# 유사성 변수로도 쓰지 않는다(원칙 1: 공백의 output을 input에 넣지 않는다).
-CONTEXT_CATEGORIES: tuple[str, ...] = ("NA", "HS")
-
-# 전국 59건뿐이라 시군구 단위 비교가 무의미하다.
-EXCLUDED_CATEGORIES: tuple[str, ...] = ("C01",)
-
-
-# ---------------------------------------------------------------------------
 # 유사성 (peer 탐색)
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -161,73 +132,9 @@ class SimilarityConfig:
     same_administrative_type: bool = True
 
 
-# ---------------------------------------------------------------------------
-# 우수성 (benchmark 선정)
-# ---------------------------------------------------------------------------
-@dataclass(frozen=True)
-class PerformanceConfig:
-    #: 목표 가중치. 데이터가 없는 지표(전부 결측)는 자동으로 빠지고
-    #: 남은 지표끼리 다시 정규화된다. 그래서 체류·소비 강도가 공개되면
-    #: 여기 손대지 않아도 바로 반영된다.
-    weights: dict[str, float] = field(
-        default_factory=lambda: {
-            "stay_intensity": 0.25,  # AreaTarDemDsService — 데이터 미공개
-            "consumption_intensity": 0.25,  # AreaTarDemDsService — 데이터 미공개
-            "visitor_yoy_growth": 0.20,
-            "outsider_ratio": 0.15,
-            "visitor_level": 0.10,
-            "foreign_ratio": 0.05,
-        }
-    )
-    #: 분포가 크게 치우쳐 z를 내기 전에 로그를 씌울 지표.
-    log_scaled: tuple[str, ...] = ("visitor_level",)
-    # "national": 전국 분포로 z를 내고 peer 안에서 순위만 매긴다(기본).
-    #   peer 15개로 z를 내면 표본이 작아 점수가 튄다.
-    #   전국 z를 써도 "전국 1등을 뽑는" 문제는 생기지 않는다.
-    #   후보 자체가 이미 peer group으로 제한돼 있기 때문이다.
-    # "peer": 명세 원문대로 peer group 내부에서 표준화.
-    normalize_scope: str = "national"
-    benchmark_k: int = 4
-
-
-# ---------------------------------------------------------------------------
-# 공백 산정
-# ---------------------------------------------------------------------------
-@dataclass(frozen=True)
-class GapConfig:
-    # 공백 비교의 중심 지표.
-    #   share          구성비. 지자체별 API 등록 성실도 차이를 상당 부분 상쇄한다(기본).
-    #   per_10k_pop    인구 1만 명당 개수
-    #   per_100km2     100km2당 개수
-    #   raw_count      단순 개수 (권장하지 않음)
-    primary_metric: str = "share"
-    secondary_metrics: tuple[str, ...] = ("per_10k_pop", "per_100km2", "raw_count")
-    # benchmark 대표값. 이상치에 강한 median을 기본으로 한다.
-    aggregate: str = "median"
-    # 상위 공백 몇 개까지 중분류로 파고들지.
-    drilldown_top_n: int = 3
-    drilldown_min_count: int = 3
-    # 수요 보정 계수의 범위. 수요 데이터가 없으면 1.0 고정.
-    demand_multiplier_range: tuple[float, float] = (0.5, 1.5)
-    epsilon: float = 1e-9
-
-
-# ---------------------------------------------------------------------------
-# 데이터 품질 경고 임계값 (P1: TourAPI 등록 건수 != 실제 공급)
-# ---------------------------------------------------------------------------
-@dataclass(frozen=True)
-class QualityConfig:
-    min_total_resources: int = 30
-    stale_years: int = 2
-    min_fresh_ratio: float = 0.20
-
-
 @dataclass(frozen=True)
 class Config:
     similarity: SimilarityConfig = field(default_factory=SimilarityConfig)
-    performance: PerformanceConfig = field(default_factory=PerformanceConfig)
-    gap: GapConfig = field(default_factory=GapConfig)
-    quality: QualityConfig = field(default_factory=QualityConfig)
     # 접근성 기준이 되는 대도시(수도권/광역시). 중심점 좌표는 WGS84.
     gateway_cities: dict[str, tuple[float, float]] = field(
         default_factory=lambda: {

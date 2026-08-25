@@ -7,7 +7,6 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from tourgap.gap import calculate_gap
 from tourgap.regions import (
     admin_type,
     build_region_master,
@@ -16,9 +15,7 @@ from tourgap.regions import (
     parse_address,
 )
 from tourgap.sources.kto_kor import _ldong_code, normalize_resource
-from tourgap.sources.kto_performance import MockPerformanceProvider
 from tourgap.sources.sgis import geometry_area_m2, polygon_area_m2
-from tourgap.provenance import Provenance
 
 
 class LdongCodeTest(unittest.TestCase):
@@ -178,98 +175,6 @@ class ShoelaceTest(unittest.TestCase):
             ],
         }
         self.assertAlmostEqual(geometry_area_m2(geometry), 100 + 400)
-
-
-class GapTest(unittest.TestCase):
-    def _supply(self) -> pd.DataFrame:
-        return pd.DataFrame(
-            [
-                # 입력지역: 체험이 적고 숙박이 많다.
-                {"region_id": "T", "category": "EX", "share": 0.02},
-                {"region_id": "T", "category": "AC", "share": 0.40},
-                # benchmark 3곳
-                {"region_id": "B1", "category": "EX", "share": 0.10},
-                {"region_id": "B1", "category": "AC", "share": 0.10},
-                {"region_id": "B2", "category": "EX", "share": 0.12},
-                {"region_id": "B2", "category": "AC", "share": 0.12},
-                {"region_id": "B3", "category": "EX", "share": 0.14},
-                {"region_id": "B3", "category": "AC", "share": 0.08},
-            ]
-        )
-
-    def test_gap_is_detected_and_ranked(self) -> None:
-        result = calculate_gap(
-            self._supply(),
-            "T",
-            ["B1", "B2", "B3"],
-            None,
-            metric="share",
-            categories=("EX", "AC"),
-        )
-        top = result.iloc[0]
-        self.assertEqual(top["category"], "EX")
-        self.assertAlmostEqual(top["benchmark_value"], 0.12)
-        self.assertAlmostEqual(top["consistency"], 1.0)
-
-    def test_oversupply_is_clipped_to_zero(self) -> None:
-        """공급이 남는 카테고리는 공백이 아니다.
-
-        clip하지 않으면 음수 gap에 1보다 작은 수요 계수가 곱해져 부호가
-        뒤집히고, 공백이 아닌 항목이 1순위로 올라온다.
-        """
-        result = calculate_gap(
-            self._supply(),
-            "T",
-            ["B1", "B2", "B3"],
-            None,
-            metric="share",
-            categories=("EX", "AC"),
-        )
-        accommodation = result[result["category"] == "AC"].iloc[0]
-        self.assertEqual(accommodation["supply_gap"], 0.0)
-        self.assertEqual(accommodation["gap_score"], 0.0)
-
-    def test_demand_multiplier_stays_neutral_without_data(self) -> None:
-        result = calculate_gap(
-            self._supply(),
-            "T",
-            ["B1", "B2", "B3"],
-            None,
-            metric="share",
-            categories=("EX",),
-        )
-        self.assertEqual(result.iloc[0]["demand_multiplier"], 1.0)
-        self.assertEqual(result.iloc[0]["demand_label"], "미적용")
-
-    def test_low_demand_cannot_flip_an_oversupplied_category(self) -> None:
-        demand = pd.DataFrame(
-            [{"region_id": "T", "category": "AC", "demand_percentile": 0.0}]
-        )
-        result = calculate_gap(
-            self._supply(),
-            "T",
-            ["B1", "B2", "B3"],
-            demand,
-            metric="share",
-            categories=("EX", "AC"),
-        )
-        accommodation = result[result["category"] == "AC"].iloc[0]
-        self.assertGreaterEqual(accommodation["gap_score"], 0.0)
-
-
-class MockDeterminismTest(unittest.TestCase):
-    def test_same_input_gives_same_values(self) -> None:
-        regions = pd.DataFrame({"region_id": ["47130", "11110"]})
-        first = MockPerformanceProvider().load(regions, Provenance())
-        second = MockPerformanceProvider().load(regions, Provenance())
-        pd.testing.assert_frame_equal(first, second)
-
-    def test_marks_itself_as_mock(self) -> None:
-        provenance = Provenance()
-        MockPerformanceProvider().load(
-            pd.DataFrame({"region_id": ["47130"]}), provenance
-        )
-        self.assertTrue(provenance.has_mock())
 
 
 if __name__ == "__main__":

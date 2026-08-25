@@ -155,8 +155,8 @@ peer가 3곳뿐이면 3곳만 쓰고 그 사실을 알리는 쪽이 정직하다
 
 ```bash
 tourgap --region 당진시 --explain          # 구조 변수 원본값 비교
-tourgap --region 울릉군 --no-save          # 고유 지역 사례
-tourgap --region 강남구 --no-save          # 자치구 한계 사례
+tourgap --region 울릉군                    # 고유 지역 사례
+tourgap --region 강남구                    # 자치구 한계 사례
 ```
 
 ---
