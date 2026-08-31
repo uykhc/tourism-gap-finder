@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import unittest
 
-from tourgap.config import SIMILARITY_FEATURES
-from tourgap.similarity import feature_columns, feature_weights
+from hankkeut_similarity.config import SIMILARITY_FEATURES
+from hankkeut_similarity.similarity import feature_columns, feature_weights
 
 CONTENT_CATEGORY_CODES = {"NA", "HS", "VE", "EX", "LS", "EV", "SH", "FD", "AC", "C01"}
 CONTENT_CATEGORY_NAMES = {
@@ -106,7 +106,7 @@ class WeightTest(unittest.TestCase):
 
     def test_group_weight_is_split_evenly_within_group(self) -> None:
         """변수 개수가 늘어도 그룹 비중은 유지되어야 한다."""
-        from tourgap.config import get_config
+        from hankkeut_similarity.config import get_config
 
         config = get_config()
         weights = feature_weights()
@@ -118,7 +118,7 @@ class WeightTest(unittest.TestCase):
 
     def test_missing_feature_is_redistributed_inside_its_group(self) -> None:
         """일부 결측 때문에 다른 요인군의 실효 비중이 커지면 안 된다."""
-        from tourgap.config import get_config
+        from hankkeut_similarity.config import get_config
 
         config = get_config()
         available = [

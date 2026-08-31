@@ -6,8 +6,9 @@
 
 ```
 repo/
-  COLLABORATION.md      이 문서
-  contracts/            공용 계약 패키지 (타입·Protocol·지역 마스터)
+  data/analysis/
+    COLLABORATION.md    이 문서
+    contracts/          공용 계약 패키지 (타입·Protocol·지역 마스터)
   <A의 폴더>/            A — 과제 1
   <B의 폴더>/            B — 과제 2
 ```
@@ -80,11 +81,11 @@ repo/
 
 ## 4. 인터페이스 계약
 
-`contracts` 패키지가 계약의 전부다. 양쪽 모두 `pip install -e ./contracts` 후 사용한다.
+`data/analysis/contracts` 패키지가 계약의 전부다. 양쪽 모두 해당 디렉터리를 editable 설치해 사용한다.
 **로직은 넣지 않는다** — 타입, Protocol, 스키마 검증, 지역 마스터뿐이다.
 
 ```python
-# contracts/hankkeut_contracts/__init__.py
+# data/analysis/contracts/hankkeut_contracts/__init__.py
 from __future__ import annotations
 from typing import Protocol, Sequence
 import pandas as pd
@@ -158,7 +159,7 @@ def validate(frame: pd.DataFrame, columns: list[str], name: str) -> pd.DataFrame
 def load_regions() -> pd.DataFrame:
     """지역 마스터. region_id, province_name, region_name, admin_type.
 
-    A가 생성해 contracts/hankkeut_contracts/data/regions.csv 로 커밋한다.
+    A가 생성해 data/analysis/contracts/hankkeut_contracts/data/regions.csv 로 커밋한다.
     B는 이걸 그대로 쓴다. 각자 만들면 지역 수가 어긋난다(230 vs 250 vs 264).
     """
     from pathlib import Path
@@ -172,7 +173,7 @@ def load_regions() -> pd.DataFrame:
 # A의 폴더
 from hankkeut_contracts import PeerFinder, PEER_COLUMNS, validate
 
-class TourgapPeerFinder:                       # Protocol이라 상속 불필요
+class HankkeutSimilarityPeerFinder:            # Protocol이라 상속 불필요
     def find_peers(self, target_region_id, *, k=None):
         ...
         return validate(frame, PEER_COLUMNS, "peers")
@@ -314,8 +315,8 @@ benchmark 0개일 때 무엇을 보여줄지 · 수요 데이터가 끝내 안 �
 
 확인:
   python3 -m unittest discover -s tests
-  tourgap --region 당진시 --no-save
-  tourgap --region 강남구 --no-save     (자치구 변별력)
+  hankkeut-similarity --region 당진시 --no-save
+  hankkeut-similarity --region 강남구 --no-save     (자치구 변별력)
 ```
 
 ### B용

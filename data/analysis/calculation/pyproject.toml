@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hankkeut-tourism-calculation"
+version = "0.1.0"
+description = "Tourism content collection and portfolio analysis"
+requires-python = ">=3.11"
+
+[project.scripts]
+hankkeut-portfolio = "hankkeut_calculation.gap_analyzer.cli:main"
+hankkeut-hubs = "hankkeut_calculation.gap_analyzer.hub_cli:main"
+hankkeut-stay = "hankkeut_calculation.gap_analyzer.stay_cli:main"
+hankkeut-kakao-places = "hankkeut_calculation.kakao_places.cli:main"
+hankkeut-kakao-regions = "hankkeut_calculation.kakao_places.region_cli:main"
+hankkeut-build-gyeonggi-boundaries = "hankkeut_calculation.kakao_places.boundary_builder:main"
+hankkeut-kakao-tourism-content = "hankkeut_calculation.kakao_places.tourism_cli:main"
+hankkeut-datalab-navigation = "hankkeut_calculation.datalab_navigation.cli:main"
+hankkeut-datalab-peer-manifest = "hankkeut_calculation.datalab_navigation.peer_manifest:main"
+hankkeut-datalab-peer-comparison = "hankkeut_calculation.datalab_navigation.peer_comparison:main"
+hankkeut-relative-supply-gap = "hankkeut_calculation.datalab_navigation.relative_supply:main"
+hankkeut-ai-tourism-report = "hankkeut_calculation.ai_reports.cli:main"
+
+[project.optional-dependencies]
+ai = ["openai>=1.0,<3.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

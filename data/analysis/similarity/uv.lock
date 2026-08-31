@@ -618,7 +618,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tourgap"
+name = "hankkeut-tourism-similarity"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

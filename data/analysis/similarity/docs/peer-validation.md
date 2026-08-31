@@ -154,9 +154,9 @@ peer가 3곳뿐이면 3곳만 쓰고 그 사실을 알리는 쪽이 정직하다
 ### 재현 방법
 
 ```bash
-tourgap --region 당진시 --explain          # 구조 변수 원본값 비교
-tourgap --region 울릉군                    # 고유 지역 사례
-tourgap --region 강남구                    # 자치구 한계 사례
+hankkeut-similarity --region 당진시 --explain          # 구조 변수 원본값 비교
+hankkeut-similarity --region 울릉군                    # 고유 지역 사례
+hankkeut-similarity --region 강남구                    # 자치구 한계 사례
 ```
 
 ---
@@ -164,7 +164,7 @@ tourgap --region 강남구                    # 자치구 한계 사례
 ## 8. 2026-08-24 구현 갱신 — 17개 구조 변수 계약
 
 `PeerFinder` 구현은 `contracts.PEER_COLUMNS` 검증을 통과하는
-`tourgap.peers.TourgapPeerFinder`로 제공한다. 반환 필수 컬럼은
+`hankkeut_similarity.peers.HankkeutSimilarityPeerFinder`로 제공한다. 반환 필수 컬럼은
 `rank`, `region_id`, `similarity`이며, target 지역은 제외하고 유사도 하한
 기본값 0.40과 기본 최대 15개를 적용한다.
 
@@ -199,7 +199,7 @@ pairwise 거리 계산 시 양쪽 지역 모두 값이 있는 변수만 사용�
 | 산업 4개 변수 | SGIS `company.json`, 제11차 산업분류 | 2024년 시군구 응답 수집·집계 완료 |
 
 공간 원자료와 기후평년값 원본은 Git에 넣지 않는다.
-`tourgap.data_sources.RawDataPaths`에 경계, 도시화경계, 해안선, 토지피복,
+`hankkeut_similarity.data_sources.RawDataPaths`에 경계, 도시화경계, 해안선, 토지피복,
 DEM, 기후평년값 파일 경로를 명시하고 `require_existing_paths()`로 입력
 계약을 먼저 검증한다. 토지피복은 일반구를 모 시로 합산하고, 2026년 인천
 분할 지역은 보정표로 기존 구 면적을 배분해 `proxy`로 표시한다. 기후평년값은

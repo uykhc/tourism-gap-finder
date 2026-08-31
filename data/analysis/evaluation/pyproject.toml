@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hankkeut-tourism-evaluation"
+version = "0.1.0"
+description = "Tourism benchmark and excellent-region evaluation"
+requires-python = ">=3.11"
+
+[project.scripts]
+hankkeut-benchmark = "hankkeut_evaluation.benchmark_cli:main"
+hankkeut-discover = "hankkeut_evaluation.discovery_cli:main"
+hankkeut-portfolio-benchmark = "hankkeut_evaluation.portfolio_benchmark_cli:main"
+hankkeut-visitor-portfolio = "hankkeut_evaluation.visitor_portfolio_benchmark:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
