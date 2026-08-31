@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local agent planning documents
+.agent-plans/
+
 ### yarn ###
 .yarn/*
 !.yarn/releases
