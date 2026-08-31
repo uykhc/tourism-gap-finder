@@ -20,6 +20,8 @@ docs/                 방법론·구조·데이터 출처·결과 문서
 
 ## 설치
 
+### 데이터 분석 및 API
+
 Python 3.11 이상이 필요합니다.
 
 ```bash
@@ -35,6 +37,29 @@ KOR_TOUR_API_SERVICE_KEY=
 HUB_TOUR_API_SERVICE_KEY=
 VISITOR_API_SERVICE_KEY=
 ```
+
+### 프론트엔드
+
+Node.js 24가 필요합니다.
+
+```bash
+cd apps/web
+corepack enable
+yarn install --immutable
+cp .env.example .env.local
+yarn dev
+```
+
+프론트엔드의 정적 검사와 프로덕션 빌드는 다음 명령으로 확인합니다.
+
+```bash
+cd apps/web
+yarn check-all
+yarn build
+```
+
+`main` 브랜치를 대상으로 하는 PR과 `main` push에서는 GitHub Actions가 동일한 검사를
+실행합니다. Vercel 프로젝트의 Root Directory는 `apps/web`으로 설정합니다.
 
 ## 현재 분석 명령
 

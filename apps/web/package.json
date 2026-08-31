@@ -1,0 +1,34 @@
+{
+  "name": "tourism-gap-finder-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "packageManager": "yarn@4.9.1",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "biome lint .",
+    "fix": "biome check --write .",
+    "check:types": "tsc -b",
+    "check:format": "biome check .",
+    "check:unused": "knip",
+    "check-all": "yarn check:types && yarn check:format && yarn check:unused"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@types/node": "^22.15.29",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react-swc": "^3.9.0",
+    "knip": "^5.59.1",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.5"
+  }
+}
