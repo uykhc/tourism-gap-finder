@@ -5,10 +5,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 from hankkeut_analysis.kakao_places.client import KakaoLocalApiError, KakaoLocalClient
-from hankkeut_analysis.kakao_places.models import KakaoCategoryCollection, KakaoPlace
+from hankkeut_analysis.kakao_places.models import KakaoCategoryCollection, KakaoKeywordCollection, KakaoPlace
 from hankkeut_analysis.kakao_places.boundary_builder import build_gyeonggi_sigun_boundaries
 from hankkeut_analysis.kakao_places.region_collector import KakaoRegionCollector, point_in_multipolygon
 from hankkeut_analysis.kakao_places.region_cli import _checkpoint_name, _load_checkpoint, _write_json
+from hankkeut_analysis.kakao_places.tourism_content import KakaoTourismContentCollector, load_tourism_content_taxonomy
 from hankkeut_analysis.tourism_data.config import resolve_kakao_rest_api_key
 
 
@@ -61,6 +62,19 @@ class KakaoLocalClientTest(unittest.TestCase):
         self.assertEqual(result.collected_count, 1)
         self.assertEqual(parse_qs(urlparse(requests[0].full_url).query)["rect"], ["127.0,37.0,127.2,37.6"])
 
+    def test_collects_keyword_in_rectangle(self):
+        def opener(request, timeout):
+            query = parse_qs(urlparse(request.full_url).query)
+            self.assertEqual(query["query"], ["공방"])
+            return _Response({"meta": {"total_count": 1, "pageable_count": 1, "is_end": True}, "documents": [{"id": "1", "place_name": "A", "x": "127.1", "y": "37.5"}]})
+
+        result = KakaoLocalClient("test-key", opener=opener).collect_keyword_in_rectangle(
+            query="공방", west=127.0, south=37.0, east=127.2, north=37.6
+        )
+
+        self.assertEqual(result.query, "공방")
+        self.assertEqual(result.collected_count, 1)
+
     def test_rejects_unsupported_category(self):
         with self.assertRaisesRegex(ValueError, "Unsupported"):
             KakaoLocalClient("test-key").collect_category_nearby(category_group_code="BAD", longitude=127.0, latitude=37.0)
@@ -110,6 +124,54 @@ class KakaoRegionCollectorTest(unittest.TestCase):
         )
         self.assertTrue(point_in_multipolygon((0.5, 0.5), polygons))
         self.assertFalse(point_in_multipolygon((2, 2), polygons))
+
+    def test_collects_keyword_with_boundary_filtering(self):
+        class Client:
+            def collect_keyword_in_rectangle(self, **_):
+                places = (
+                    KakaoPlace("inside", "공방", "", "", "", "", "", 0.25, 0.25, "", "", None),
+                    KakaoPlace("outside", "밖", "", "", "", "", "", 2.0, 2.0, "", "", None),
+                )
+                return KakaoKeywordCollection("공방", 2, 2, 2, False, places)
+
+        geometry = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]}
+        result = KakaoRegionCollector(Client()).collect_keyword(
+            region_name="테스트시", geometry=geometry, query="공방", initial_tile_meters=200_000, minimum_tile_meters=1
+        )
+
+        self.assertEqual(result.collected_count, 1)
+        self.assertEqual(result.places[0].place_id, "inside")
+
+
+class TourismContentCollectorTest(unittest.TestCase):
+    def test_merges_place_ids_and_classifies_keywords_before_categories(self):
+        class Client:
+            def collect_category_in_rectangle(self, **kwargs):
+                category = kwargs["category_group_code"]
+                place = KakaoPlace("same", "테스트 공방", category, "", "", "", "", 0.5, 0.5, "", "", None)
+                return KakaoCategoryCollection(category, "", 0.5, 0.5, 0, 1, 1, 1, False, (place,))
+
+            def collect_keyword_in_rectangle(self, **kwargs):
+                if kwargs["query"] != "공방":
+                    return KakaoKeywordCollection(kwargs["query"], 0, 0, 0, False, ())
+                place = KakaoPlace("same", "테스트 공방", "CT1", "", "", "", "", 0.5, 0.5, "", "", None)
+                return KakaoKeywordCollection(kwargs["query"], 1, 1, 1, False, (place,))
+
+        with tempfile.TemporaryDirectory() as directory:
+            taxonomy_path = Path(directory) / "taxonomy.json"
+            taxonomy_path.write_text(json.dumps({
+                "version": "test", "content_types": ["음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"],
+                "category_rules": {"FD6": "음식", "AD5": "숙박", "CT1": "문화관광"},
+                "keyword_rules": {"체험관광": ["공방"], "레저스포츠": ["캠핑"], "쇼핑": ["시장"]},
+            }), encoding="utf-8")
+            geometry = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]}
+            result = KakaoTourismContentCollector(Client(), load_tourism_content_taxonomy(taxonomy_path)).collect_region(
+                region_name="테스트시", geometry=geometry, initial_tile_meters=200_000, minimum_tile_meters=1
+            )
+
+        self.assertEqual(result.collected_count, 1)
+        self.assertEqual(result.content_type_counts["체험관광"], 1)
+        self.assertEqual(result.places[0].classification_source, "keyword")
 
 
 class GyeonggiBoundaryBuilderTest(unittest.TestCase):

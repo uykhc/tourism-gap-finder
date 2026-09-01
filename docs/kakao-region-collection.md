@@ -1,6 +1,9 @@
 # 카카오맵 시군구 콘텐츠 수집
 
-`hankkeut-kakao-regions`는 관광명소 주변 검색이 아니라 행정경계 전체에서 카카오 로컬 API의 장소 카테고리를 집계한다.
+`hankkeut-kakao-regions`는 관광명소 주변 검색이 아니라 행정경계 전체에서 카카오 로컬 API의 장소 카테고리를 수집한다.
+
+관광 콘텐츠 빈칸 분석의 원천 데이터는 `hankkeut-kakao-tourism-content`로 수집한다.
+이 명령은 카테고리와 키워드 검색 결과를 `place_id`로 합치고, 음식·숙박·문화관광·체험관광·레저스포츠·쇼핑 6개 유형으로 분류한다.
 
 ## 준비물
 
@@ -34,12 +37,31 @@ $env:PYTHONPATH = 'packages/analysis'
 python -m hankkeut_analysis.kakao_places.region_cli --boundaries data/raw/gyeonggi_sigungu.geojson --region-name 수원시 --category CT1
 ```
 
-기본값은 모든 입력 시군구와 지원 카테고리(`CT1`, `AT4`, `AD5`, `FD6`, `CE7`, `PK6`, `SW8`, `PO3`)를 수집하여 `data/analysis/kakao_regions/kakao_region_categories.json`에 저장한다.
+기본값은 모든 입력 시군구와 지원 카테고리(`CT1`, `AT4`, `AD5`, `FD6`, `CE7`, `PK6`, `SW8`, `PO3`)를 장소 목록 방식으로 수집하여 `data/analysis/kakao_regions/kakao_region_categories.json`에 저장한다.
 
 밀집 지역에서는 결과 한도를 피하기 위해 처음 5 km 격자에서 시작해 필요 시 250 m까지 4분할한다. 출력의 `truncated_tile_count`가 0보다 크면 해당 카테고리는 여전히 누락 가능성이 있으므로 더 작은 `--minimum-tile-meters`로 재수집하거나 분석에서 제외한다.
 
 각 카테고리 결과에는 경계 좌표로 필터링한 장소 목록과 함께 주소 검증 지표도 저장한다. `address_match_count`는 카카오의 도로명/지번 주소에 대상 시·군명이 포함된 건수이고, `address_mismatch_samples`는 경계에는 포함되지만 주소 표기가 다른 사례이므로 수집 후 검토 대상이다.
 
+## 6개 관광 콘텐츠 유형 수집
+
+분석에 사용할 수집은 아래 명령을 사용한다.
+
+```bash
+hankkeut-kakao-tourism-content \
+  --boundaries data/raw/gyeonggi_sigungu.geojson \
+  --region-name 수원시
+```
+
+분류 규칙과 키워드 사전은 `config/kakao/tourism_content_taxonomy.json`에 있다.
+카테고리(`FD6`, `CE7`, `AD5`, `CT1`, `AT4`)는 음식·숙박·문화관광의 기본 후보를 만들고,
+체험·레저·쇼핑은 이 파일의 키워드를 각각 행정경계 전체에서 검색한다. 키워드 결과가
+카테고리 결과와 겹치면 하나의 `place_id`로 합치며, 키워드 분류를 우선 적용한다.
+
+출력에는 유형별 장소 수, 원본 장소와 발견 카테고리·키워드, 분류 근거, 잘린 격자 수가
+함께 저장된다. `is_complete`가 `false`이면 최소 격자에서도 검색 결과가 잘렸으므로 해당
+지역·유형의 공급량을 분석에 사용하기 전에 재수집 또는 검토해야 한다.
+
 ## 체크포인트와 재개
 
-수집은 시군·카테고리 하나씩 순차적으로 진행하며, 완료 직후 각각 별도 JSON 체크포인트를 저장한다. 기본적으로 다시 실행하면 완료된 체크포인트를 재사용하므로, 중간에 종료돼도 미완료 항목만 이어서 수집한다. `--no-resume`을 지정하면 선택 범위를 다시 수집한다.
+수집은 시군·카테고리 또는 시군 하나씩 순차적으로 진행하며, 완료 직후 각각 별도 JSON 체크포인트를 저장한다. 기본적으로 다시 실행하면 완료된 체크포인트를 재사용하므로, 중간에 종료돼도 미완료 항목만 이어서 수집한다. `--no-resume`을 지정하면 선택 범위를 다시 수집한다.

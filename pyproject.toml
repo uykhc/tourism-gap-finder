@@ -22,6 +22,7 @@ hankkeut-similarity-groups = "hankkeut_analysis.peer_finder.similarity_cli:main"
 hankkeut-kakao-places = "hankkeut_analysis.kakao_places.cli:main"
 hankkeut-kakao-regions = "hankkeut_analysis.kakao_places.region_cli:main"
 hankkeut-build-gyeonggi-boundaries = "hankkeut_analysis.kakao_places.boundary_builder:main"
+hankkeut-kakao-tourism-content = "hankkeut_analysis.kakao_places.tourism_cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "packages/analysis"}

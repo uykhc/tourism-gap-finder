@@ -51,6 +51,30 @@ class KakaoRegionCategoryCollection:
         }
 
 
+@dataclass(frozen=True, slots=True)
+class KakaoRegionKeywordCollection:
+    region_name: str
+    query: str
+    collected_count: int
+    searched_tile_count: int
+    truncated_tile_count: int
+    initial_tile_meters: int
+    minimum_tile_meters: int
+    places: tuple[KakaoPlace, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "region_name": self.region_name,
+            "query": self.query,
+            "collected_count": self.collected_count,
+            "searched_tile_count": self.searched_tile_count,
+            "truncated_tile_count": self.truncated_tile_count,
+            "initial_tile_meters": self.initial_tile_meters,
+            "minimum_tile_meters": self.minimum_tile_meters,
+            "places": [place.to_dict() for place in self.places],
+        }
+
+
 class KakaoRegionCollector:
     """Collect and de-duplicate category places inside a municipal boundary.
 
@@ -118,6 +142,44 @@ class KakaoRegionCollector:
             address_mismatch_count=mismatched,
             address_unverified_count=unverified,
             address_mismatch_samples=samples,
+            places=places,
+        )
+
+    def collect_keyword(
+        self,
+        *,
+        region_name: str,
+        geometry: dict[str, Any],
+        query: str,
+        initial_tile_meters: int = DEFAULT_INITIAL_TILE_METERS,
+        minimum_tile_meters: int = DEFAULT_MIN_TILE_METERS,
+    ) -> KakaoRegionKeywordCollection:
+        if not region_name.strip() or not query.strip():
+            raise ValueError("region_name and query must not be empty.")
+        _validate_tile_sizes(initial_tile_meters, minimum_tile_meters)
+        polygons = parse_geojson_geometry(geometry)
+        tiles = _make_tiles(_bounds(polygons), initial_tile_meters)
+        places_by_id: dict[str, KakaoPlace] = {}
+        searched_tile_count = truncated_tile_count = 0
+        while tiles:
+            west, south, east, north = tiles.pop()
+            result = self._client.collect_keyword_in_rectangle(
+                query=query, west=west, south=south, east=east, north=north
+            )
+            searched_tile_count += 1
+            if result.result_truncated:
+                if _tile_width_meters((west, south, east, north)) > minimum_tile_meters:
+                    tiles.extend(_split_tile(west, south, east, north))
+                    continue
+                truncated_tile_count += 1
+            for place in result.places:
+                if point_in_multipolygon((place.longitude, place.latitude), polygons):
+                    places_by_id[place.place_id] = place
+        places = tuple(sorted(places_by_id.values(), key=lambda place: (place.name, place.place_id)))
+        return KakaoRegionKeywordCollection(
+            region_name=region_name.strip(), query=query.strip(), collected_count=len(places),
+            searched_tile_count=searched_tile_count, truncated_tile_count=truncated_tile_count,
+            initial_tile_meters=initial_tile_meters, minimum_tile_meters=minimum_tile_meters,
             places=places,
         )
 

@@ -58,3 +58,23 @@ class KakaoCategoryMetadata:
     category_group_code: str
     total_count: int
     pageable_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class KakaoKeywordCollection:
+    query: str
+    api_total_count: int
+    pageable_count: int
+    collected_count: int
+    result_truncated: bool
+    places: tuple[KakaoPlace, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "query": self.query,
+            "api_total_count": self.api_total_count,
+            "pageable_count": self.pageable_count,
+            "collected_count": self.collected_count,
+            "result_truncated": self.result_truncated,
+            "places": [place.to_dict() for place in self.places],
+        }

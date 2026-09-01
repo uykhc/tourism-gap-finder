@@ -10,9 +10,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-from .models import KakaoCategoryCollection, KakaoCategoryMetadata, KakaoPlace
+from .models import KakaoCategoryCollection, KakaoCategoryMetadata, KakaoKeywordCollection, KakaoPlace
 
 DEFAULT_BASE_URL = "https://dapi.kakao.com/v2/local/search/category.json"
+KEYWORD_SEARCH_BASE_URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
 MAX_RADIUS_METERS = 20_000
 MAX_PAGE_SIZE = 15
 MAX_PAGES = 45
@@ -158,6 +159,53 @@ class KakaoLocalClient:
             places=places,
         )
 
+    def collect_keyword_in_rectangle(
+        self,
+        *,
+        query: str,
+        west: float,
+        south: float,
+        east: float,
+        north: float,
+    ) -> KakaoKeywordCollection:
+        """Collect one keyword from a WGS84 bounding rectangle."""
+        normalized_query = query.strip()
+        if not normalized_query:
+            raise ValueError("Keyword query must not be empty.")
+        _validate_rectangle(west, south, east, north)
+        places_by_id: dict[str, KakaoPlace] = {}
+        total_count = pageable_count = 0
+        page = 1
+        while True:
+            payload = self._request_page(
+                base_url=KEYWORD_SEARCH_BASE_URL,
+                query=normalized_query,
+                rect=f"{west},{south},{east},{north}",
+                page=page,
+            )
+            meta = payload.get("meta")
+            documents = payload.get("documents")
+            if not isinstance(meta, dict) or not isinstance(documents, list):
+                raise KakaoLocalApiError("Kakao Local API response has an invalid shape.")
+            total_count = _non_negative_int(meta.get("total_count"), "total_count")
+            pageable_count = _non_negative_int(meta.get("pageable_count"), "pageable_count")
+            for document in documents:
+                if isinstance(document, dict):
+                    place = _to_place(document)
+                    places_by_id[place.place_id] = place
+            if bool(meta.get("is_end")) or page >= MAX_PAGES:
+                break
+            page += 1
+        places = tuple(sorted(places_by_id.values(), key=lambda item: (item.name, item.place_id)))
+        return KakaoKeywordCollection(
+            query=normalized_query,
+            api_total_count=total_count,
+            pageable_count=pageable_count,
+            collected_count=len(places),
+            result_truncated=total_count > pageable_count or len(places) < min(total_count, pageable_count),
+            places=places,
+        )
+
     def inspect_category_in_rectangle(
         self, *, category_group_code: str, west: float, south: float, east: float, north: float
     ) -> KakaoCategoryMetadata:
@@ -195,10 +243,10 @@ class KakaoLocalClient:
             for code in codes
         )
 
-    def _request_page(self, **parameters: Any) -> dict[str, Any]:
+    def _request_page(self, *, base_url: str | None = None, **parameters: Any) -> dict[str, Any]:
         query = urlencode({**parameters, "size": MAX_PAGE_SIZE})
         request = Request(
-            f"{self._base_url}?{query}",
+            f"{base_url or self._base_url}?{query}",
             headers={
                 "Accept": "application/json",
                 "Authorization": f"KakaoAK {self._rest_api_key}",

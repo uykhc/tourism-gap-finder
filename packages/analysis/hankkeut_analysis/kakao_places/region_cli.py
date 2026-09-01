@@ -27,7 +27,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--initial-tile-meters", type=int, default=DEFAULT_COUNT_TILE_METERS)
     parser.add_argument("--minimum-tile-meters", type=int, default=DEFAULT_MIN_TILE_METERS)
     parser.add_argument("--dense-tile-threshold", type=int, default=DEFAULT_DENSE_TILE_THRESHOLD)
-    parser.add_argument("--collection-mode", choices=("count-first", "places"), default="count-first")
+    parser.add_argument("--collection-mode", choices=("count-first", "places"), default="places")
     parser.add_argument("--rest-api-key", help="Overrides KAKAO_REST_API_KEY for this run.")
     parser.add_argument("--output", type=Path, default=Path("data/analysis/kakao_regions/kakao_region_categories.json"))
     parser.add_argument("--checkpoint-dir", type=Path, help="Directory for per-region/category completed results. Defaults beside --output.")
@@ -113,7 +113,7 @@ def _load_checkpoint(path: Path) -> dict[str, Any] | None:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return None
-    required = {"region_name", "category_group_code", "collected_count", "places"}
+    required = {"region_name", "category_group_code", "collected_count"}
     return payload if isinstance(payload, dict) and required.issubset(payload) else None
 
 
