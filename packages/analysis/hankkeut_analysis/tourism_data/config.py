@@ -11,6 +11,7 @@ SERVICE_KEY_ENV_NAME = "TOUR_API_SERVICE_KEY"
 PORTFOLIO_SERVICE_KEY_ENV_NAME = "KOR_TOUR_API_SERVICE_KEY"
 HUB_SERVICE_KEY_ENV_NAME = "HUB_TOUR_API_SERVICE_KEY"
 VISITOR_SERVICE_KEY_ENV_NAME = "VISITOR_API_SERVICE_KEY"
+KAKAO_REST_API_KEY_ENV_NAME = "KAKAO_REST_API_KEY"
 DEFAULT_DOTENV_PATH = Path(".env")
 
 
@@ -109,6 +110,19 @@ def resolve_visitor_service_key(
         dotenv_path=dotenv_path,
         environ=environ,
         env_names=(VISITOR_SERVICE_KEY_ENV_NAME, SERVICE_KEY_ENV_NAME),
+    )
+
+
+def resolve_kakao_rest_api_key(
+    *,
+    dotenv_path: Path = DEFAULT_DOTENV_PATH,
+    environ: Mapping[str, str] | None = None,
+) -> str | None:
+    """Resolve the Kakao Local API REST key without exposing it in output."""
+    return resolve_service_key(
+        dotenv_path=dotenv_path,
+        environ=environ,
+        env_names=(KAKAO_REST_API_KEY_ENV_NAME,),
     )
 
 

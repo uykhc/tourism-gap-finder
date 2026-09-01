@@ -161,6 +161,7 @@ venv.bak/
 # Generated API responses and analysis outputs
 /data/raw/*
 !/data/raw/.gitkeep
+/data/reference/
 /data/interim/*
 !/data/interim/.gitkeep
 /results/
