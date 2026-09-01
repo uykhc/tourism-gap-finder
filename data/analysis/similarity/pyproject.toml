@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tourgap"
+version = "0.1.0"
+description = "韓끗 — 구조 특성 기반 시군구 유사 지역 탐색"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "python-dotenv>=1.0",
+    "openpyxl>=3.1",
+    "lxml>=5.0",
+]
+
+[project.scripts]
+tourgap = "tourgap.main:main"
+tourgap-collect = "tourgap.collect:main"
+tourgap-build-climate = "tourgap.climate:main"
+tourgap-build-terrain = "tourgap.terrain:main"
+tourgap-build-land-cover = "tourgap.land_cover:main"
+
+[project.optional-dependencies]
+geospatial = ["rasterio>=1.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
