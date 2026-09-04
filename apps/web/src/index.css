@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/variable/pretendardvariable.css";
+
+@theme inline {
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.2;
+  --text-heading--letter-spacing: -0.02em;
+  --text-heading--font-weight: 600;
+
+  --text-subheading: 1.25rem;
+  --text-subheading--line-height: 1.2;
+  --text-subheading--letter-spacing: 0;
+  --text-subheading--font-weight: 600;
+
+  --text-body-strong: 1rem;
+  --text-body-strong--line-height: 1.4;
+  --text-body-strong--letter-spacing: 0;
+  --text-body-strong--font-weight: 600;
+
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: 0;
+  --text-body--font-weight: 400;
+
+  --text-body-small: 0.875rem;
+  --text-body-small--line-height: 1.4;
+  --text-body-small--letter-spacing: 0;
+  --text-body-small--font-weight: 400;
+
+  --text-label: 1rem;
+  --text-label--line-height: 1;
+  --text-label--letter-spacing: 0;
+  --text-label--font-weight: 500;
+
+  --text-label-small: 0.875rem;
+  --text-label-small--line-height: 1;
+  --text-label-small--letter-spacing: 0;
+  --text-label-small--font-weight: 600;
+}
+
+:root {
+  --background: #f9faf9;
+  --foreground: #1a1f26;
+  --card: #ffffff;
+  --card-foreground: #1a1f26;
+  --popover: #ffffff;
+  --popover-foreground: #1a1f26;
+  --primary: #296b52;
+  --primary-foreground: #ffffff;
+  --secondary: #e5f2eb;
+  --secondary-foreground: #296b52;
+  --muted: #f5f7fa;
+  --muted-foreground: #636e7d;
+  --accent: #e5f2eb;
+  --accent-foreground: #296b52;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: #d1d6de;
+  --input: #d1d6de;
+  --ring: #296b52;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-width: 20rem;
+    margin: 0;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: var(--text-body);
+    font-weight: var(--text-body--font-weight);
+    line-height: var(--text-body--line-height);
+    letter-spacing: var(--text-body--letter-spacing);
+  }
+
+  h1,
+  h2,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: var(--text-heading);
+    font-weight: var(--text-heading--font-weight);
+    line-height: var(--text-heading--line-height);
+    letter-spacing: var(--text-heading--letter-spacing);
+  }
+
+  h2 {
+    font-size: var(--text-subheading);
+    font-weight: var(--text-subheading--font-weight);
+    line-height: var(--text-subheading--line-height);
+    letter-spacing: var(--text-subheading--letter-spacing);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

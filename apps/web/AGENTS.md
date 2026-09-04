@@ -35,12 +35,30 @@
   - 컴포넌트가 아닌 export 유틸리티는 화살표 함수로 작성한다.
     - 예: `export const formatDate = (...) => { ... }`
 
+## Typography 규칙
+
+- Figma의 `韓끗 / 00 Typography Guide · 16:9 v2`를 앱 전체 typography의 기준으로 사용한다.
+- 공통 typography 값은 `src/index.css`의 Tailwind `--text-*` theme token에서 관리한다. 페이지나 컴포넌트에서 `text-[16px]`, `leading-[1.4]`, `font-semibold`처럼 동일 규격을 개별 class로 다시 조합하지 않는다.
+- 기본 시맨틱 태그는 `src/index.css`의 base layer에 다음과 같이 연결한다.
+  - `body`: Body Base
+  - `h1`: Heading
+  - `h2`: Subheading
+- 페이지의 주 제목은 `<h1>`, 주요 하위 섹션 제목은 `<h2>`를 사용하며 별도의 typography class를 추가하지 않는다. 태그는 글자 크기가 아니라 문서 구조를 기준으로 선택한다.
+- 제목 단계나 타입 스타일이 추가로 필요하면 임의의 크기를 만들지 않는다. 먼저 Figma Typography Guide를 수정한 뒤 `src/index.css`의 token과 전역 태그 매핑을 함께 갱신한다.
+- HTML 태그만으로 용도를 구분할 수 없는 스타일은 다음 의미 기반 token을 사용한다.
+  - 강조 본문: `text-body-strong`
+  - 작은 보조 본문: `text-body-small`
+  - 단일 행 기본 라벨: `text-label`
+  - 단일 행 작은 강조 라벨: `text-label-small`
+- 일반 본문은 `body`의 Body Base를 상속하므로 불필요한 `text-body` class를 반복하지 않는다.
+- `<strong>`에는 주변 글자의 크기와 행간을 유지하도록 굵기만 적용한다. Body Strong 전체 규격이 필요한 독립 문단에는 `text-body-strong`을 사용한다.
+- Shadcn `Button`, input label처럼 typography가 컴포넌트 규격의 일부인 경우 해당 공통 컴포넌트 내부에서 의미 기반 token을 적용하고 호출부에서 반복하지 않는다.
 
 # 3. Work Process (Mandatory File-based Planning)
-- **Step-by-Step Approach**: 코드를 수정하기 전, 반드시 다음 두 파일을 `.agent-plans/`에 생성/업데이트하여 제시한다.
-  1. **[Implementation Plan]**: 구체적인 수정 범위와 로직을 한국어로 기술한 `.agent-plans/implementation-plan-<task-name>.md` 문서.
-  2. **[Task]**: 체크박스(`- [ ]`) 형태의 세부 작업 리스트를 작성한 `.agent-plans/task-<task-name>.md` 문서.
-- **Local-only Documents**: `.agent-plans/`는 로컬 작업용이며 Git에 포함하지 않는다. 해당 파일을 `git add -f`로 강제 추가하거나 커밋 및 PR에 포함하지 않는다.
+- **Step-by-Step Approach**: 코드를 수정하기 전, 반드시 다음 두 파일을 `apps/web/.agent-plans/`에 생성/업데이트하여 제시한다. 저장소 루트의 `.agent-plans/`에는 프론트엔드 작업 문서를 만들지 않는다.
+  1. **[Implementation Plan]**: 구체적인 수정 범위와 로직을 한국어로 기술한 `apps/web/.agent-plans/implementation-plan-<task-name>.md` 문서.
+  2. **[Task]**: 체크박스(`- [ ]`) 형태의 세부 작업 리스트를 작성한 `apps/web/.agent-plans/task-<task-name>.md` 문서.
+- **Local-only Documents**: `apps/web/.agent-plans/`는 로컬 작업용이며 `apps/web/.gitignore`로 Git에서 제외한다. 해당 파일을 `git add -f`로 강제 추가하거나 커밋 및 PR에 포함하지 않는다.
 - **Task-specific Documents**: 새로운 작업은 영문 kebab-case의 `<task-name>`을 사용해 Plan과 Task 문서를 새로 생성하며, 기존 작업 문서를 덮어쓰지 않는다.
 - **Permission Required**: 위 두 파일이 생성되고, 사용자의 **승인(Confirmation)**을 받은 후에만 실제 코드 수정을 시작한다.
 - **Progress Tracking**: 작업이 진행됨에 따라 [Task] 파일의 체크박스를 업데이트하여 진행 상황을 공유한다.
