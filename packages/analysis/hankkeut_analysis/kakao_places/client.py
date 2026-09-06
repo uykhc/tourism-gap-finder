@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import math
 from collections.abc import Callable, Iterable
+from time import sleep
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
@@ -41,16 +42,24 @@ class KakaoLocalClient:
         *,
         base_url: str = DEFAULT_BASE_URL,
         timeout_seconds: float = 20.0,
+        max_retries: int = 5,
+        retry_backoff_seconds: float = 1.0,
         opener: Callable[..., Any] = urlopen,
+        sleeper: Callable[[float], None] = sleep,
     ) -> None:
         if not rest_api_key.strip():
             raise ValueError("Kakao REST API key must not be empty.")
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be greater than zero.")
+        if max_retries < 0 or retry_backoff_seconds <= 0:
+            raise ValueError("max_retries는 0 이상이고 retry_backoff_seconds는 양수여야 합니다.")
         self._rest_api_key = rest_api_key.strip()
         self._base_url = base_url
         self._timeout_seconds = timeout_seconds
+        self._max_retries = max_retries
+        self._retry_backoff_seconds = retry_backoff_seconds
         self._opener = opener
+        self._sleeper = sleeper
 
     def collect_category_nearby(
         self,
@@ -253,18 +262,32 @@ class KakaoLocalClient:
                 "User-Agent": "TourismGapFinder/0.1",
             },
         )
-        try:
-            with self._opener(request, timeout=self._timeout_seconds) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except HTTPError as exc:
-            raise KakaoLocalApiError(f"Kakao Local API HTTP error ({exc.code}).") from exc
-        except URLError as exc:
-            raise KakaoLocalApiError(f"Kakao Local API connection failed: {exc.reason}") from exc
-        except (TimeoutError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise KakaoLocalApiError("Kakao Local API response could not be decoded.") from exc
+        for attempt in range(self._max_retries + 1):
+            try:
+                with self._opener(request, timeout=self._timeout_seconds) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                break
+            except HTTPError as exc:
+                if not _retryable_http_status(exc.code) or attempt == self._max_retries:
+                    raise KakaoLocalApiError(f"Kakao Local API HTTP error ({exc.code}).") from exc
+                self._backoff(attempt)
+            except (URLError, TimeoutError) as exc:
+                if attempt == self._max_retries:
+                    reason = exc.reason if isinstance(exc, URLError) else str(exc)
+                    raise KakaoLocalApiError(f"Kakao Local API connection failed: {reason}") from exc
+                self._backoff(attempt)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise KakaoLocalApiError("Kakao Local API response could not be decoded.") from exc
         if not isinstance(payload, dict):
             raise KakaoLocalApiError("Kakao Local API top-level response must be an object.")
         return payload
+
+    def _backoff(self, attempt: int) -> None:
+        self._sleeper(self._retry_backoff_seconds * (2 ** attempt))
+
+
+def _retryable_http_status(status: int) -> bool:
+    return status == 429 or 500 <= status <= 599
 
 
 def _validate_category(value: str) -> str:

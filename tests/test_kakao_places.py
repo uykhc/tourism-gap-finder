@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 
 from hankkeut_analysis.kakao_places.client import KakaoLocalApiError, KakaoLocalClient
@@ -85,6 +86,22 @@ class KakaoLocalClientTest(unittest.TestCase):
 
         with self.assertRaises(KakaoLocalApiError):
             KakaoLocalClient("test-key", opener=opener).collect_category_nearby(category_group_code="CT1", longitude=127.0, latitude=37.0)
+
+    def test_retries_transient_ssl_or_connection_timeout(self):
+        calls, waits = [], []
+
+        def opener(*_, **__):
+            calls.append(1)
+            if len(calls) == 1:
+                raise URLError(TimeoutError("SSL handshake timed out"))
+            return _Response({"meta": {"total_count": 0, "pageable_count": 0, "is_end": True}, "documents": []})
+
+        result = KakaoLocalClient("test-key", opener=opener, max_retries=2, sleeper=waits.append).collect_category_nearby(
+            category_group_code="CT1", longitude=127.0, latitude=37.0,
+        )
+        self.assertEqual(result.collected_count, 0)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(waits, [1.0])
 
 
 class KakaoKeyConfigTest(unittest.TestCase):

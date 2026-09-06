@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tourism Gap Insight Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["region_name", "analysis_period", "status", "gap_types", "sources", "limitations"],
+  "properties": {
+    "region_name": {"type": "string", "minLength": 1},
+    "analysis_period": {"type": "string", "pattern": "^[0-9]{6}~[0-9]{6}$"},
+    "status": {"enum": ["provisional", "final"]},
+    "gap_types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["content_type", "judgement", "quantitative_evidence", "peer_cases", "applicability_insight"],
+        "properties": {
+          "content_type": {"enum": ["음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"]},
+          "judgement": {"type": "string", "minLength": 1},
+          "quantitative_evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["metric", "target_value", "comparison"],
+              "properties": {
+                "metric": {"type": "string", "minLength": 1},
+                "target_value": {"type": "number"},
+                "comparison": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "peer_cases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "peer_region", "summary", "source_ids"],
+              "properties": {
+                "title": {"type": "string", "minLength": 1},
+                "peer_region": {"type": "string", "minLength": 1},
+                "summary": {"type": "string", "minLength": 1},
+                "source_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+              }
+            }
+          },
+          "applicability_insight": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source_id", "title", "publisher", "url", "published_at"],
+        "properties": {
+          "source_id": {"type": "string", "minLength": 1},
+          "title": {"type": "string", "minLength": 1},
+          "publisher": {"type": "string", "minLength": 1},
+          "url": {"type": "string", "pattern": "^https://"},
+          "published_at": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}

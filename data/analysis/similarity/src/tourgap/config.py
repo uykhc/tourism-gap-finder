@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = PROJECT_ROOT.parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
@@ -174,10 +175,30 @@ def set_config(config: Config) -> None:
 
 
 def data_go_kr_key() -> str:
-    key = os.environ.get("DATA_GO_KR_SERVICE_KEY", "").strip()
+    # 루트 분석기에서 이미 쓰는 키 이름도 지원한다. 중첩 프로젝트의 과거
+    # 이름(DATA_GO_KR_SERVICE_KEY)을 강제하면 같은 KorService 권한 키를
+    # .env에 중복 저장하게 되기 때문이다.
+    key = (
+        os.environ.get("DATA_GO_KR_SERVICE_KEY", "").strip()
+        or os.environ.get("TOUR_API_SERVICE_KEY", "").strip()
+        or os.environ.get("KOR_TOUR_API_SERVICE_KEY", "").strip()
+    )
     if not key:
-        raise RuntimeError("DATA_GO_KR_SERVICE_KEY가 없습니다. .env를 확인하세요.")
+        raise RuntimeError(
+            "TOUR_API_SERVICE_KEY(또는 DATA_GO_KR_SERVICE_KEY)가 없습니다. .env를 확인하세요."
+        )
     return key
+
+
+def load_project_environment() -> Path | None:
+    """Load the repository dotenv for both the standalone and root CLI paths."""
+    from dotenv import load_dotenv
+
+    for path in (REPOSITORY_ROOT / ".env", PROJECT_ROOT / ".env"):
+        if path.exists():
+            load_dotenv(path, override=False)
+            return path
+    return None
 
 
 def sgis_credentials() -> tuple[str, str] | None:
