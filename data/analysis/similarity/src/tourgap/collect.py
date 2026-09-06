@@ -17,9 +17,7 @@ import json
 import sys
 import time
 
-from dotenv import load_dotenv
-
-from .config import PROJECT_ROOT, RAW_DIR, data_go_kr_key
+from .config import RAW_DIR, data_go_kr_key, load_project_environment
 from .sources.kto_kor import CONTENT_TYPES, KorServiceClient, TourApiError
 
 TOURAPI_REGIONS_PATH = RAW_DIR / "tourapi_regions.json"
@@ -118,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--refresh", action="store_true", help="캐시를 무시하고 다시 받는다")
     args = parser.parse_args(argv)
 
-    load_dotenv(PROJECT_ROOT / ".env")
+    load_project_environment()
     client = KorServiceClient(data_go_kr_key())
 
     print("[1/3] TourAPI 지역코드")

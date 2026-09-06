@@ -12,6 +12,7 @@ dependencies = []
 
 [project.optional-dependencies]
 api = ["fastapi>=0.115,<1.0", "uvicorn[standard]>=0.30,<1.0", "SQLAlchemy>=2.0,<3.0", "pwdlib[argon2]>=0.2,<1.0", "PyJWT>=2.8,<3.0", "email-validator>=2.0,<3.0"]
+ai = ["openai>=1.0,<3.0"]
 
 [project.scripts]
 hankkeut-portfolio = "hankkeut_analysis.gap_analyzer.cli:main"
@@ -26,6 +27,11 @@ hankkeut-kakao-places = "hankkeut_analysis.kakao_places.cli:main"
 hankkeut-kakao-regions = "hankkeut_analysis.kakao_places.region_cli:main"
 hankkeut-build-gyeonggi-boundaries = "hankkeut_analysis.kakao_places.boundary_builder:main"
 hankkeut-kakao-tourism-content = "hankkeut_analysis.kakao_places.tourism_cli:main"
+hankkeut-datalab-navigation = "hankkeut_analysis.datalab_navigation.cli:main"
+hankkeut-datalab-peer-manifest = "hankkeut_analysis.datalab_navigation.peer_manifest:main"
+hankkeut-datalab-peer-comparison = "hankkeut_analysis.datalab_navigation.peer_comparison:main"
+hankkeut-relative-supply-gap = "hankkeut_analysis.datalab_navigation.relative_supply:main"
+hankkeut-ai-tourism-report = "hankkeut_analysis.ai_reports.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "packages/analysis"}
