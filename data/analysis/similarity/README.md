@@ -11,9 +11,9 @@
 ## 구현체
 
 ```python
-from tourgap import TourgapPeerFinder
+from hankkeut_similarity import HankkeutSimilarityPeerFinder
 
-finder = TourgapPeerFinder(features)
+finder = HankkeutSimilarityPeerFinder(features)
 peers = finder.find_peers("47130", k=15)
 ```
 
@@ -139,7 +139,7 @@ SGIS 경계의 가중 프록시임을 출처 메타데이터에 표시한다.
 
 ```bash
 python -m pip install -e '.[geospatial]'
-python -m tourgap.terrain
+python -m hankkeut_similarity.terrain
 ```
 
 산출물은 `data/processed/dem_terrain_relief_by_region.csv`에 저장되며 이후
@@ -163,7 +163,7 @@ SGIS 행정구역 면적으로 나눠 `urbanization_ratio`를 계산한다. SGIS
 230개 분석 단위에 맞춘 정적 CSV를 만든다.
 
 ```bash
-python -m tourgap.land_cover
+python -m hankkeut_similarity.land_cover
 ```
 
 저장 위치:
@@ -205,7 +205,7 @@ JavaScript의 파일명 규칙을 확인해 원본 파일을 `data/raw/kma/`에 
 `--monthly`, `--annual` 인자로 넣는다.
 
 ```bash
-python -m tourgap.climate \
+python -m hankkeut_similarity.climate \
   --monthly data/raw/kma/kma_climate_normals_1991_2020_monthly.xlsx \
   --annual data/raw/kma/kma_climate_normals_1991_2020_annual.xlsx
 ```
@@ -213,7 +213,7 @@ python -m tourgap.climate \
 시군구별 정적 기후 feature 생성:
 
 ```bash
-python -m tourgap.climate
+python -m hankkeut_similarity.climate
 ```
 
 저장 위치:
@@ -258,8 +258,8 @@ SGIS_API_BASE_URL=https://sgisapi.kostat.go.kr/OpenAPI3
 합성 구조 변수를 명시적으로 허용한다.
 
 ```bash
-TOURGAP_ALLOW_MOCK_STRUCTURAL=1 python -m tourgap.main --region 경주시
-python -m tourgap.main --region 경주시 --allow-mock-structural
+TOURGAP_ALLOW_MOCK_STRUCTURAL=1 python -m hankkeut_similarity.main --region 경주시
+python -m hankkeut_similarity.main --region 경주시 --allow-mock-structural
 ```
 
 mock 결과는 정책 판단이나 검증 보고에 쓰면 안 된다.
@@ -269,29 +269,29 @@ mock 결과는 정책 판단이나 검증 보고에 쓰면 안 된다.
 이 폴더에서 실행:
 
 ```bash
-python -m pip install -e ../../../contracts
+python -m pip install -e ../contracts
 python -m pip install -e .
 cp .env.example .env
 python -m unittest discover -s tests
-python -m tourgap.main --region 경주시
+python -m hankkeut_similarity.main --region 경주시
 ```
 
 루트에서 패키지 설치 없이 실행:
 
 ```bash
-PYTHONPATH=data/analysis/similarity/src:contracts \
+PYTHONPATH=data/analysis/similarity/src:data/analysis/contracts \
   python -m unittest discover -s data/analysis/similarity/tests
 
-PYTHONPATH=data/analysis/similarity/src:contracts \
-  python -m tourgap.main --region 경주시
+PYTHONPATH=data/analysis/similarity/src:data/analysis/contracts \
+  python -m hankkeut_similarity.main --region 경주시
 ```
 
 ## 산출물
 
-- 구현체: `src/tourgap/peers.py`
-- feature 계약/검증: `src/tourgap/feature_builder.py`
-- 설정: `src/tourgap/config.py`
-- 원자료 로딩 어댑터: `src/tourgap/data_sources.py`
+- 구현체: `src/hankkeut_similarity/peers.py`
+- feature 계약/검증: `src/hankkeut_similarity/feature_builder.py`
+- 설정: `src/hankkeut_similarity/config.py`
+- 원자료 로딩 어댑터: `src/hankkeut_similarity/data_sources.py`
 - 검증 문서: `docs/peer-validation.md`
 - 테스트: `tests/`
 

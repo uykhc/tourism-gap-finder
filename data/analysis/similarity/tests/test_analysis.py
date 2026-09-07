@@ -7,15 +7,15 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from tourgap.regions import (
+from hankkeut_similarity.regions import (
     admin_type,
     build_region_master,
     build_code_rollup,
     parent_city_code,
     parse_address,
 )
-from tourgap.sources.kto_kor import _ldong_code, normalize_resource
-from tourgap.sources.sgis import geometry_area_m2, polygon_area_m2
+from hankkeut_similarity.sources.kto_kor import _ldong_code, normalize_resource
+from hankkeut_similarity.sources.sgis import geometry_area_m2, polygon_area_m2
 
 
 class LdongCodeTest(unittest.TestCase):
@@ -124,7 +124,7 @@ class RegionMasterTest(unittest.TestCase):
             }
         )
         with patch(
-            "tourgap.regions.load_tourapi_region_lookup",
+            "hankkeut_similarity.regions.load_tourapi_region_lookup",
             return_value={("38", "12"): ("전라남도", "신안군")},
         ):
             result = build_region_master(resources)
@@ -145,7 +145,7 @@ class RegionMasterTest(unittest.TestCase):
                 ],
             }
         )
-        with patch("tourgap.regions.load_tourapi_region_lookup", return_value={}):
+        with patch("hankkeut_similarity.regions.load_tourapi_region_lookup", return_value={}):
             result = build_region_master(resources).set_index("region_id")
 
         self.assertEqual(result.loc["12210", "province_name"], "광주광역시")

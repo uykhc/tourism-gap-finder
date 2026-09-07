@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tourgap"
+name = "hankkeut-tourism-similarity"
 version = "0.1.0"
 description = "韓끗 — 구조 특성 기반 시군구 유사 지역 탐색"
 requires-python = ">=3.11"
@@ -16,11 +16,12 @@ dependencies = [
 ]
 
 [project.scripts]
-tourgap = "tourgap.main:main"
-tourgap-collect = "tourgap.collect:main"
-tourgap-build-climate = "tourgap.climate:main"
-tourgap-build-terrain = "tourgap.terrain:main"
-tourgap-build-land-cover = "tourgap.land_cover:main"
+hankkeut-similarity = "hankkeut_similarity.main:main"
+hankkeut-similarity-collect = "hankkeut_similarity.collect:main"
+hankkeut-similarity-build-climate = "hankkeut_similarity.climate:main"
+hankkeut-similarity-build-terrain = "hankkeut_similarity.terrain:main"
+hankkeut-similarity-build-land-cover = "hankkeut_similarity.land_cover:main"
+hankkeut-similarity-groups = "hankkeut_similarity.legacy.similarity_cli:main"
 
 [project.optional-dependencies]
 geospatial = ["rasterio>=1.4"]

@@ -6,9 +6,10 @@
 
 ```text
 apps/                 프론트엔드(web)와 백엔드(api)
-packages/
-  analysis/           데이터 수집·유사 지역·성과·공백 분석 Python 패키지
-  contracts/          팀 공용 인터페이스와 지역 마스터
+data/analysis/
+  calculation/        관광 콘텐츠 수집·개수·비율·면적당 개수 분석 패키지
+  similarity/         유사 지역 판별 패키지
+  evaluation/         우수 지역·관광 성과 평가 패키지
 config/               지역별 분석 설정
 data/                 reference / raw / interim / analysis 데이터
 pipelines/            수집·정제·분석 배치 실행 진입점
@@ -26,6 +27,7 @@ Python 3.11 이상이 필요합니다.
 
 ```bash
 python3 -m pip install -e .
+python3 -m pip install -e data/analysis/calculation -e data/analysis/similarity -e data/analysis/evaluation
 cp .env.example .env
 chmod 600 .env
 ```
@@ -140,5 +142,7 @@ hankkeut-datalab-peer-manifest \
 테스트는 다음 명령으로 실행합니다.
 
 ```bash
-python3 -m unittest discover -s tests -q
+python3 -m unittest discover -s data/analysis/calculation/tests -q
+python3 -m unittest discover -s data/analysis/evaluation/tests -q
+python3 -m unittest discover -s data/analysis/similarity/tests -q
 ```

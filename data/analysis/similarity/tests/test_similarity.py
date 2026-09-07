@@ -8,21 +8,21 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from tourgap.climate import build_climate_features
-from tourgap.config import SIMILARITY_FEATURES, get_config, set_config
-from tourgap.data_sources import (
+from hankkeut_similarity.climate import build_climate_features
+from hankkeut_similarity.config import SIMILARITY_FEATURES, get_config, set_config
+from hankkeut_similarity.data_sources import (
     _construct_kma_normals_downloads,
     _download_suffix,
     _extract_1991_2020_row,
     _extract_download_links,
 )
-from tourgap.feature_builder import validate_feature_table
-from tourgap.land_cover import build_land_cover_features
-from tourgap.pipeline import _structural_provider
-from tourgap.peers import TourgapPeerFinder
-from tourgap.sources.structural import MockStructuralProvider
-from tourgap.sources.sgis import DEFAULT_API_BASE_URL, LEGACY_API_BASE_URL, _api_url
-from tourgap.sources.urbanization import UrbanBoundaryError, _read_dbf
+from hankkeut_similarity.feature_builder import validate_feature_table
+from hankkeut_similarity.land_cover import build_land_cover_features
+from hankkeut_similarity.pipeline import _structural_provider
+from hankkeut_similarity.peers import HankkeutSimilarityPeerFinder
+from hankkeut_similarity.sources.structural import MockStructuralProvider
+from hankkeut_similarity.sources.sgis import DEFAULT_API_BASE_URL, LEGACY_API_BASE_URL, _api_url
+from hankkeut_similarity.sources.urbanization import UrbanBoundaryError, _read_dbf
 
 
 def _feature_frame() -> pd.DataFrame:
@@ -132,7 +132,7 @@ def _feature_frame() -> pd.DataFrame:
 
 class PeerFinderContractTest(unittest.TestCase):
     def test_contract_columns_and_ordering(self) -> None:
-        finder = TourgapPeerFinder(_feature_frame(), min_similarity=0.0)
+        finder = HankkeutSimilarityPeerFinder(_feature_frame(), min_similarity=0.0)
         peers = finder.find_peers("11110", k=2)
 
         self.assertEqual(["rank", "region_id", "similarity"], list(peers.columns[:3]))
@@ -142,7 +142,7 @@ class PeerFinderContractTest(unittest.TestCase):
         self.assertTrue(peers["similarity"].is_monotonic_decreasing)
 
     def test_k_and_min_similarity_are_applied(self) -> None:
-        peers = TourgapPeerFinder(
+        peers = HankkeutSimilarityPeerFinder(
             _feature_frame(),
             default_k=3,
             min_similarity=0.80,
@@ -152,12 +152,12 @@ class PeerFinderContractTest(unittest.TestCase):
         self.assertTrue((peers["similarity"] >= 0.80).all())
 
     def test_unknown_region_raises(self) -> None:
-        finder = TourgapPeerFinder(_feature_frame())
+        finder = HankkeutSimilarityPeerFinder(_feature_frame())
         with self.assertRaises(LookupError):
             finder.find_peers("99999")
 
     def test_empty_result_still_has_required_columns(self) -> None:
-        peers = TourgapPeerFinder(
+        peers = HankkeutSimilarityPeerFinder(
             _feature_frame(),
             min_similarity=1.01,
         ).find_peers("11110")
@@ -168,7 +168,7 @@ class PeerFinderContractTest(unittest.TestCase):
     def test_pairwise_missing_values_do_not_become_zero(self) -> None:
         frame = _feature_frame()
         frame.loc[1, "forest_ratio"] = pd.NA
-        peers = TourgapPeerFinder(frame, min_similarity=0.0).find_peers("11110", k=1)
+        peers = HankkeutSimilarityPeerFinder(frame, min_similarity=0.0).find_peers("11110", k=1)
 
         self.assertEqual(peers.iloc[0]["region_id"], "11140")
         self.assertGreater(peers.iloc[0]["missing_feature_count"], 0)
