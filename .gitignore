@@ -226,3 +226,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# 로컬 인증 DB (AUTH_DATABASE_URL 기본값)
+apps/api/*.db

@@ -1,49 +1,75 @@
+"""Tourism Gap Finder API.
+
+앱 조립만 한다. 엔드포인트는 `routers/`에, 응답 스키마는 `schemas/`에 있다.
+
+분석 로직(`packages/analysis`, `data/analysis/similarity`)은 아직 붙지 않았다.
+인증과 회원 정보를 뺀 나머지 엔드포인트는 실제 산출물과 같은 형태의 고정
+예시를 돌려준다. 연결 지점은 각 라우터의 TODO 주석에 적혀 있다.
+"""
+
 from __future__ import annotations
+
+import os
 from contextlib import asynccontextmanager
-from typing import Annotated
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from .database import Base, engine, get_db
-from .models import RevokedToken, User
-from .schemas import LoginRequest, SignUpRequest, TokenResponse, UserResponse
-from .security import create_access_token, decode_token, hash_password, verify_password
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .database import Base, engine
+from .routers import ALL_ROUTERS
+
+TAGS_METADATA = [
+    {"name": "auth", "description": "회원가입·로그인·로그아웃"},
+    {"name": "users", "description": "회원 정보와 관심 지역"},
+    {"name": "regions", "description": "시군구 마스터와 구조 특성 17개 변수"},
+    {"name": "peers", "description": "구조적 유사 지역 탐색"},
+    {"name": "analysis", "description": "관광자원 공급·중심 관광지·성과·콘텐츠 공백"},
+    {"name": "reports", "description": "관광 빈칸 해석 리포트"},
+    {"name": "compare", "description": "여러 지역 비교"},
+    {"name": "system", "description": "상태 확인"},
+]
+
+DESCRIPTION = """
+구조적으로 유사한 지역과 비교해 관광 콘텐츠 공백을 진단합니다.
+
+조인 키는 법정동 시군구 코드 5자리(`region_id`)입니다.
+
+⚠️ `auth`, `users`를 제외한 모든 엔드포인트는 고정 예시 데이터를 반환합니다.
+""".strip()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine); yield
-app = FastAPI(title="Tourism Gap Finder API", version="0.1.0", lifespan=lifespan)
-DbSession = Annotated[Session, Depends(get_db)]
-bearer_scheme = HTTPBearer()
-@app.post("/auth/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignUpRequest, db: DbSession) -> User:
-    email = str(payload.email).lower()
-    if db.scalar(select(User).where(User.email == email)): raise HTTPException(status_code=409, detail="Email is already registered")
-    user = User(email=email, password_hash=hash_password(payload.password), default_region=payload.default_region.strip() if payload.default_region else None)
-    db.add(user); db.commit(); db.refresh(user); return user
-@app.post("/auth/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: DbSession) -> TokenResponse:
-    user = db.scalar(select(User).where(User.email == str(payload.email).lower()))
-    if user is None or not verify_password(payload.password, user.password_hash): raise HTTPException(status_code=401, detail="Incorrect email or password")
-    return TokenResponse(access_token=create_access_token(user.id))
-@app.get("/auth/me", response_model=UserResponse)
-def me(credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)], db: DbSession) -> User:
-    claims = decode_token(credentials.credentials)
-    if db.scalar(select(RevokedToken).where(RevokedToken.jti == claims.get("jti"))):
-        raise HTTPException(status_code=401, detail="Token has been logged out")
-    try: user = db.get(User, int(claims["sub"]))
-    except (KeyError, TypeError, ValueError): raise HTTPException(status_code=401, detail="Invalid or expired token")
-    if user is None: raise HTTPException(status_code=401, detail="User not found")
-    return user
-@app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)], db: DbSession) -> None:
-    claims = decode_token(credentials.credentials)
-    jti, expires_at = claims.get("jti"), claims.get("exp")
-    if not isinstance(jti, str) or not isinstance(expires_at, (int, float)):
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    if not db.scalar(select(RevokedToken).where(RevokedToken.jti == jti)):
-        from datetime import datetime, timezone
-        db.add(RevokedToken(jti=jti, expires_at=datetime.fromtimestamp(expires_at, tz=timezone.utc)))
-        db.commit()
-@app.get("/health")
-def health() -> dict[str, str]: return {"status": "ok"}
+    Base.metadata.create_all(bind=engine)
+    yield
+
+
+def _cors_origins() -> list[str]:
+    """프론트는 별도 오리진(Vite dev server)에서 호출한다."""
+    raw = os.getenv("API_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
+
+app = FastAPI(
+    title="Tourism Gap Finder API",
+    version="0.1.0",
+    description=DESCRIPTION,
+    openapi_tags=TAGS_METADATA,
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+for router in ALL_ROUTERS:
+    app.include_router(router)
+
+
+@app.get("/health", tags=["system"], summary="상태 확인")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
