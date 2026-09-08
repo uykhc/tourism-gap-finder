@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, replace } from 'react-router';
 import RootLayout from './components/RootLayout';
 import Home from './routes/Home';
 import Login from './routes/Login';
@@ -7,8 +7,6 @@ import MyPageRegion from './routes/MyPageRegion';
 import NotFound from './routes/NotFound';
 import RegionComparison from './routes/RegionComparison';
 import RegionDashboard from './routes/RegionDashboard';
-import SignUp from './routes/SignUp';
-import SignUpRegion from './routes/SignUpRegion';
 
 export const router = createBrowserRouter([
   {
@@ -24,11 +22,13 @@ export const router = createBrowserRouter([
       },
       {
         path: 'signup',
-        Component: SignUp,
+        lazy: async () => ({
+          Component: (await import('./routes/SignUp')).default,
+        }),
       },
       {
         path: 'signup/region',
-        Component: SignUpRegion,
+        loader: () => replace('/signup'),
       },
       {
         path: 'dashboard/:regionCode',
