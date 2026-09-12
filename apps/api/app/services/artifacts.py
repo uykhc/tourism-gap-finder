@@ -1,12 +1,20 @@
-"""Read versioned pipeline artifacts and adapt them to the public API contract.
+"""분석 산출물을 읽어 공개 API 계약으로 옮긴다.
 
-The analysis jobs write immutable JSON files.  Serving those files is safer
-than rerunning slow, key-backed collection jobs in a request handler.
+분석 작업은 변하지 않는 JSON 파일을 남긴다. 키가 필요한 느린 수집 작업을
+요청 처리 중에 다시 돌리는 것보다 그 파일을 읽는 편이 안전하다.
+
+산출물과 지역을 잇는 키는 `region_id`다. 파일명이나 한국어 지역명으로 잇지
+않는다 — 중구가 5곳, 서구·남구·북구가 4곳이라 이름으로 조인하면 값이 섞인다.
+이름만 들어 있는 산출물은 그 지역의 peer 후보 집합 안에서만 해석하고,
+확정할 수 없으면 값을 만들지 않고 빼면서 그 사실을 함께 돌려준다.
 """
+
 from __future__ import annotations
 
+import copy
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -14,126 +22,275 @@ from fastapi import HTTPException
 
 from . import regions as region_table
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ARTIFACT_ROOT = Path(os.getenv("ANALYSIS_ARTIFACT_ROOT", REPO_ROOT / "data/analysis"))
+APP_ROOT = Path(__file__).resolve().parents[1]
+
+#: 기본 산출물 루트는 앱 안이라 배포 이미지에 그대로 실린다. 실제 분석 결과는
+#: `ANALYSIS_ARTIFACT_ROOT`로 다른 경로를 가리켜 덮어쓴다.
+ARTIFACT_ROOT = Path(os.getenv("ANALYSIS_ARTIFACT_ROOT", APP_ROOT / "data" / "artifacts"))
+
+PEER_CANDIDATES_DIR = "peer_candidates"
+RELATIVE_SUPPLY_DIR = "relative_supply"
+DATALAB_NAVIGATION_DIR = "datalab_navigation"
+AI_REPORTS_DIR = "ai_reports"
+
+#: 유사도 패키지 `provenance.py`가 실제로 내보내는 뱃지 값.
+_SOURCE_TYPES = {
+    "실데이터": "real",
+    "proxy": "proxy",
+    "정적참조": "static_reference",
+    "MOCK": "mock",
+}
+
+
+@lru_cache(maxsize=64)
+def _read_cached(path_str: str, mtime_ns: int) -> dict[str, Any]:
+    """mtime을 키에 넣어, 개발 중 파일을 고치면 캐시가 저절로 무효화된다."""
+    del mtime_ns
+    path = Path(path_str)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(503, detail=f"분석 산출물을 읽을 수 없습니다: {path.name}") from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(503, detail=f"분석 산출물이 객체가 아닙니다: {path.name}")
+    return payload
 
 
 def _read(path: Path) -> dict[str, Any]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+        mtime_ns = path.stat().st_mtime_ns
+    except OSError as exc:
         raise HTTPException(503, detail=f"분석 산출물을 읽을 수 없습니다: {path.name}") from exc
+    # 캐시된 원본을 핸들러가 변형할 수 없도록 사본을 돌려준다.
+    return copy.deepcopy(_read_cached(str(path), mtime_ns))
 
 
-def _region(region_id: str) -> dict[str, Any]:
-    value = region_table.find_region(region_id)
-    if value is not None:
-        return value
-    # The Swagger seed master is intentionally small.  Until it is replaced by
-    # the contracts master, pipeline artifacts themselves are an authoritative
-    # fallback for regions they contain.
-    for path in (ARTIFACT_ROOT / "peer_candidates").glob("*.json"):
-        candidate = _read(path)
-        for item in [candidate.get("target"), *candidate.get("peers", [])]:
-            if isinstance(item, dict) and item.get("region_id") == region_id:
-                return item
-    raise HTTPException(404, detail=f"Unknown region_id: {region_id}")
+def _embedded_region_id(payload: dict[str, Any]) -> str | None:
+    """산출물이 스스로 밝힌 대상 지역의 region_id."""
+    for key in ("target", "target_region"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            region_id = str(value.get("region_id") or "").strip()
+            if region_id:
+                return region_id
+    region_id = str(payload.get("region_id") or "").strip()
+    return region_id or None
 
 
-def _region_by_name(region_name: str, fallback: dict[str, Any]) -> dict[str, Any]:
-    for path in (ARTIFACT_ROOT / "peer_candidates").glob("*.json"):
-        candidate = _read(path)
-        for item in [candidate.get("target"), *candidate.get("peers", [])]:
-            if isinstance(item, dict) and item.get("region_name") == region_name:
-                return item
-    return fallback
+def _embedded_region_name(payload: dict[str, Any]) -> str | None:
+    """`region_id`를 내보내지 않는 생산자를 위한 차선책."""
+    for key in ("target", "target_region"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            name = str(value.get("region_name") or "").strip()
+            if name:
+                return name
+    for candidate in (payload, payload.get("report")):
+        if isinstance(candidate, dict):
+            name = str(candidate.get("region_name") or "").strip()
+            if name:
+                return name
+    return None
 
 
-def _artifact_for(region_id: str, directory: str, marker: str) -> dict[str, Any]:
-    region = _region(region_id)
-    # File stems are generated from the target's Korean name.  Validate the
-    # embedded target as well, so a coincidental filename never leaks data.
-    candidates = sorted((ARTIFACT_ROOT / directory).glob(f"*{marker}*.json"), reverse=True)
-    for path in candidates:
-        value = _read(path)
-        target = value.get("target_region") or value.get("target") or value.get("region_name")
-        if target is None and isinstance(value.get("report"), dict):
-            target = value["report"].get("region_name")
-        if isinstance(target, dict):
-            target = target.get("region_name")
-        if target == region["region_name"]:
-            return value
-    raise HTTPException(404, detail=f"{region['region_name']}의 {directory} 분석 결과가 없습니다. 분석 작업을 먼저 실행하세요.")
+def _matches_region(payload: dict[str, Any], region_id: str, region_name: str) -> bool:
+    embedded_id = _embedded_region_id(payload)
+    if embedded_id is not None:
+        # region_id를 밝힌 산출물은 그 값만 믿는다. 다른 지역의 파일이 이름만
+        # 같아서 통과하는 일이 없다.
+        return embedded_id == region_id
+    name = _embedded_region_name(payload)
+    if name is None:
+        return False
+    # 이름만 있는 산출물은 전국이 아니라 이 지역 하나로 좁혀 확인한다.
+    return name == region_name
 
 
+def _find_artifact(region_id: str, directory: str) -> dict[str, Any] | None:
+    """해당 지역의 산출물 중 가장 최근 것. 없으면 `None`.
+
+    파일명 규칙에 기대지 않는다. 디렉터리의 JSON을 읽어 산출물이 스스로
+    밝힌 대상 지역으로 판단한다.
+    """
+    region = region_table.find_region(region_id)
+    if region is None:
+        return None
+    directory_path = ARTIFACT_ROOT / directory
+    if not directory_path.is_dir():
+        return None
+    paths = sorted(
+        directory_path.glob("*.json"),
+        key=lambda path: path.stat().st_mtime_ns,
+        reverse=True,
+    )
+    for path in paths:
+        payload = _read(path)
+        if _matches_region(payload, region_id, region["region_name"]):
+            return payload
+    return None
+
+
+def require_region(region_id: str) -> dict[str, Any]:
+    """존재하지 않는 `region_id`만 404다."""
+    region = region_table.find_region(region_id)
+    if region is None:
+        raise HTTPException(404, detail=f"Unknown region_id: {region_id}")
+    return region
+
+
+# ---------------------------------------------------------------------------
+# 산출물 로더 — 없으면 None을 돌려주고, 404로 만들지는 호출측이 정한다.
+# ---------------------------------------------------------------------------
+def load_peer_candidates(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, PEER_CANDIDATES_DIR)
+
+
+def load_relative_supply(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, RELATIVE_SUPPLY_DIR)
+
+
+def load_supply_pressure(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, DATALAB_NAVIGATION_DIR)
+
+
+def load_ai_report(region_id: str) -> dict[str, Any] | None:
+    payload = _find_artifact(region_id, AI_REPORTS_DIR)
+    if payload is None:
+        return None
+    report = payload.get("report")
+    return report if isinstance(report, dict) else None
+
+
+def peer_region_ids(region_id: str) -> set[str]:
+    """이 지역의 peer 후보 `region_id` 집합. 이름 해석의 후보 집합이 된다."""
+    payload = load_peer_candidates(region_id)
+    if payload is None:
+        return set()
+    return {
+        str(item["region_id"]).strip()
+        for item in payload.get("peers", [])
+        if isinstance(item, dict) and str(item.get("region_id") or "").strip()
+    }
+
+
+def resolve_peer_regions(
+    names: list[str], *, candidate_region_ids: set[str]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """지역명 목록을 지역 정보로 바꾼다. `(확정된 지역, 확정하지 못한 이름)`.
+
+    확정할 수 없는 이름은 빼고 그 이름을 함께 돌려준다. 예전 구현은 대상
+    지역 자신을 대신 넣어, 자기 자신과 비교한 값이 응답에 섞여 들어갔다.
+    """
+    resolved: list[dict[str, Any]] = []
+    unresolved: list[str] = []
+    for name in names:
+        peer_id = region_table.resolve_by_name(name, candidate_region_ids=candidate_region_ids)
+        if peer_id is None:
+            peer_id = region_table.resolve_by_name(name)
+        region = None if peer_id is None else region_table.find_region(peer_id)
+        if region is None:
+            unresolved.append(name)
+            continue
+        resolved.append(region)
+    return resolved, unresolved
+
+
+# ---------------------------------------------------------------------------
+# 엔드포인트 뷰
+# ---------------------------------------------------------------------------
 def peers(region_id: str, *, k: int, min_similarity: float) -> dict[str, Any]:
-    value = _artifact_for(region_id, "peer_candidates", "structural_peer_candidates")
-    values = [p for p in value["peers"] if p["similarity"] >= min_similarity][:k]
-    source_types = {"실데이터": "real", "대체값": "proxy", "정적 참조": "static_reference", "모의": "mock"}
-    provenance = [
-        {
-            "name": item.get("소스", "분석 산출물"),
-            "source_type": source_types.get(item.get("신뢰도"), "static_reference"),
-            "endpoint": item.get("엔드포인트/출처", ""),
-            "reference_period": item.get("기준시점", ""),
-            "row_count": item.get("행수"),
-            "note": item.get("비고", ""),
-        }
-        for item in value.get("provenance", [])
-    ]
-    return {**value, "requested_k": k, "min_similarity": min_similarity, "peers": values, "provenance": provenance}
+    require_region(region_id)
+    payload = load_peer_candidates(region_id)
+    if payload is None:
+        raise HTTPException(
+            404, detail=f"{region_id}의 유사 지역 분석 결과가 없습니다. 분석 작업을 먼저 실행하세요."
+        )
+    selected = [
+        item for item in payload.get("peers", [])
+        if isinstance(item, dict) and float(item.get("similarity", 0.0)) >= min_similarity
+    ][:k]
+    return {
+        **payload,
+        "requested_k": k,
+        "min_similarity": min_similarity,
+        "peers": selected,
+        "provenance": [_provenance_record(item) for item in payload.get("provenance", [])],
+    }
+
+
+def _provenance_record(item: dict[str, Any]) -> dict[str, Any]:
+    row_count = item.get("행수")
+    if isinstance(row_count, str):
+        # 생산자는 행수를 모르면 빈 문자열을 쓴다. 0으로 바꾸면 '자료 없음'이
+        # '0건'이 되므로 null로 둔다.
+        row_count = int(row_count) if row_count.strip().isdigit() else None
+    return {
+        "name": item.get("소스", "분석 산출물"),
+        "source_type": _SOURCE_TYPES.get(item.get("신뢰도"), "static_reference"),
+        "endpoint": item.get("엔드포인트/출처", ""),
+        "reference_period": item.get("기준시점", ""),
+        "row_count": row_count,
+        "note": item.get("비고", ""),
+    }
+
+
+def supply_pressure_view(target_report: dict[str, Any], *, region_name: str) -> dict[str, Any]:
+    """공급압력 산출물의 target_report를 API 응답 조각으로 옮긴다."""
+    context = target_report.get("ai_report_context") or {}
+    return {
+        "report_version": target_report.get("report_version", ""),
+        "region_name": target_report.get("region_name", region_name),
+        "analysis_period": target_report.get("analysis_period"),
+        "metric_definition": context.get("metric_definition", ""),
+        "content_type_metrics": target_report.get("content_type_metrics", []),
+        "priority_order_by_supply_pressure": context.get("priority_order_by_supply_pressure", []),
+        "warnings": (target_report.get("data_quality") or {}).get("warnings", []),
+    }
+
+
+def require_target_report(pressure: dict[str, Any]) -> dict[str, Any]:
+    target_report = pressure.get("target_report")
+    if not isinstance(target_report, dict):
+        raise HTTPException(502, detail="공급압력 산출물에 target_report가 없습니다.")
+    return target_report
 
 
 def gaps(region_id: str) -> dict[str, Any]:
-    relative = _artifact_for(region_id, "relative_supply", "relative_supply_gap_detailed")
-    pressure = _artifact_for(region_id, "datalab_navigation", "individual_supply_pressure_detailed")
-    region = _region(region_id)
-    target = region
-    peers_value = [_region_by_name(item["region_name"], region) for item in relative["peer_regions"]]
-    relative_api = {**relative, "target_region": target, "peer_regions": peers_value}
-    target_report = pressure["target_report"]
-    supply_pressure = {
-        "report_version": target_report["report_version"], "region_name": target_report["region_name"],
-        "analysis_period": target_report["analysis_period"],
-        "metric_definition": target_report["ai_report_context"]["metric_definition"],
-        "content_type_metrics": target_report["content_type_metrics"],
-        "priority_order_by_supply_pressure": target_report["ai_report_context"]["priority_order_by_supply_pressure"],
-        "warnings": target_report["data_quality"]["warnings"],
-    }
-    return {"target": target, "relative_supply": relative_api, "supply_pressure": supply_pressure}
-
-
-def report(region_id: str) -> dict[str, Any]:
-    """Adapt the AI job output to the stable frontend report contract."""
-    ai = _artifact_for(region_id, "ai_reports", "detailed_gap_report_with_cases").get("report", {})
-    gap = gaps(region_id)
-    peer_result = peers(region_id, k=50, min_similarity=0.0)
-    source_ids = {item["source_id"] for item in ai.get("sources", [])}
-    cases: list[dict[str, Any]] = []
-    gap_types: list[dict[str, Any]] = []
-    for gap_type in ai.get("gap_types", []):
-        refs = []
-        for index, case in enumerate(gap_type.get("peer_cases", []), start=1):
-            case_id = f"{gap_type['content_type']}-{index}"
-            refs.append({"case_id": case_id, "relevance_note": None})
-            cases.append({
-                "case_id": case_id, "benchmark_region": case["peer_region"], "title": case["title"],
-                "case_type": "프로그램", "content_type": gap_type["content_type"], "period": None,
-                "operator": None, "summary": case["summary"],
-                "applicability": gap_type["applicability_insight"],
-                "source_ids": [sid for sid in case.get("source_ids", []) if sid in source_ids] or [next(iter(source_ids), "unavailable")],
-            })
-        gap_types.append({**gap_type, "case_refs": refs})
-        gap_types[-1].pop("peer_cases", None)
+    region = require_region(region_id)
+    relative = load_relative_supply(region_id)
+    pressure = load_supply_pressure(region_id)
+    missing = [
+        name for name, value in (("상대적 공급", relative), ("공급압력", pressure)) if value is None
+    ]
+    if missing or relative is None or pressure is None:
+        raise HTTPException(
+            404,
+            detail=(
+                f"{region['region_name']}의 {' · '.join(missing)} 분석 결과가 없습니다. "
+                "분석 작업을 먼저 실행하세요."
+            ),
+        )
+    target_report = require_target_report(pressure)
+    peer_names = [
+        str(item.get("region_name") or "").strip()
+        for item in relative.get("peer_regions", [])
+        if isinstance(item, dict)
+    ]
+    resolved_peers, unresolved = resolve_peer_regions(
+        peer_names, candidate_region_ids=peer_region_ids(region_id)
+    )
+    limitations = list(relative.get("limitations", []))
+    if unresolved:
+        limitations.append(
+            "비교 지역명을 region_id로 확정할 수 없어 제외했습니다: " + ", ".join(unresolved)
+        )
     return {
-        "report_version": "artifact", "status": ai.get("status", "provisional"), "target": gap["target"],
-        "analysis_period": ai["analysis_period"],
-        "headline": ai.get("gap_types", [{}])[0].get("judgement", "분석 결과를 확인하세요."),
-        "peers": {"selection_type": peer_result["selection_type"], "note": peer_result["warning"], "items": peer_result["peers"]},
-        "benchmarks": {"selection_rule": "성과 데이터 산출 전 구조적 유사 후보를 표시합니다.", "items": []},
-        "relative_supply": {"comparison_rule": gap["relative_supply"]["comparison_rule"], "notes": gap["relative_supply"]["limitations"], "content_type_comparisons": gap["relative_supply"]["content_type_comparisons"], "priority_order": gap["relative_supply"]["priority_order_by_relative_supply_gap"]},
-        "supply_pressure": {"metric_definition": gap["supply_pressure"]["metric_definition"], "analysis_period": gap["supply_pressure"]["analysis_period"], "notes": gap["supply_pressure"]["warnings"], "content_type_metrics": gap["supply_pressure"]["content_type_metrics"], "priority_order": gap["supply_pressure"]["priority_order_by_supply_pressure"]},
-        "gap_types": gap_types, "benchmark_cases": cases,
-        "closing_insight": {"narrative": "AI 분석 산출물 기반 관광 콘텐츠 공백 진단입니다.", "focus_points": [], "watch_outs": ai.get("limitations", [])},
-        "sources": ai.get("sources", []), "limitations": ai.get("limitations", []),
+        "target": region,
+        "relative_supply": {
+            **relative,
+            "target_region": region,
+            "peer_regions": resolved_peers,
+            "limitations": limitations,
+        },
+        "supply_pressure": supply_pressure_view(target_report, region_name=region["region_name"]),
     }

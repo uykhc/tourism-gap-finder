@@ -1,0 +1,233 @@
+{
+  "analysis_type": "relative_supply_gap_by_individual_peer",
+  "status": "provisional",
+  "target_region": {
+    "region_name": "경주시",
+    "area_km2": 1324.39,
+    "total_place_count": 1261,
+    "is_complete": true
+  },
+  "peer_regions": [
+    {
+      "region_name": "포항시",
+      "area_km2": 1130.06,
+      "total_place_count": 1078,
+      "is_complete": true
+    },
+    {
+      "region_name": "서산시",
+      "area_km2": 741.34,
+      "total_place_count": 653,
+      "is_complete": true
+    }
+  ],
+  "comparison_rule": "각 Peer와 비교해 유형별 공급 구성비 또는 100㎢당 공급밀도가 낮으면 상대적 빈칸 후보로 표시합니다.",
+  "content_type_comparisons": [
+    {
+      "content_type": "EXPERIENCE_TOURISM",
+      "target_place_count": 87,
+      "target_composition_share": 0.068993,
+      "target_density_per_100_km2": 6.569062,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.099258,
+          "peer_density_per_100_km2": 9.468524,
+          "target_to_peer_composition_ratio": 0.695088,
+          "target_to_peer_density_ratio": 0.693779,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": true,
+          "is_relative_supply_gap_candidate": true
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.091884,
+          "peer_density_per_100_km2": 8.093452,
+          "target_to_peer_composition_ratio": 0.750871,
+          "target_to_peer_density_ratio": 0.811651,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": true,
+          "is_relative_supply_gap_candidate": true
+        }
+      ],
+      "candidate_peer_regions": [
+        "포항시",
+        "서산시"
+      ],
+      "candidate_peer_count": 2,
+      "lowest_target_to_peer_supply_ratio": 0.693779
+    },
+    {
+      "content_type": "FOOD",
+      "target_place_count": 553,
+      "target_composition_share": 0.438541,
+      "target_density_per_100_km2": 41.755072,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.48423,
+          "peer_density_per_100_km2": 46.192238,
+          "target_to_peer_composition_ratio": 0.905646,
+          "target_to_peer_density_ratio": 0.903941,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": true,
+          "is_relative_supply_gap_candidate": true
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.468606,
+          "peer_density_per_100_km2": 41.276607,
+          "target_to_peer_composition_ratio": 0.935842,
+          "target_to_peer_density_ratio": 1.011592,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": true
+        }
+      ],
+      "candidate_peer_regions": [
+        "포항시",
+        "서산시"
+      ],
+      "candidate_peer_count": 2,
+      "lowest_target_to_peer_supply_ratio": 0.903941
+    },
+    {
+      "content_type": "SHOPPING",
+      "target_place_count": 143,
+      "target_composition_share": 0.113402,
+      "target_density_per_100_km2": 10.797424,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.128015,
+          "peer_density_per_100_km2": 12.211741,
+          "target_to_peer_composition_ratio": 0.885849,
+          "target_to_peer_density_ratio": 0.884184,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": true,
+          "is_relative_supply_gap_candidate": true
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.108729,
+          "peer_density_per_100_km2": 9.577252,
+          "target_to_peer_composition_ratio": 1.042978,
+          "target_to_peer_density_ratio": 1.127403,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        }
+      ],
+      "candidate_peer_regions": [
+        "포항시"
+      ],
+      "candidate_peer_count": 1,
+      "lowest_target_to_peer_supply_ratio": 0.884184
+    },
+    {
+      "content_type": "LEISURE_SPORTS",
+      "target_place_count": 96,
+      "target_composition_share": 0.07613,
+      "target_density_per_100_km2": 7.24862,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.075139,
+          "peer_density_per_100_km2": 7.167761,
+          "target_to_peer_composition_ratio": 1.013189,
+          "target_to_peer_density_ratio": 1.011281,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.085758,
+          "peer_density_per_100_km2": 7.553889,
+          "target_to_peer_composition_ratio": 0.887731,
+          "target_to_peer_density_ratio": 0.959588,
+          "is_target_composition_lower": true,
+          "is_target_density_lower": true,
+          "is_relative_supply_gap_candidate": true
+        }
+      ],
+      "candidate_peer_regions": [
+        "서산시"
+      ],
+      "candidate_peer_count": 1,
+      "lowest_target_to_peer_supply_ratio": 0.887731
+    },
+    {
+      "content_type": "ACCOMMODATION",
+      "target_place_count": 264,
+      "target_composition_share": 0.209358,
+      "target_density_per_100_km2": 19.933705,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.14564,
+          "peer_density_per_100_km2": 13.893068,
+          "target_to_peer_composition_ratio": 1.437503,
+          "target_to_peer_density_ratio": 1.434795,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.177642,
+          "peer_density_per_100_km2": 15.647341,
+          "target_to_peer_composition_ratio": 1.178539,
+          "target_to_peer_density_ratio": 1.273936,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "lowest_target_to_peer_supply_ratio": null
+    },
+    {
+      "content_type": "CULTURE_TOURISM",
+      "target_place_count": 118,
+      "target_composition_share": 0.093577,
+      "target_density_per_100_km2": 8.909762,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_composition_share": 0.067718,
+          "peer_density_per_100_km2": 6.459834,
+          "target_to_peer_composition_ratio": 1.381863,
+          "target_to_peer_density_ratio": 1.379256,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_composition_share": 0.067381,
+          "peer_density_per_100_km2": 5.935198,
+          "target_to_peer_composition_ratio": 1.388774,
+          "target_to_peer_density_ratio": 1.501174,
+          "is_target_composition_lower": false,
+          "is_target_density_lower": false,
+          "is_relative_supply_gap_candidate": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "lowest_target_to_peer_supply_ratio": null
+    }
+  ],
+  "priority_order_by_relative_supply_gap": [
+    "EXPERIENCE_TOURISM",
+    "FOOD",
+    "SHOPPING",
+    "LEISURE_SPORTS"
+  ],
+  "limitations": [
+    "Peer는 구조적 유사 후보이며 관광 성과가 검증된 우수 Peer가 아닙니다.",
+    "화면 개발용 샘플 산출물입니다. 실제 분석 결과가 아니며 정책 판단에 쓰지 않습니다."
+  ]
+}

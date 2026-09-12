@@ -1,21 +1,26 @@
-"""AI 관광 빈칸 리포트."""
+"""지역 관광 보고서."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
-from ..services import artifacts
 from ..deps import RegionIdPath
-from ..schemas.reports import TourismGapReport
+from ..schemas.reports import RegionReport
+from ..services import report as report_service
 
 router = APIRouter(prefix="/regions", tags=["reports"])
 
 
 @router.get(
     "/{region_id}/report",
-    response_model=TourismGapReport,
-    summary="관광 빈칸 해석 리포트",
+    response_model=RegionReport,
+    summary="지역 관광 보고서",
 )
-def get_report(region_id: RegionIdPath) -> TourismGapReport:
-    """유사 지역 · 우수 지역 · 상대적 빈칸 · 절대적 빈칸을 묶은 종합 리포트."""
-    return TourismGapReport.model_validate(artifacts.report(region_id))
+def get_report(region_id: RegionIdPath) -> RegionReport:
+    """유형별 공급 빈칸 진단과 그 근거.
+
+    분석 산출물이 없는 지역도 404가 아니라 200과
+    `summary.diagnosis_status: INSUFFICIENT_DATA`로 응답한다. 존재하지 않는
+    `region_id`만 404다.
+    """
+    return RegionReport.model_validate(report_service.build_region_report(region_id))
