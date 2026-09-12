@@ -63,12 +63,9 @@ VITE_API_MOCKING=true
 ### API 계약과 모킹
 
 회원가입은 `${VITE_API_BASE_URL}/auth/signup`에 `email`, `password`,
-`password_confirm`, `default_region`만 보냅니다. **현재 `apps/api`에는
-`age_confirmed`, `terms_agreed`가 필수로 남아 있어 필드 삭제 전 실제 서버는
-422를 반환합니다.** 백엔드 변경 후 실제 가입 성공과 계약 일치를 검증해야 합니다.
-프론트에서는 동의 UI나 숨은 동의 값을 추가하지 않습니다.
-프론트와 mock의 비밀번호 규칙은 영문·숫자 포함 8~128자이며 특수문자는 선택입니다.
-현재 백엔드의 특수문자 필수 규칙도 실제 API 연동 전에 함께 변경되어야 합니다.
+`password_confirm`, `default_region`만 보냅니다. 백엔드도 같은 계약을 사용하며,
+동의 UI나 숨은 동의 값을 추가하지 않습니다. 프론트·mock·백엔드의 비밀번호 규칙은
+영문·숫자 포함 8~128자이며 특수문자는 선택입니다.
 
 `yarn dev`는 MSW를 활성화하여 백엔드 없이도 건너뛰기 후 가입 완료 화면까지
 테스트할 수 있습니다. 기존 `.env.local`의 모킹 설정보다 실행 명령이 우선합니다.

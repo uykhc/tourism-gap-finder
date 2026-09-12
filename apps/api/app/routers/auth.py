@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
@@ -37,13 +35,10 @@ def signup(payload: SignUpRequest, db: DbSession) -> UserResponse:
         raise HTTPException(
             status_code=422, detail=f"Unknown region_id: {payload.default_region}"
         )
-    now = datetime.now(timezone.utc)
     user = User(
         email=email,
         password_hash=hash_password(payload.password),
         default_region=payload.default_region,
-        age_confirmed_at=now,
-        terms_agreed_at=now,
     )
     db.add(user)
     db.commit()
