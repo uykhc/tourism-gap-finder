@@ -45,9 +45,11 @@ apiClient.interceptors.response.use(
       typeof data === 'object' && data !== null && 'detail' in data
         ? data.detail
         : undefined;
-    let message = '회원가입을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    let message = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
     let fields: ApiFieldError[] = [];
-    if (status === 409) {
+    if (status === 401) {
+      message = '이메일 또는 비밀번호가 올바르지 않습니다.';
+    } else if (status === 409) {
       message = '이미 가입된 이메일입니다.';
       fields = [{ field: 'email', message }];
     } else if (status === 422) {
@@ -63,8 +65,7 @@ apiClient.interceptors.response.use(
         ];
       }
     } else if (status === undefined) {
-      message =
-        '가입 처리 결과를 확인하지 못했어요. 연결 상태를 확인해 주세요. 이미 가입되었다면 로그인해 주세요.';
+      message = '연결 상태를 확인한 후 다시 시도해 주세요.';
     }
     // Axios 오류의 요청 config에 든 비밀번호를 UI와 mutation에 전달하지 않는다.
     return Promise.reject(new ApiError(message, status, fields));
