@@ -6,9 +6,19 @@
 ## 실행
 
 ```bash
-python3 -m pip install -e '.[api]'      # 레포 루트에서
+# 레포 루트에서. evaluation이 hankkeut_calculation을 import하므로 설치 순서를 지킨다.
+python3 -m pip install -e '.[api,dev]'
+python3 -m pip install -e data/analysis/calculation \
+                       -e data/analysis/evaluation \
+                       -e data/analysis/similarity
+
 uvicorn apps.api.app.main:app --reload --port 8000
+python3 -m pytest apps/api/tests
 ```
+
+분석 패키지가 없어도 앱은 뜬다. 지역 표와 산출물만 쓰는 엔드포인트는 그대로
+동작하고, 패키지나 키가 필요한 엔드포인트만 무엇이 없는지 담은 `503`을
+반환한다 (`app/services/analysis_runtime.py`).
 
 - Swagger UI: <http://localhost:8000/docs>
 - ReDoc: <http://localhost:8000/redoc>
@@ -29,9 +39,14 @@ AUTH_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 API_CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
 ```
 
-현재 분석 JSON은 이미지에 포함하지 않는다. R2/S3 연동 전에는 해당 결과를
-요청할 때 404가 반환된다. API 키와 데이터베이스 URL은 Railway Variables에만
-넣고 Git이나 Vercel의 공개 환경변수에 넣지 않는다.
+이미지에는 API와 분석 패키지 소스, 그리고 `apps/api/app/data`의 지역 표·코드
+매핑·경주시 샘플 산출물이 들어간다. 분석 작업 자체는 따로 돌리며, 그 결과를
+쓰려면 `ANALYSIS_ARTIFACT_ROOT`로 볼륨을 가리킨다. 산출물이 없는 지역은 404가
+아니라 `INSUFFICIENT_DATA`로 응답하므로 화면은 그대로 뜬다.
+
+API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Vercel의 공개
+환경변수에 넣지 않는다. 키가 없는 엔드포인트는 무엇이 없는지 담은 `503`을
+반환하며, 모의 데이터를 대신 내보내지 않는다.
 
 ## 현재 상태
 

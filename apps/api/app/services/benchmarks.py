@@ -1,12 +1,12 @@
 """비교 기준 지역(벤치마크) 선정.
 
-`hankkeut_contracts.PerformanceEvaluator.select_benchmarks`는 "유사 지역 중
-성과가 대상보다 높은 곳"으로 정의되어 있지만, 전국 성과 점수가 아직 없다.
-그래서 지금은 비교 데이터가 확보된 구조적 유사 지역을 비교 기준으로 쓰고,
-그 사실을 `performance_backed`로 표시해 응답 문구와 `report_status`에 반영한다.
+먼저 성과 점수로 "유사 지역 중 성과가 대상보다 높은 곳"을 고른다
+(`performance.select_benchmarks`). 점수를 낼 수 없으면 — 키가 없거나 원천
+응답이 부족하면 — 비교 데이터가 확보된 구조적 유사 지역으로 내려간다.
 
-성과 점수가 열리면 `_performance_backed_benchmarks`만 채우면 되고, 이 함수의
-호출측은 바뀌지 않는다.
+둘 중 어느 경로를 탔는지는 `performance_backed`가 들고 있고, 그 값이 응답의
+`methodology.benchmark_selection_*` 문구와 `report_status`를 결정한다. 성과
+검증을 거치지 않은 비교를 '우수 지역'이라고 부르지 않기 위한 구분이다.
 """
 
 from __future__ import annotations
@@ -14,7 +14,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import artifacts
+from fastapi import HTTPException
+
+from . import artifacts, performance
 
 #: 비교 기준 지역 수 상한. COLLABORATION.md §6의 "최대 3곳"을 따른다.
 DEFAULT_BENCHMARK_COUNT = 3
@@ -26,6 +28,15 @@ _STRUCTURAL_RULE = (
 _STRUCTURAL_NOTE = (
     "성과 검증을 거친 우수 지역이 아닙니다. 구조적으로 비슷한 여건을 가진 비교 "
     "후보이며, 성과 데이터가 확보되면 다시 선정합니다."
+)
+
+_PERFORMANCE_RULE = (
+    "구조적으로 유사한 지역 중 관광 성과 복합점수가 대상 지역보다 높은 상위 "
+    f"{DEFAULT_BENCHMARK_COUNT}곳입니다."
+)
+_PERFORMANCE_NOTE = (
+    "복합점수는 이동통신 기반 방문자 수 40%, 관광 자원 수요 30%, 관광 수요 강도 "
+    "30%를 비교 집단 안에서 백분위로 환산해 합산한 값입니다."
 )
 
 
@@ -74,8 +85,43 @@ def resolve_benchmarks(
     )
     # 대상 지역 자신은 비교 기준이 될 수 없다.
     resolved = [region for region in resolved if region["region_id"] != region_id]
+
+    selected_ids = _performance_backed_benchmarks(region_id, resolved, limit=limit)
+    if selected_ids:
+        order = {region_id_: index for index, region_id_ in enumerate(selected_ids)}
+        return BenchmarkSelection(
+            regions=tuple(sorted(
+                (region for region in resolved if region["region_id"] in order),
+                key=lambda region: order[region["region_id"]],
+            )),
+            performance_backed=True,
+            rule=_PERFORMANCE_RULE,
+            note=_PERFORMANCE_NOTE,
+            unresolved_names=tuple(unresolved),
+        )
     return BenchmarkSelection(
         regions=tuple(resolved[:limit]),
         performance_backed=False,
         unresolved_names=tuple(unresolved),
     )
+
+
+def _performance_backed_benchmarks(
+    region_id: str, resolved: list[dict[str, Any]], *, limit: int
+) -> list[str]:
+    """성과가 대상보다 높은 지역만 고른다. 점수가 없으면 빈 목록.
+
+    계약상 빈 목록은 정상이며, 그때 호출측은 구조적 비교로 내려간다.
+    """
+    if not resolved:
+        return []
+    try:
+        return performance.select_benchmarks(
+            region_id,
+            [region["region_id"] for region in resolved],
+            scorer=performance.default_scorer(),
+            k=limit,
+        )
+    except HTTPException:
+        # 키나 패키지가 없는 것은 오류가 아니다. 성과 기반 선정만 못 한다.
+        return []
