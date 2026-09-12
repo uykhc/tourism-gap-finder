@@ -96,7 +96,8 @@ def main() -> int:
         })
 
     with OUTPUT_CSV.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=FIELDNAMES)
+        # csv defaults to CRLF; keep the file LF like regions.csv.
+        writer = csv.DictWriter(handle, fieldnames=FIELDNAMES, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
