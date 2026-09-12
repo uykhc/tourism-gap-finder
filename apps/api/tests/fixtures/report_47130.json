@@ -1,0 +1,361 @@
+{
+  "report_version": "1.0.0+2026-09-05",
+  "report_status": "PROVISIONAL",
+  "generated_at": "2026-09-13T00:00:00+00:00",
+  "target": {
+    "region_id": "47130",
+    "province_name": "경상북도",
+    "region_name": "경주시",
+    "administrative_type": "시"
+  },
+  "analysis_period": {
+    "start_ym": "202508",
+    "end_ym": "202607",
+    "month_count": 12
+  },
+  "summary": {
+    "diagnosis_status": "GAP_FOUND",
+    "primary_gap_type": "EXPERIENCE_TOURISM",
+    "one_line_review": {
+      "text": "비교한 두 지역 모두에서 체험관광 등록 공급의 구성비와 면적당 밀도가 낮게 나타납니다.",
+      "source": "LLM",
+      "generated_at": null
+    },
+    "key_metrics": [
+      {
+        "metric_code": "MIN_BENCHMARK_SUPPLY_RATIO",
+        "content_type": "EXPERIENCE_TOURISM",
+        "value": 0.693779,
+        "benchmark_region_id": "47110",
+        "benchmark_region_name": "포항시"
+      },
+      {
+        "metric_code": "LOWER_BENCHMARK_COUNT",
+        "content_type": "EXPERIENCE_TOURISM",
+        "value": 2,
+        "total_benchmark_count": 2
+      },
+      {
+        "metric_code": "SEARCHES_PER_PLACE",
+        "content_type": "EXPERIENCE_TOURISM",
+        "value": 2117.5862,
+        "rank": 1,
+        "total_content_type_count": 6
+      }
+    ]
+  },
+  "evidence": {
+    "supply_density": {
+      "content_type": "EXPERIENCE_TOURISM",
+      "target": {
+        "region_id": "47130",
+        "region_name": "경주시",
+        "value": 6.569062,
+        "target_to_benchmark_ratio": null
+      },
+      "benchmarks": [
+        {
+          "region_id": "47110",
+          "region_name": "포항시",
+          "value": 9.468524,
+          "target_to_benchmark_ratio": 0.693779
+        },
+        {
+          "region_id": "44210",
+          "region_name": "서산시",
+          "value": 8.093452,
+          "target_to_benchmark_ratio": 0.811651
+        }
+      ]
+    },
+    "searches_per_place": {
+      "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+      "items": [
+        {
+          "content_type": "EXPERIENCE_TOURISM",
+          "navigation_search_count": 184230,
+          "supply_place_count": 87,
+          "searches_per_place": 2117.5862,
+          "rank": 1
+        },
+        {
+          "content_type": "ACCOMMODATION",
+          "navigation_search_count": 402118,
+          "supply_place_count": 264,
+          "searches_per_place": 1523.1742,
+          "rank": 2
+        },
+        {
+          "content_type": "SHOPPING",
+          "navigation_search_count": 178440,
+          "supply_place_count": 143,
+          "searches_per_place": 1247.8322,
+          "rank": 3
+        },
+        {
+          "content_type": "LEISURE_SPORTS",
+          "navigation_search_count": 96204,
+          "supply_place_count": 96,
+          "searches_per_place": 1002.125,
+          "rank": 4
+        },
+        {
+          "content_type": "CULTURE_TOURISM",
+          "navigation_search_count": 108932,
+          "supply_place_count": 118,
+          "searches_per_place": 923.1525,
+          "rank": 5
+        },
+        {
+          "content_type": "FOOD",
+          "navigation_search_count": 481226,
+          "supply_place_count": 553,
+          "searches_per_place": 870.2098,
+          "rank": 6
+        }
+      ]
+    }
+  },
+  "category_overview": [
+    {
+      "content_type": "EXPERIENCE_TOURISM",
+      "signal_level": "STRONG_GAP_CANDIDATE",
+      "supply_place_count": 87,
+      "composition_share": 0.068993,
+      "supply_density_per_100_km2": 6.569062,
+      "lower_benchmark_count": 2,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 0.693779,
+      "searches_per_place": 2117.5862,
+      "search_rank": 1
+    },
+    {
+      "content_type": "FOOD",
+      "signal_level": "NEEDS_REVIEW",
+      "supply_place_count": 553,
+      "composition_share": 0.438541,
+      "supply_density_per_100_km2": 41.755072,
+      "lower_benchmark_count": 2,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 0.903941,
+      "searches_per_place": 870.2098,
+      "search_rank": 6
+    },
+    {
+      "content_type": "SHOPPING",
+      "signal_level": "NEEDS_REVIEW",
+      "supply_place_count": 143,
+      "composition_share": 0.113402,
+      "supply_density_per_100_km2": 10.797424,
+      "lower_benchmark_count": 1,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 0.884184,
+      "searches_per_place": 1247.8322,
+      "search_rank": 3
+    },
+    {
+      "content_type": "LEISURE_SPORTS",
+      "signal_level": "NEEDS_REVIEW",
+      "supply_place_count": 96,
+      "composition_share": 0.07613,
+      "supply_density_per_100_km2": 7.24862,
+      "lower_benchmark_count": 1,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 0.959588,
+      "searches_per_place": 1002.125,
+      "search_rank": 4
+    },
+    {
+      "content_type": "ACCOMMODATION",
+      "signal_level": "NO_CLEAR_GAP",
+      "supply_place_count": 264,
+      "composition_share": 0.209358,
+      "supply_density_per_100_km2": 19.933705,
+      "lower_benchmark_count": 0,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 1.273936,
+      "searches_per_place": 1523.1742,
+      "search_rank": 2
+    },
+    {
+      "content_type": "CULTURE_TOURISM",
+      "signal_level": "NO_CLEAR_GAP",
+      "supply_place_count": 118,
+      "composition_share": 0.093577,
+      "supply_density_per_100_km2": 8.909762,
+      "lower_benchmark_count": 0,
+      "total_benchmark_count": 2,
+      "lowest_benchmark_supply_ratio": 1.379256,
+      "searches_per_place": 923.1525,
+      "search_rank": 5
+    }
+  ],
+  "detailed_diagnoses": [
+    {
+      "content_type": "EXPERIENCE_TOURISM",
+      "signal_level": "STRONG_GAP_CANDIDATE",
+      "judgement": "비교한 두 지역 모두에서 체험관광 등록 공급의 구성비와 면적당 밀도가 낮게 나타납니다. 동시에 등록 장소 1곳당 목적지 검색량도 두 지역보다 높아, 추가 공급·수요 검증 필요성이 가장 일관되게 관찰되는 유형입니다.",
+      "quantitative_evidence": [
+        {
+          "metric_code": "SUPPLY_DENSITY_PER_100_KM2",
+          "value": 6.569062,
+          "comparisons": [
+            {
+              "region_id": "47110",
+              "region_name": "포항시",
+              "benchmark_value": 9.468524,
+              "target_to_benchmark_ratio": 0.693779
+            },
+            {
+              "region_id": "44210",
+              "region_name": "서산시",
+              "benchmark_value": 8.093452,
+              "target_to_benchmark_ratio": 0.811651
+            }
+          ],
+          "rank": null,
+          "total_count": null
+        },
+        {
+          "metric_code": "SEARCHES_PER_PLACE",
+          "value": 2117.5862,
+          "comparisons": [],
+          "rank": 1,
+          "total_count": 6
+        },
+        {
+          "metric_code": "MIN_BENCHMARK_SUPPLY_RATIO",
+          "value": 0.693779,
+          "comparisons": [
+            {
+              "region_id": "47110",
+              "region_name": "포항시",
+              "benchmark_value": 9.468524,
+              "target_to_benchmark_ratio": 0.693779
+            }
+          ],
+          "rank": null,
+          "total_count": null
+        }
+      ],
+      "applicability_insight": "경주는 역사문화자원과 주요 관광거점이 이미 형성돼 있어 신규 시설을 만드는 방식뿐 아니라 기존 관람 동선에 참여형·예약형 프로그램을 결합하는 방식을 먼저 검토할 수 있습니다. 다만 현재 지표만으로는 어떤 세부 체험이 부족한지 알 수 없어 세부 유형과 관광권역별 공급을 추가로 확인해야 합니다.",
+      "case_ids": [
+        "case-01",
+        "case-02"
+      ]
+    },
+    {
+      "content_type": "FOOD",
+      "signal_level": "NEEDS_REVIEW",
+      "judgement": "음식은 구성비가 두 비교 지역보다 낮지만, 등록 장소 1곳당 검색량이 높은 쪽은 한 지역에 대해서만 관찰됩니다. 신호의 방향이 일치하지 않습니다.",
+      "quantitative_evidence": [
+        {
+          "metric_code": "SUPPLY_DENSITY_PER_100_KM2",
+          "value": 41.755072,
+          "comparisons": [
+            {
+              "region_id": "47110",
+              "region_name": "포항시",
+              "benchmark_value": 46.192238,
+              "target_to_benchmark_ratio": 0.903941
+            },
+            {
+              "region_id": "44210",
+              "region_name": "서산시",
+              "benchmark_value": 41.276607,
+              "target_to_benchmark_ratio": 1.011592
+            }
+          ],
+          "rank": null,
+          "total_count": null
+        },
+        {
+          "metric_code": "SEARCHES_PER_PLACE",
+          "value": 870.2098,
+          "comparisons": [],
+          "rank": 6,
+          "total_count": 6
+        },
+        {
+          "metric_code": "MIN_BENCHMARK_SUPPLY_RATIO",
+          "value": 0.903941,
+          "comparisons": [
+            {
+              "region_id": "47110",
+              "region_name": "포항시",
+              "benchmark_value": 46.192238,
+              "target_to_benchmark_ratio": 0.903941
+            }
+          ],
+          "rank": null,
+          "total_count": null
+        }
+      ],
+      "applicability_insight": "음식 장소 수는 이미 6개 유형 중 가장 많아, 공급을 늘리는 방향보다 관광 동선과 연결되는지를 먼저 확인하는 편이 적절합니다.",
+      "case_ids": []
+    }
+  ],
+  "recommended_actions": [],
+  "benchmark_cases": [
+    {
+      "case_id": "case-01",
+      "benchmark_region_name": "포항시",
+      "title": "포항 스페이스워크",
+      "case_type": null,
+      "content_type": "EXPERIENCE_TOURISM",
+      "period": null,
+      "operator": null,
+      "summary": "포스코가 환호공원에 총 길이 333m의 체험형 조형물을 조성해 2021년 포항시에 기부한 사례입니다. 기존 공원과 해안 전망이라는 장소 자원에 직접 걷고 오르는 체험 요소를 더했습니다.",
+      "applicability": "경주는 역사문화자원과 주요 관광거점이 이미 형성돼 있어 신규 시설을 만드는 방식뿐 아니라 기존 관람 동선에 참여형·예약형 프로그램을 결합하는 방식을 먼저 검토할 수 있습니다. 다만 현재 지표만으로는 어떤 세부 체험이 부족한지 알 수 없어 세부 유형과 관광권역별 공급을 추가로 확인해야 합니다.",
+      "source_ids": [
+        "source-1"
+      ]
+    },
+    {
+      "case_id": "case-02",
+      "benchmark_region_name": "서산시",
+      "title": "서산 해미읍성 역사체험축제",
+      "case_type": null,
+      "content_type": "EXPERIENCE_TOURISM",
+      "period": null,
+      "operator": null,
+      "summary": "해미읍성이라는 단일 역사공간에서 역사·병영 체험형 축제를 반복 운영해 온 사례입니다. 상설 시설을 새로 만들지 않고 장소의 경험을 콘텐츠로 구성했습니다.",
+      "applicability": "경주는 역사문화자원과 주요 관광거점이 이미 형성돼 있어 신규 시설을 만드는 방식뿐 아니라 기존 관람 동선에 참여형·예약형 프로그램을 결합하는 방식을 먼저 검토할 수 있습니다. 다만 현재 지표만으로는 어떤 세부 체험이 부족한지 알 수 없어 세부 유형과 관광권역별 공급을 추가로 확인해야 합니다.",
+      "source_ids": [
+        "source-2"
+      ]
+    }
+  ],
+  "methodology": {
+    "benchmark_selection_rule": "관광 성과 데이터가 전국 단위로 열리기 전이므로, 구조적 유사도 상위 지역 중 공급 비교 데이터가 확보된 지역을 비교 기준으로 사용합니다.",
+    "benchmark_selection_note": "성과 검증을 거친 우수 지역이 아닙니다. 구조적으로 비슷한 여건을 가진 비교 후보이며, 성과 데이터가 확보되면 다시 선정합니다.",
+    "supply_comparison_rule": "각 Peer와 비교해 유형별 공급 구성비 또는 100㎢당 공급밀도가 낮으면 상대적 빈칸 후보로 표시합니다.",
+    "search_pressure_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+    "provisional_notice": "관광 성과 검증과 전국 비교가 끝나기 전의 잠정 결과입니다. 빈칸 후보는 추가 검증 우선순위이며 신규 시설·사업의 성공 근거가 아닙니다.",
+    "limitations": [
+      "Peer는 구조적 유사 후보이며 관광 성과가 검증된 우수 Peer가 아닙니다.",
+      "화면 개발용 샘플 산출물입니다. 실제 분석 결과가 아니며 정책 판단에 쓰지 않습니다.",
+      "기타관광은 분석에서 제외했으며 원본 검색량 합계에는 포함됩니다.",
+      "공급은 카카오맵에 해당 유형으로 등록된 장소 수를 이용한 대리변수이며, 실제 프로그램 수·운영시간·예약 가능량·수용인원을 직접 측정하지 않습니다.",
+      "목적지 검색량은 실제 방문이나 미충족 수요와 같지 않으며, 반복 검색과 지역주민 이용이 포함될 수 있습니다.",
+      "비교 지역은 구조적 유사 후보이며 관광 성과가 검증된 우수 지역이 아닙니다.",
+      "실행 제안은 현재 분석 산출물에 생산자가 없어 제공하지 않습니다."
+    ]
+  },
+  "sources": [
+    {
+      "source_id": "source-1",
+      "title": "스페이스워크 조성·기부 관련 공식 자료",
+      "publisher": "포스코그룹 뉴스룸",
+      "url": "https://newsroom.posco.com/",
+      "published_at": "2021-11-18 외"
+    },
+    {
+      "source_id": "source-2",
+      "title": "서산 해미읍성축제 추진 현황 자료",
+      "publisher": "서산시",
+      "url": "https://www.seosan.go.kr/",
+      "published_at": "2024"
+    }
+  ]
+}

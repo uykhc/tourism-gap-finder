@@ -35,26 +35,32 @@ API_CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
 
 ## 현재 상태
 
-`/regions/{id}/peers`, `/regions/{id}/gaps`, `/regions/{id}/report`는 생성된
-`data/analysis` JSON 산출물을 읽어 실제 응답 스키마로 변환합니다. 해당 지역의
-산출물이 없으면 `404`를 반환합니다. 나머지 분석 엔드포인트는 아직 예시 데이터를
-반환합니다.
-
-기본 산출물 루트는 레포의 `data/analysis`이며, 배포 환경에서는
-`ANALYSIS_ARTIFACT_ROOT`로 별도 볼륨/경로를 지정할 수 있습니다.
-
-예시 payload는 `app/examples.py`에 모여 있고, 실제 연결 지점은 각 라우터의
-`TODO(실연결)` 주석에 적혀 있습니다.
-
-| 엔드포인트 | 연결 대상 | 필요한 키 |
+| 엔드포인트 | 응답 출처 | 필요한 키 |
 |---|---|---|
-| `/regions`, `/regions/{id}` | `hankkeut_contracts.load_regions()` | 없음 |
-| `/regions/{id}/structure`, `/peers` | `tourgap.pipeline` + `tourgap.peers` | SGIS |
-| `/regions/{id}/portfolio` | `gap_analyzer.analysis.analyze_portfolio` | TourAPI |
-| `/regions/{id}/hubs` | `gap_analyzer.hub_api` | HUB |
-| `/regions/{id}/performance` | `performance_evaluator.visitor_portfolio_benchmark` | VISITOR |
-| `/regions/{id}/gaps` | `datalab_navigation` (상대공급 + 공급압력) | Kakao |
-| `/regions/{id}/report` | `ai_reports.openai_report` | OpenAI |
+| `/auth/*`, `/users/*` | 데이터베이스 | 없음 |
+| `/regions`, `/regions/{id}`, `/provinces` | `app/data/regions.csv` 전국 230개 | 없음 |
+| `/regions/{id}/peers` | `peer_candidates` 산출물 | 없음 |
+| `/regions/{id}/gaps` | `relative_supply` + `datalab_navigation` 산출물 | 없음 |
+| `/regions/{id}/report` | 위 산출물 + `ai_reports` | 없음 |
+| `/regions/{id}/structure` | **예시 데이터** | SGIS |
+| `/regions/{id}/portfolio` | **예시 데이터** | TourAPI |
+| `/regions/{id}/hubs` | **예시 데이터** | HUB |
+| `/regions/{id}/performance` | **예시 데이터** | VISITOR |
+| `/compare` | **예시 데이터** | TourAPI + VISITOR |
+
+산출물을 읽는 세 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. 경주시
+(`47130`) 샘플 한 벌이 커밋돼 있어 별도 준비 없이 200을 확인할 수 있고, 실제
+분석 결과는 `ANALYSIS_ARTIFACT_ROOT`로 다른 경로를 가리켜 씁니다. 샘플은
+`scripts/build_sample_artifacts.py`가 실제 생산자 함수를 호출해 만듭니다.
+
+`/peers`·`/gaps`는 해당 지역 산출물이 없으면 404입니다. `/report`는 404가 아니라
+200과 `summary.diagnosis_status: INSUFFICIENT_DATA`로 응답합니다 — 데이터 부족과
+잘못된 요청은 화면에서 구분해야 하기 때문입니다. 존재하지 않는 `region_id`만
+404입니다.
+
+예시 데이터를 쓰는 엔드포인트의 payload는 `app/examples.py`에 모여 있습니다.
+
+프론트엔드에 건네는 보고서 응답 예시: `tests/fixtures/report_47130.json`.
 
 ## 구조
 
@@ -65,8 +71,10 @@ app/
 ├── database.py   SQLAlchemy 엔진·세션
 ├── models.py     User, RevokedToken
 ├── security.py   비밀번호 해시, JWT 발급·검증
-├── examples.py   스텁이 반환하는 고정 예시 (실연결 시 삭제)
+├── examples.py   아직 연결되지 않은 엔드포인트의 고정 예시
+├── data/         지역 표·코드 매핑·샘플 산출물
 ├── schemas/      Pydantic 응답 모델
+├── services/     지역 표, 산출물 리더, 보고서 조립
 └── routers/      도메인별 엔드포인트
 ```
 
@@ -76,5 +84,12 @@ app/
   않습니다 — 중구가 5곳, 서구·남구·북구가 4곳이라 값이 섞입니다.
 - 결측을 0으로 채우지 않습니다. `null`로 두고 화면에서 '자료 없음'으로 표시합니다.
   0은 '공급 없음'/'성과 바닥'이 되어 순위를 왜곡합니다.
-- `app/schemas/reports.py`는 `config/ai/tourism_gap_report.schema.json`의 미러입니다.
-  한쪽만 고치면 리포트 생성기의 출력이 API 경계에서 거부됩니다.
+- 콘텐츠 유형은 영문 코드(`EXPERIENCE_TOURISM` 등)로 오갑니다. 분석 파이프라인과
+  `config/ai/tourism_gap_report.schema.json`도 같은 코드를 씁니다. 한국어 라벨은
+  프론트엔드가 매핑합니다.
+- `app/schemas/reports.py`는 화면 전용 응답이고 `config/ai/tourism_gap_report.schema.json`은
+  LLM 출력 계약입니다. 둘은 더 이상 같은 모양이 아닙니다 — 보고서 응답은 LLM
+  출력에 산출물 수치를 더해 `app/services/report.py`가 조립합니다. 콘텐츠 유형
+  코드만 양쪽에서 같아야 하며, 그건 계약 테스트가 확인합니다.
+- 표시용 문자열(`"0.70배"`)을 만들지 않습니다. 반올림하지 않은 숫자를 내리고
+  포맷팅은 프론트엔드가 합니다.

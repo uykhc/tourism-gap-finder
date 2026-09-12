@@ -34,7 +34,7 @@ def list_regions(
 @router.get("/{region_id}", response_model=RegionDetail, summary="지역 상세")
 def get_region(region_id: RegionIdPath) -> RegionDetail:
     """지역 기본 정보."""
-    # TODO(실연결): SGIS 인구·면적을 병합한다.
+    # TODO(실연결): SGIS 인구·면적을 병합한다. 지역 정보 자체는 전국 표에서 온다.
     region = region_table.find_region(region_id)
     if region is None:
         raise HTTPException(status_code=404, detail=f"Unknown region_id: {region_id}")
@@ -48,7 +48,7 @@ def get_region(region_id: RegionIdPath) -> RegionDetail:
 )
 def get_structure(region_id: RegionIdPath) -> StructureProfile:
     """유사도 계산에 쓰는 구조 변수 17개와 출처."""
-    # TODO(실연결): tourgap.pipeline.load_dataset() 의 features + provenance.
-    #   SGIS_CONSUMER_KEY/SECRET 이 없으면 503으로 명확히 실패시킨다 (mock 금지).
+    # TODO(실연결): hankkeut_similarity.pipeline.load_dataset() 의 features +
+    #   provenance. SGIS_CONSUMER_KEY/SECRET 이 없으면 503 (mock 금지).
     del region_id
     return StructureProfile.model_validate(examples.structure_profile())

@@ -58,13 +58,11 @@ class HubReport(BaseModel):
 # 성과 평가
 # ---------------------------------------------------------------------------
 class PerformanceDataQuality(BaseModel):
-    """산출 불가 지표."""
+    """산출하지 못한 지표와 그 이유."""
 
-    unavailable_metrics: list[str] = Field(
-        examples=[["resource_demand", "demand_intensity"]]
-    )
+    unavailable_metrics: list[str] = Field(examples=[[]])
     note: str = Field(
-        examples=["원천 API가 전 지역·전 기간 0건을 반환해 해당 지표는 산출하지 않았습니다."]
+        examples=["해당 기준연월에 값이 없어 산출하지 않은 지표입니다. 결측은 0으로 채우지 않습니다."]
     )
 
 

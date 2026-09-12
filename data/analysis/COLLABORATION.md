@@ -346,8 +346,6 @@ benchmark 0개일 때 무엇을 보여줄지 · 수요 데이터가 끝내 안 �
 - 결측을 0으로 채우지 마라. 0은 '성과 바닥'이 되어 순위를 왜곡한다.
 - 지역 마스터를 새로 만들지 말고 hankkeut_contracts.load_regions() 를 써라.
   DataLab은 개편 이전 코드를 쓰므로 region_id 매핑이 필요하다.
-- AreaTarDemDsService / AreaTarResDemService / AreaTarDivService 는 등록은 됐지만
-  전 지역·전 기간 0건을 반환한다. 파라미터 문제가 아니니 추측하며 헤매지 마라.
 - 테스트는 A의 구현 대신 가짜 PeerFinder(표본 DataFrame 반환)로 짜라.
   A가 설계를 바꾸면 깨진다.
 - 새 지표를 추가하면 COLLABORATION.md §3 대장에도 등록해라.

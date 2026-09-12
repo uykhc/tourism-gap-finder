@@ -19,8 +19,9 @@ router = APIRouter(prefix="/regions", tags=["analysis"])
 )
 def get_portfolio(region_id: RegionIdPath) -> PortfolioReport:
     """콘텐츠 유형별 개수·구성비·단위면적당 밀도."""
-    # TODO(실연결): gap_analyzer.tour_api.TourApiClient 로 자원을 받아
-    #   gap_analyzer.analysis.analyze_portfolio() 에 넘긴다. TourAPI 키 필요.
+    # TODO(실연결): hankkeut_calculation.gap_analyzer.tour_api.TourApiClient 로
+    #   자원을 받아 gap_analyzer.analysis.analyze_portfolio() 에 넘긴다.
+    #   KOR_TOUR_API_SERVICE_KEY 가 없으면 503으로 명확히 실패시킨다 (mock 금지).
     del region_id
     return PortfolioReport.model_validate(examples.portfolio_report())
 
@@ -34,7 +35,8 @@ def get_hubs(
     limit: int = Query(default=5, ge=1, le=20),
 ) -> HubReport:
     """기초지자체 중심 관광지 상위 목록."""
-    # TODO(실연결): gap_analyzer.hub_api.HubTourApiClient. HUB_TOUR_API_SERVICE_KEY 필요.
+    # TODO(실연결): hankkeut_calculation.gap_analyzer.hub_api.HubTourApiClient.
+    #   HUB_TOUR_API_SERVICE_KEY 가 없으면 503 (mock 금지).
     del region_id
     return HubReport.model_validate(
         {**examples.HUB_REPORT, "base_year_month": base_year_month, "limit": limit}
@@ -51,8 +53,10 @@ def get_performance(region_id: RegionIdPath) -> PerformanceScore:
 
     산출 불가한 지표는 `data_quality.unavailable_metrics`에 담긴다.
     """
-    # TODO(실연결): performance_evaluator.visitor_portfolio_benchmark 의
-    #   aggregate_daily_visitor_sums + build_city_tourism_scores.
+    # TODO(실연결): hankkeut_evaluation.visitor_portfolio_benchmark 의
+    #   aggregate_daily_visitor_sums + build_regional_tourism_scores.
+    #   백분위는 비교 집단이 있어야 의미가 있으므로 대상 + peer 집합으로 계산한다.
+    #   TourAPI 코드는 services.regions.tour_api_code() 로 얻는다.
     del region_id
     return PerformanceScore.model_validate(examples.PERFORMANCE_SCORE)
 

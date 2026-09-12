@@ -6,11 +6,16 @@
 
 from __future__ import annotations
 
+import json
 import unittest
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
+
+#: 프론트엔드에 건네는 예시 응답. 계약 문서 겸 낡음 감지용이다.
+FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "report_47130.json"
 
 #: 합의된 최상위 필드. 추가·누락·오타를 모두 잡기 위해 정확히 비교한다.
 EXPECTED_ROOT_FIELDS = {
@@ -76,6 +81,27 @@ class ReportContractTest(unittest.TestCase):
 
     def test_the_report_path_is_unchanged(self):
         self.assertIn("/regions/{region_id}/report", self.spec["paths"])
+
+
+class ExampleResponseTest(unittest.TestCase):
+    """커밋된 예시 응답이 실제 응답과 어긋나지 않는지 본다.
+
+    값은 비교하지 않는다. `generated_at`이 요청마다 바뀌기 때문이다. 구조만
+    비교해도 예시가 낡는 경우는 잡힌다.
+    """
+
+    def test_the_committed_example_matches_the_live_response_structure(self):
+        fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+        live = TestClient(app).get("/regions/47130/report").json()
+        self.assertEqual(_shape(fixture), _shape(live))
+
+
+def _shape(node: object) -> object:
+    if isinstance(node, dict):
+        return {key: _shape(value) for key, value in sorted(node.items())}
+    if isinstance(node, list):
+        return [_shape(item) for item in node]
+    return type(node).__name__
 
 
 if __name__ == "__main__":
