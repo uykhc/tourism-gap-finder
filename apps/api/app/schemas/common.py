@@ -23,6 +23,8 @@ class AdministrativeType(str, Enum):
     SI = "시"
     GUN = "군"
     GU = "자치구"
+    #: 세종특별자치시 한 곳. 지역 표에 있는 값이므로 enum에도 있어야 한다.
+    SPECIAL_SELF_GOVERNING_CITY = "특별자치시"
 
 
 class ContentType(str, Enum):

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 
-from .. import region_master
+from ..services import regions as region_table
 from ..deps import BearerToken, CurrentUser, DbSession
 from ..models import RevokedToken, User
 from ..schemas import LoginRequest, SignUpRequest, TokenResponse, UserResponse
@@ -31,7 +31,7 @@ def signup(payload: SignUpRequest, db: DbSession) -> UserResponse:
     email = str(payload.email).lower()
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status_code=409, detail="Email is already registered")
-    if payload.default_region and region_master.find_region(payload.default_region) is None:
+    if payload.default_region and region_table.find_region(payload.default_region) is None:
         raise HTTPException(
             status_code=422, detail=f"Unknown region_id: {payload.default_region}"
         )

@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from .. import examples, region_master
+from .. import examples
 from ..deps import RegionIdPath
 from ..schemas.common import Page
 from ..schemas.regions import RegionDetail, RegionSummary, StructureProfile
+from ..services import regions as region_table
 
 router = APIRouter(prefix="/regions", tags=["regions"])
 
@@ -24,10 +25,9 @@ def list_regions(
     offset: int = Query(default=0, ge=0),
 ) -> Page[RegionSummary]:
     """전국 시군구 목록."""
-    items = region_master.search_regions(q=q, province=province)
-    total = examples.REGION_TOTAL if not (q or province) else len(items)
+    items = region_table.search_regions(q=q, province=province)
     return Page[RegionSummary].model_validate(
-        {"items": items[offset : offset + limit], "total": total}
+        {"items": items[offset : offset + limit], "total": len(items)}
     )
 
 
@@ -35,7 +35,7 @@ def list_regions(
 def get_region(region_id: RegionIdPath) -> RegionDetail:
     """지역 기본 정보."""
     # TODO(실연결): SGIS 인구·면적을 병합한다.
-    region = region_master.find_region(region_id)
+    region = region_table.find_region(region_id)
     if region is None:
         raise HTTPException(status_code=404, detail=f"Unknown region_id: {region_id}")
     return RegionDetail.model_validate({**examples.REGION_DETAIL, **region})

@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import delete
 
-from .. import region_master
+from ..services import regions as region_table
 from ..deps import CurrentUser, DbSession
 from ..models import User
 from ..schemas import ChangePasswordRequest, UpdateUserRequest, UserResponse
@@ -21,7 +21,7 @@ def update_me(
 ) -> UserResponse:
     """null을 보내면 관심 지역을 해제한다."""
     region_id = payload.default_region
-    if region_id and region_master.find_region(region_id) is None:
+    if region_id and region_table.find_region(region_id) is None:
         raise HTTPException(status_code=422, detail=f"Unknown region_id: {region_id}")
     user.default_region = region_id
     db.commit()

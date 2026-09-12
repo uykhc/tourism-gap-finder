@@ -13,6 +13,9 @@ dependencies = []
 [project.optional-dependencies]
 api = ["fastapi>=0.115,<1.0", "uvicorn[standard]>=0.30,<1.0", "SQLAlchemy>=2.0,<3.0", "psycopg[binary]>=3.2,<4.0", "pwdlib[argon2]>=0.2,<1.0", "PyJWT>=2.8,<3.0", "email-validator>=2.0,<3.0"]
 ai = ["openai>=1.0,<3.0"]
+# httpx is what fastapi.testclient.TestClient imports; without it no endpoint
+# test can run at all.
+dev = ["httpx>=0.27,<1.0", "pytest>=8,<9"]
 
 # 이 저장소는 apps/, data/, config/ 등을 함께 두는 모노레포다. setuptools의
 # 자동 탐색을 그대로 쓰면 이 디렉터리들을 모두 배포 패키지로 간주해 editable
@@ -20,3 +23,7 @@ ai = ["openai>=1.0,<3.0"]
 [tool.setuptools.packages.find]
 include = ["apps.api.app*"]
 namespaces = true
+
+[tool.pytest.ini_options]
+testpaths = ["apps/api/tests"]
+pythonpath = ["."]

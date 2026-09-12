@@ -12,7 +12,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from .. import region_master
+from . import regions as region_table
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 ARTIFACT_ROOT = Path(os.getenv("ANALYSIS_ARTIFACT_ROOT", REPO_ROOT / "data/analysis"))
@@ -26,7 +26,7 @@ def _read(path: Path) -> dict[str, Any]:
 
 
 def _region(region_id: str) -> dict[str, Any]:
-    value = region_master.find_region(region_id)
+    value = region_table.find_region(region_id)
     if value is not None:
         return value
     # The Swagger seed master is intentionally small.  Until it is replaced by
