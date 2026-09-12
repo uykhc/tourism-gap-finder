@@ -27,8 +27,8 @@ from hankkeut_calculation.tourism_data.tourism_demand_api import (
 DEFAULT_CONFIG_PATH = Path("config/gyeonggi/performance_evaluator.json")
 DEFAULT_OUTPUT_DIR = Path("results/portfolio_benchmarks")
 
-# 경기도 군(연천·가평·양평)은 표본이 3개뿐이므로 이번 선정·수집에서는 제외한다.
-# 이후 전국 군 비교군을 확보하면 이 목록과 별도로 군 매핑을 다시 활성화한다.
+# Backwards-compatible sample scope.  Production callers should pass their own
+# nationwide mapping to ``build_regional_tourism_scores`` below.
 ACTIVE_CITY_SIGUNGU_CODES: dict[str, tuple[str, ...]] = {
     "수원시": ("41111", "41113", "41115", "41117"),
     "성남시": ("41131", "41133", "41135"),
@@ -186,18 +186,20 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("VISITOR_API_SERVICE_KEY를 입력해야 합니다.")
         payload = json.loads(input_path.read_text(encoding="utf-8"))
         all_results = tuple(portfolio_region_result_from_dict(item) for item in payload["region_results"])
-        # 군 데이터는 이번 시 전용 분석에서 수집·가공하지 않는다.
-        city_results = tuple(
-            item for item in all_results if item.definition.administrative_type == "city"
-        )
-        if set(item.definition.region_name for item in city_results) != set(ACTIVE_CITY_SIGUNGU_CODES):
-            raise ValueError("포트폴리오 입력에 경기도 28개 시 결과가 모두 있어야 합니다.")
+        if not all_results:
+            raise ValueError("포트폴리오 입력에 성공한 지역 결과가 없습니다.")
+        # Visitor API records have no nationwide id.  Never guess when a name
+        # is duplicated (중구/서구/남구 등); the collector must then preserve a
+        # province/code field before a nationwide benchmark can be produced.
+        names = [item.definition.region_name for item in all_results]
+        duplicates = sorted({name for name in names if names.count(name) > 1})
+        if duplicates:
+            raise ValueError("전국 방문자 API의 지역명만으로 구분할 수 없는 동명 시군구: " + ", ".join(duplicates))
         client = VisitorApiClient(service_key, timeout_seconds=args.timeout, page_size=args.page_size)
         demand_client = TourismDemandApiClient(service_key, timeout_seconds=args.timeout, page_size=args.page_size)
-        demand_ym, demand_scores = fetch_latest_common_demand_scores(
+        demand_ym, demand_scores = fetch_latest_common_demand_scores_by_area(
             demand_client,
-            area_code=config.demand_area_code,
-            city_sigungu_codes=ACTIVE_CITY_SIGUNGU_CODES,
+            regions=all_results,
             lookback_months=config.demand_lookback_months,
         )
         records = client.fetch_local_daily_visitors(
@@ -208,26 +210,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {exc}", file=sys.stderr)
         return 2
 
-    results_by_name = {item.definition.region_name: item for item in city_results}
+    results_by_name = {item.definition.region_name: item for item in all_results}
     ranked_regions, matched_names = aggregate_daily_visitor_sums(
         records,
         allowed_region_names=set(results_by_name),
         visitor_type_names=config.visitor_type_names,
     )
-    city_scores = build_city_tourism_scores(
+    region_codes = {
+        item.definition.region_name: (f"{item.definition.area_code}:{item.definition.sigungu_code}",)
+        for item in all_results
+    }
+    city_scores = build_regional_tourism_scores(
         ranked_regions,
         demand_scores,
-        city_sigungu_codes=ACTIVE_CITY_SIGUNGU_CODES,
+        region_sigungu_codes=region_codes,
         visitor_weight=config.visitor_weight,
         resource_demand_weight=config.resource_demand_weight,
         demand_intensity_weight=config.demand_intensity_weight,
     )
     selected_scores = city_scores[: config.top_region_count]
     if len(selected_scores) < config.top_region_count:
-        print(
-            f"오류: 포트폴리오 결과와 이름이 일치하는 방문자 지역이 {len(selected_rows)}개뿐입니다.",
-            file=sys.stderr,
-        )
+        print(f"오류: 선정 가능한 지역이 {len(selected_scores)}개뿐입니다.", file=sys.stderr)
         return 2
     selected_results = tuple(results_by_name[item.region_name] for item in selected_scores)
     distributions = build_portfolio_distributions(selected_results)
@@ -244,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         "visitor_metric": "기간 내 일별 순방문자 수의 합(고유 개인 수 아님)",
         "demand_base_ym": demand_ym,
         "selection_weights": {"visitor": config.visitor_weight, "resource_demand": config.resource_demand_weight, "demand_intensity": config.demand_intensity_weight},
-        "selection_scope": "경기도 28개 시(군 제외)",
+        "selection_scope": "입력 포트폴리오에 포함된 전국 시군구(동명은 원본 코드 필요)",
         "visitor_type_names": list(config.visitor_type_names),
         "observed_visitor_type_names": sorted(
             {record.visitor_type for record in records if record.visitor_type}
@@ -285,6 +288,36 @@ def fetch_latest_common_demand_scores(
     raise TourismDemandApiError("28개 시의 4개 관광 수요 지수가 모두 있는 최근 공통 연월을 찾지 못했습니다.")
 
 
+def fetch_latest_common_demand_scores_by_area(
+    client: TourismDemandApiClient,
+    *,
+    regions: tuple[Any, ...],
+    lookback_months: int,
+) -> tuple[str, dict[str, dict[str, TourismDemandRecord]]]:
+    """Fetch a single common month for every province represented in input.
+
+    The tourism-demand API's signgu code is only unique inside ``area_code``;
+    returned dictionaries therefore use ``<area_code>:<sigungu_code>`` keys.
+    """
+    expected = {(item.definition.area_code, item.definition.sigungu_code) for item in regions}
+    area_codes = sorted({area for area, _ in expected})
+    for base_ym in previous_months(maximum_count=lookback_months):
+        per_area = {area: client.fetch_all_scores(base_ym=base_ym, area_code=area) for area in area_codes}
+        if all(
+            all(sigungu in values for values in per_area[area].values())
+            for area, sigungu in expected
+        ):
+            return base_ym, {
+                metric: {
+                    f"{area}:{sigungu}": values[metric][sigungu]
+                    for area, sigungu in expected
+                    for values in (per_area[area],)
+                }
+                for metric in ("resource_service", "resource_culture", "intensity_stay", "intensity_spend")
+            }
+    raise TourismDemandApiError("입력 전국 시군구의 4개 관광 수요 지수가 모두 있는 최근 공통 연월을 찾지 못했습니다.")
+
+
 def build_city_tourism_scores(
     visitor_rows: list[dict[str, Any]],
     demand_scores: dict[str, dict[str, TourismDemandRecord]],
@@ -294,12 +327,39 @@ def build_city_tourism_scores(
     resource_demand_weight: float,
     demand_intensity_weight: float,
 ) -> list[CityTourismScore]:
+    """Deprecated compatibility wrapper for the former Gyeonggi-only CLI."""
+    return build_regional_tourism_scores(
+        visitor_rows,
+        demand_scores,
+        region_sigungu_codes=city_sigungu_codes,
+        visitor_weight=visitor_weight,
+        resource_demand_weight=resource_demand_weight,
+        demand_intensity_weight=demand_intensity_weight,
+    )
+
+
+def build_regional_tourism_scores(
+    visitor_rows: list[dict[str, Any]],
+    demand_scores: dict[str, dict[str, TourismDemandRecord]],
+    *,
+    region_sigungu_codes: dict[str, tuple[str, ...]],
+    visitor_weight: float,
+    resource_demand_weight: float,
+    demand_intensity_weight: float,
+) -> list[CityTourismScore]:
+    """Rank any configured set of regions, rather than a fixed province.
+
+    ``region_sigungu_codes`` is deliberately supplied by the caller.  The
+    demand API uses province-local signgu codes, while API consumers use a
+    nationwide five-digit region id; keeping that mapping in configuration
+    prevents silent name-based joins (``중구`` etc.) across provinces.
+    """
     visitor_by_name = {str(row["region_name"]): float(row["daily_visitor_sum"]) for row in visitor_rows}
-    if set(visitor_by_name) != set(city_sigungu_codes):
-        missing = sorted(set(city_sigungu_codes) - set(visitor_by_name))
-        raise ValueError("방문자 수가 없는 시: " + ", ".join(missing))
+    if set(visitor_by_name) != set(region_sigungu_codes):
+        missing = sorted(set(region_sigungu_codes) - set(visitor_by_name))
+        raise ValueError("방문자 수가 없는 지역: " + ", ".join(missing))
     raw_rows = []
-    for city_name, codes in city_sigungu_codes.items():
+    for city_name, codes in region_sigungu_codes.items():
         values = {key: [demand_scores[key][code].value for code in codes] for key in demand_scores}
         raw_rows.append((
             city_name,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from .. import examples
+from ..services import artifacts
 from ..deps import RegionIdPath
 from ..schemas.analysis import GapReport, HubReport, PerformanceScore, PortfolioReport
 
@@ -62,8 +63,7 @@ def get_gaps(
     peer_count: int = Query(default=3, ge=1, le=5, description="비교에 쓸 상위 Peer 수"),
 ) -> GapReport:
     """Peer 대비 상대적 공급 부족과 수요 대비 공급 압력."""
-    # TODO(실연결): datalab_navigation.relative_supply.build_relative_supply_report +
-    #   navigation_demand.build_supply_pressure_report.
-    #   공급압력은 데이터랩 CSV 수동 다운로드가 선행돼야 한다.
-    del region_id, peer_count
-    return GapReport.model_validate(examples.gap_report())
+    # `peer_count` is a request-time display limit.  The persisted analysis
+    # retains the exact peers that were used when the job ran.
+    del peer_count
+    return GapReport.model_validate(artifacts.gaps(region_id))
