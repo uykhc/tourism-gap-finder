@@ -9,16 +9,14 @@ from .common import RegionRef
 
 _HAS_LETTER = re.compile(r"[A-Za-z]")
 _HAS_DIGIT = re.compile(r"\d")
-_HAS_SYMBOL = re.compile(r"[^A-Za-z0-9]")
 
-PASSWORD_RULE = "영문·숫자·특수문자 포함 8자 이상"
+PASSWORD_RULE = "영문·숫자 포함 8자 이상"
 
 
 def validate_password_strength(value: str) -> str:
     if not (
         _HAS_LETTER.search(value)
         and _HAS_DIGIT.search(value)
-        and _HAS_SYMBOL.search(value)
     ):
         raise ValueError(f"비밀번호는 {PASSWORD_RULE}이어야 합니다.")
     return value
@@ -34,9 +32,6 @@ class SignUpRequest(BaseModel):
         examples=["51210"],
         description="관심 지역 코드. 건너뛰면 null",
     )
-    age_confirmed: bool = Field(description="[필수] 만 14세 이상입니다")
-    terms_agreed: bool = Field(description="[필수] 이용약관 및 개인정보 처리방침 동의")
-
     _check_password = field_validator("password")(validate_password_strength)
 
     @model_validator(mode="after")
@@ -44,15 +39,6 @@ class SignUpRequest(BaseModel):
         if self.password != self.password_confirm:
             raise ValueError("password and password_confirm must match")
         return self
-
-    @model_validator(mode="after")
-    def required_consents_given(self):
-        if not self.age_confirmed:
-            raise ValueError("만 14세 이상 확인에 동의해야 가입할 수 있습니다.")
-        if not self.terms_agreed:
-            raise ValueError("이용약관 및 개인정보 처리방침에 동의해야 가입할 수 있습니다.")
-        return self
-
 
 class LoginRequest(BaseModel):
     email: EmailStr
