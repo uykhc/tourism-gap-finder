@@ -2,7 +2,8 @@ import { http, HttpResponse, delay } from 'msw';
 import { z } from 'zod';
 import { apiBaseUrl } from '../../api/client';
 import type { UserResponse } from '../../types/auth';
-import { signupRegions, users } from '../db/users';
+import { regions } from '../db/regions';
+import { users } from '../db/users';
 
 // 백엔드의 동의 필드 삭제 후 계약을 모킹한다. 현재 서버와의 차이는 README에 기록한다.
 const requestSchema = z
@@ -56,8 +57,7 @@ export const authHandlers = [
       );
     }
     const region =
-      signupRegions.find((item) => item.region_id === payload.default_region) ??
-      null;
+      regions.find((item) => item.region_id === payload.default_region) ?? null;
     if (payload.default_region !== null && !region) {
       return HttpResponse.json(
         { detail: `Unknown region_id: ${payload.default_region}` },
