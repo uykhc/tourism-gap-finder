@@ -15,7 +15,7 @@
         "additionalProperties": false,
         "required": ["content_type", "judgement", "quantitative_evidence", "peer_cases", "applicability_insight"],
         "properties": {
-          "content_type": {"enum": ["음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"]},
+          "content_type": {"enum": ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM", "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"]},
           "judgement": {"type": "string", "minLength": 1},
           "quantitative_evidence": {
             "type": "array",

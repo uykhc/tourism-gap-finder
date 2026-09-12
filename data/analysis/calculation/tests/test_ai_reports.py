@@ -23,7 +23,7 @@ from hankkeut_calculation.ai_reports.openai_report import (
 
 class CaseSearchTest(unittest.TestCase):
     def test_builds_peer_queries_and_screens_attributable_sources(self):
-        queries = build_case_search_queries(content_type="체험관광", peer_regions=["강릉시", "강릉시", "전주시"])
+        queries = build_case_search_queries(content_type="EXPERIENCE_TOURISM", peer_regions=["강릉시", "강릉시", "전주시"])
         self.assertEqual([query.peer_region for query in queries], ["강릉시", "전주시"])
         self.assertIn("체험관광", queries[0].query)
         sources = screen_case_documents([
@@ -66,8 +66,8 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
             ai_report_context={
                 "region_name": "수원시", "analysis_period": "202508~202607",
                 "metric_definition": "검색량 ÷ 장소 수", "limitation": "단일 지역 파일럿",
-                "priority_order_by_supply_pressure": ["문화관광"],
-                "content_type_metrics": [{"content_type": "문화관광", "searches_per_place": 8516.021}],
+                "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
+                "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
             },
             approved_sources=[source],
         )
@@ -96,38 +96,38 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
             generator.generate(
                 ai_report_context={
                     "region_name": "수원시", "analysis_period": "202508~202607",
-                    "priority_order_by_supply_pressure": ["문화관광"],
-                    "content_type_metrics": [{"content_type": "문화관광", "searches_per_place": 8516.021}],
+                    "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
+                    "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
                 }, approved_sources=[source],
             )
 
     def test_individual_peer_ratio_at_or_above_one_is_a_gap_candidate(self):
         context = _prepare_context({
             "region_name": "수원시", "analysis_period": "202508~202607",
-            "priority_order_by_individual_peer_pressure": ["문화관광", "체험관광"],
+            "priority_order_by_individual_peer_pressure": ["CULTURE_TOURISM", "EXPERIENCE_TOURISM"],
             "content_type_metrics": [
-                {"content_type": "문화관광", "searches_per_place": 8516.021},
-                {"content_type": "체험관광", "searches_per_place": 5000.0},
+                {"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021},
+                {"content_type": "EXPERIENCE_TOURISM", "searches_per_place": 5000.0},
             ],
             "peer_supply_pressure_comparison": [
-                {"content_type": "문화관광", "candidate_peer_count": 0},
-                {"content_type": "체험관광", "candidate_peer_count": 1},
+                {"content_type": "CULTURE_TOURISM", "candidate_peer_count": 0},
+                {"content_type": "EXPERIENCE_TOURISM", "candidate_peer_count": 1},
             ],
         }, max_gap_types=2)
-        self.assertEqual(context["selected_content_types"], ["체험관광"])
+        self.assertEqual(context["selected_content_types"], ["EXPERIENCE_TOURISM"])
 
     def test_keeps_relative_supply_evidence_only_for_selected_gap_types(self):
         context = _prepare_context({
             "region_name": "수원시", "analysis_period": "202508~202607",
-            "priority_order_by_individual_peer_pressure": ["체험관광"],
-            "content_type_metrics": [{"content_type": "체험관광", "searches_per_place": 5000.0}],
-            "peer_supply_pressure_comparison": [{"content_type": "체험관광", "candidate_peer_count": 1}],
+            "priority_order_by_individual_peer_pressure": ["EXPERIENCE_TOURISM"],
+            "content_type_metrics": [{"content_type": "EXPERIENCE_TOURISM", "searches_per_place": 5000.0}],
+            "peer_supply_pressure_comparison": [{"content_type": "EXPERIENCE_TOURISM", "candidate_peer_count": 1}],
             "relative_supply_comparison": [
-                {"content_type": "체험관광", "candidate_peer_count": 2},
-                {"content_type": "음식", "candidate_peer_count": 3},
+                {"content_type": "EXPERIENCE_TOURISM", "candidate_peer_count": 2},
+                {"content_type": "FOOD", "candidate_peer_count": 3},
             ],
         }, max_gap_types=2)
-        self.assertEqual(context["relative_supply_comparison"], [{"content_type": "체험관광", "candidate_peer_count": 2}])
+        self.assertEqual(context["relative_supply_comparison"], [{"content_type": "EXPERIENCE_TOURISM", "candidate_peer_count": 2}])
 
 
 class CaseSourceCollectionTest(unittest.TestCase):
@@ -135,7 +135,7 @@ class CaseSourceCollectionTest(unittest.TestCase):
         provider = _RecordingCaseProvider()
         peers = ["성남시", "용인시", "고양시", "안양시", "구리시"]
         sources = collect_approved_case_sources(
-            provider, content_types=["문화관광"], peer_regions=peers,
+            provider, content_types=["CULTURE_TOURISM"], peer_regions=peers,
         )
         self.assertEqual(DEFAULT_MAX_PEER_REGIONS, 3)
         self.assertEqual([query.peer_region for query in provider.queries], peers[:3])
@@ -184,7 +184,7 @@ def _payload():
         "analysis_period": "202508~202607",
         "status": "provisional",
         "gap_types": [{
-            "content_type": "문화관광",
+            "content_type": "CULTURE_TOURISM",
             "judgement": "우선 검토 유형",
             "quantitative_evidence": [{"metric": "searches_per_place", "target_value": 8516.021, "comparison": "Peer 비교 전 잠정 순위"}],
             "peer_cases": [{"title": "공식 사례", "peer_region": "강릉시", "summary": "운영 성과", "source_ids": ["source-1"]}],

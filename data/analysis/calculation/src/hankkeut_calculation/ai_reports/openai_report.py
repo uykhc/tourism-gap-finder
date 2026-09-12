@@ -21,7 +21,7 @@ from .case_search import (
     SupportedCaseSource,
     screen_case_documents,
 )
-from .report_schema import validate_report_payload
+from .report_schema import CONTENT_TYPE_LABELS, validate_report_payload
 
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_MAX_OUTPUT_TOKENS = 1_800
@@ -183,9 +183,12 @@ def collect_approved_case_sources(provider: CaseSearchProvider, *, content_types
         content_type = str(content_type).strip()
         if not content_type:
             continue
+        # The content type travels as a code, but a web search needs the Korean
+        # label a Korean source would actually use.
+        label = CONTENT_TYPE_LABELS.get(content_type, content_type)
         for peer in peers:
             queries.append(CaseSearchQuery(
-                peer, content_type, f"{peer} {content_type} 관광사업 콘텐츠 운영 성과",
+                peer, content_type, f"{peer} {label} 관광사업 콘텐츠 운영 성과",
             ))
     if not queries:
         return []

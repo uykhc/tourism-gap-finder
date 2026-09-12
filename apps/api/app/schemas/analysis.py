@@ -98,7 +98,7 @@ class PeerSupplyComparison(BaseModel):
 
 
 class ContentTypeComparison(BaseModel):
-    content_type: ContentType = Field(examples=["체험관광"])
+    content_type: ContentType = Field(examples=["EXPERIENCE_TOURISM"])
     target_place_count: int = Field(examples=[87])
     target_composition_share: float = Field(examples=[0.1312])
     target_density_per_100_km2: float = Field(examples=[20.37])
@@ -123,13 +123,13 @@ class RelativeSupplyReport(BaseModel):
     )
     content_type_comparisons: list[ContentTypeComparison]
     priority_order_by_relative_supply_gap: list[ContentType] = Field(
-        examples=[["체험관광", "쇼핑"]]
+        examples=[["EXPERIENCE_TOURISM", "SHOPPING"]]
     )
     limitations: list[str]
 
 
 class SupplyPressureMetric(BaseModel):
-    content_type: ContentType = Field(examples=["체험관광"])
+    content_type: ContentType = Field(examples=["EXPERIENCE_TOURISM"])
     navigation_search_count: int = Field(examples=[184230])
     kakao_supply_place_count: int = Field(gt=0, examples=[87])
     searches_per_place: float = Field(
@@ -155,7 +155,7 @@ class SupplyPressureReport(BaseModel):
     )
     content_type_metrics: list[SupplyPressureMetric]
     priority_order_by_supply_pressure: list[ContentType] = Field(
-        examples=[["체험관광", "숙박"]]
+        examples=[["EXPERIENCE_TOURISM", "ACCOMMODATION"]]
     )
     warnings: list[str]
 

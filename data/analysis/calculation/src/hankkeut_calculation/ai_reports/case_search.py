@@ -7,6 +7,8 @@ from enum import StrEnum
 from typing import Protocol
 from urllib.parse import urlparse
 
+from .report_schema import CONTENT_TYPE_LABELS
+
 
 class SourceKind(StrEnum):
     PUBLIC_INSTITUTION = "public_institution"
@@ -74,11 +76,15 @@ def build_case_search_queries(*, content_type: str, peer_regions: list[str]) -> 
     unique_regions = list(dict.fromkeys(region.strip() for region in peer_regions if region.strip()))
     if not unique_regions:
         raise ValueError("최소 한 개의 Peer 지역이 필요합니다.")
+    code = content_type.strip()
+    # The content type is carried as a code, but the search text has to read the
+    # way a Korean source would write it.
+    label = CONTENT_TYPE_LABELS.get(code, code)
     return [
         CaseSearchQuery(
             peer_region=region,
-            content_type=content_type.strip(),
-            query=f"{region} {content_type.strip()} 관광사업 콘텐츠 운영 성과",
+            content_type=code,
+            query=f"{region} {label} 관광사업 콘텐츠 운영 성과",
         )
         for region in unique_regions
     ]

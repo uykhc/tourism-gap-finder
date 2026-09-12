@@ -9,7 +9,26 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlparse
 
-CONTENT_TYPES = frozenset({"음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"})
+#: Canonical tourism content type codes.  Korean labels live in
+#: ``CONTENT_TYPE_LABELS`` and are used only for human-facing text such as web
+#: search queries -- never as an identifier or a join key.
+CONTENT_TYPES = frozenset({
+    "FOOD",
+    "ACCOMMODATION",
+    "CULTURE_TOURISM",
+    "EXPERIENCE_TOURISM",
+    "LEISURE_SPORTS",
+    "SHOPPING",
+})
+
+CONTENT_TYPE_LABELS = {
+    "FOOD": "음식",
+    "ACCOMMODATION": "숙박",
+    "CULTURE_TOURISM": "문화관광",
+    "EXPERIENCE_TOURISM": "체험관광",
+    "LEISURE_SPORTS": "레저스포츠",
+    "SHOPPING": "쇼핑",
+}
 ROOT_KEYS = frozenset({"region_name", "analysis_period", "status", "gap_types", "sources", "limitations"})
 
 
