@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from .. import examples
+from ..services import artifacts
 from ..deps import RegionIdPath
 from ..schemas.peers import PeerResult
 
@@ -27,9 +27,4 @@ def get_peers(
 
     반환 개수는 0~k로 가변이다.
     """
-    # TODO(실연결): tourgap.peers.TourgapPeerFinder(features).find_peers(region_id, k=k)
-    #   provenance는 Provenance.to_rows()의 한글 키를 영문 키로 변환해 싣는다.
-    del region_id
-    return PeerResult.model_validate(
-        examples.peer_result(k=k, min_similarity=min_similarity)
-    )
+    return PeerResult.model_validate(artifacts.peers(region_id, k=k, min_similarity=min_similarity))

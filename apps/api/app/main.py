@@ -2,9 +2,8 @@
 
 앱 조립만 한다. 엔드포인트는 `routers/`에, 응답 스키마는 `schemas/`에 있다.
 
-분석 로직(`packages/analysis`, `data/analysis/similarity`)은 아직 붙지 않았다.
-인증과 회원 정보를 뺀 나머지 엔드포인트는 실제 산출물과 같은 형태의 고정
-예시를 돌려준다. 연결 지점은 각 라우터의 TODO 주석에 적혀 있다.
+분석 산출물(JSON)은 `data/analysis`에서 읽어 API 응답 계약으로 변환한다.
+아직 산출물이 없는 분석은 예시 데이터를 반환한다.
 """
 
 from __future__ import annotations
@@ -34,7 +33,8 @@ DESCRIPTION = """
 
 조인 키는 법정동 시군구 코드 5자리(`region_id`)입니다.
 
-⚠️ `auth`, `users`를 제외한 모든 엔드포인트는 고정 예시 데이터를 반환합니다.
+⚠️ Peer·공백·종합 리포트는 생성된 분석 산출물을 반환합니다. 산출물이 없는
+지역은 404를 반환합니다.
 """.strip()
 
 
