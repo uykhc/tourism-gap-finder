@@ -27,6 +27,10 @@ class DailyRegionalVisitor:
     region_name: str
     visitor_count: float
     visitor_type: str = ""
+    #: 응답의 signguCode. 법정동 시군구 코드 5자리이며 계약의 region_id와 같은
+    #: 값이다. 지역명은 중구가 5곳, 서구·남구·북구가 4곳이라 조인 키로 쓸 수
+    #: 없으므로 이 값으로 조인한다. 응답에 코드가 없으면 빈 문자열이다.
+    region_id: str = ""
 
 
 class VisitorApiClient:
@@ -163,6 +167,7 @@ def _to_daily_visitor(item: dict[str, Any]) -> DailyRegionalVisitor:
         region_name=region_name,
         visitor_count=visitor_count,
         visitor_type=_first_text(item, "touDivNm", "visitorType", "visitrTypeNm"),
+        region_id=_first_text(item, "signguCode", "signguCd", "regionId"),
     )
 
 

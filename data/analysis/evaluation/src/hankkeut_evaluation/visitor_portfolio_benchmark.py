@@ -65,6 +65,9 @@ class VisitorPortfolioConfig:
 @dataclass(frozen=True, slots=True)
 class CityTourismScore:
     region_name: str
+    #: region_id로 조인한 경우의 법정동 5자리 코드. 지역명으로 조인했으면 빈
+    #: 문자열이다.
+    region_id: str
     visitor_sum: float
     resource_demand: float
     demand_intensity: float
@@ -136,31 +139,49 @@ def load_visitor_config(path: Path) -> VisitorPortfolioConfig:
 def aggregate_daily_visitor_sums(
     records: list[DailyRegionalVisitor],
     *,
-    allowed_region_names: set[str],
+    allowed_region_names: set[str] | None = None,
+    allowed_region_ids: set[str] | None = None,
     visitor_type_names: tuple[str, ...] = (),
 ) -> tuple[list[dict[str, Any]], set[str]]:
     """동일 기간의 일별 방문자 수를 지역별로 더한다.
 
     이 값은 기간 내 고유 개인 수가 아니라 ``일별 순방문자 수의 합``이다.
+
+    ``allowed_region_ids``를 주면 지역명 대신 ``region_id``(법정동 5자리)로
+    걸러 묶는다. 지역명으로 묶으면 중구 5곳, 서구·남구·북구 4곳이 한 덩어리로
+    합산되므로 전국 단위에서는 이쪽을 쓴다. 돌려주는 두 번째 값은 실제로
+    관측된 키의 집합이며, 묶은 기준에 따라 지역명 또는 region_id다.
     """
+    if (allowed_region_names is None) == (allowed_region_ids is None):
+        raise ValueError("allowed_region_names 또는 allowed_region_ids 중 하나만 지정해야 합니다.")
+    by_region_id = allowed_region_ids is not None
+    allowed = allowed_region_ids if by_region_id else allowed_region_names
     selected_types = set(visitor_type_names)
     totals: dict[str, float] = {}
-    seen_names: set[str] = set()
+    names_by_key: dict[str, str] = {}
+    seen_keys: set[str] = set()
     for record in records:
-        if record.region_name not in allowed_region_names:
+        key = record.region_id if by_region_id else record.region_name
+        if not key or key not in allowed:
             continue
         if selected_types and record.visitor_type not in selected_types:
             continue
-        seen_names.add(record.region_name)
-        totals[record.region_name] = totals.get(record.region_name, 0.0) + record.visitor_count
-    rows = [
-        {"region_name": name, "daily_visitor_sum": round(total, 2)}
-        for name, total in totals.items()
-    ]
+        seen_keys.add(key)
+        names_by_key.setdefault(key, record.region_name)
+        totals[key] = totals.get(key, 0.0) + record.visitor_count
+    rows: list[dict[str, Any]] = []
+    for key, total in totals.items():
+        row: dict[str, Any] = {
+            "region_name": names_by_key[key] if by_region_id else key,
+            "daily_visitor_sum": round(total, 2),
+        }
+        if by_region_id:
+            row["region_id"] = key
+        rows.append(row)
     rows.sort(key=lambda row: (-float(row["daily_visitor_sum"]), str(row["region_name"])))
     for rank, row in enumerate(rows, start=1):
         row["visitor_rank"] = rank
-    return rows, seen_names
+    return rows, seen_keys
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -354,16 +375,33 @@ def build_regional_tourism_scores(
     nationwide five-digit region id; keeping that mapping in configuration
     prevents silent name-based joins (``중구`` etc.) across provinces.
     """
-    visitor_by_name = {str(row["region_name"]): float(row["daily_visitor_sum"]) for row in visitor_rows}
-    if set(visitor_by_name) != set(region_sigungu_codes):
-        missing = sorted(set(region_sigungu_codes) - set(visitor_by_name))
+    # 조인 키는 행이 region_id를 들고 있으면 그것, 없으면 지역명이다. 이 함수는
+    # 키가 무엇인지 알 필요가 없다 — region_sigungu_codes를 호출측이 주는 이유가
+    # 바로 지역명 조인을 피하기 위한 것이다.
+    visitor_by_key = {
+        str(row.get("region_id") or row["region_name"]): float(row["daily_visitor_sum"])
+        for row in visitor_rows
+    }
+    names_by_key = {
+        str(row.get("region_id") or row["region_name"]): str(row["region_name"])
+        for row in visitor_rows
+    }
+    # region_id로 묶은 경우에만 값이 있다. 결과가 어느 키로 조인됐는지 그대로
+    # 돌려주기 위한 것이다.
+    ids_by_key = {
+        str(row["region_id"]): str(row["region_id"])
+        for row in visitor_rows
+        if row.get("region_id")
+    }
+    if set(visitor_by_key) != set(region_sigungu_codes):
+        missing = sorted(set(region_sigungu_codes) - set(visitor_by_key))
         raise ValueError("방문자 수가 없는 지역: " + ", ".join(missing))
     raw_rows = []
     for city_name, codes in region_sigungu_codes.items():
         values = {key: [demand_scores[key][code].value for code in codes] for key in demand_scores}
         raw_rows.append((
             city_name,
-            visitor_by_name[city_name],
+            visitor_by_key[city_name],
             sum(values["resource_service"]) / len(codes) / 2 + sum(values["resource_culture"]) / len(codes) / 2,
             sum(values["intensity_stay"]) / len(codes) / 2 + sum(values["intensity_spend"]) / len(codes) / 2,
         ))
@@ -372,7 +410,8 @@ def build_regional_tourism_scores(
     intensity_percentiles = _percentile_by_name({name: intensity for name, _, _, intensity in raw_rows})
     result = [
         CityTourismScore(
-            region_name=name,
+            region_name=names_by_key.get(name, name),
+            region_id=ids_by_key.get(name, ""),
             visitor_sum=round(visitor, 2), resource_demand=round(resource, 4), demand_intensity=round(intensity, 4),
             visitor_percentile=visitor_percentiles[name], resource_demand_percentile=resource_percentiles[name],
             demand_intensity_percentile=intensity_percentiles[name],

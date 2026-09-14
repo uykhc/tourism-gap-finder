@@ -20,9 +20,14 @@ from typing import Any
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 REGIONS_CSV_PATH = _DATA_DIR / "regions.csv"
 
-#: `scripts/build_region_code_map.py`가 만든 표. 관광 수요·방문자 API는
-#: TourAPI 코드로 조회하지만 계약에는 region_id만 오간다.
+#: `scripts/build_region_code_map.py`가 만든 표. TourAPI(관광자원·중심관광지)는
+#: 자체 area/sigungu 코드로 조회하지만 계약에는 region_id만 오간다.
 REGION_CODE_MAP_CSV_PATH = _DATA_DIR / "region_code_map.csv"
+
+#: `scripts/build_region_demand_codes.py`가 만든 표. 관광 수요지수 API는
+#: **법정동 코드**로 조회한다. TourAPI 코드와 다른 체계이므로 표를 따로 둔다.
+#: 일반구가 있는 시는 구 코드 여러 개에 대응한다.
+REGION_DEMAND_CODES_CSV_PATH = _DATA_DIR / "region_demand_codes.csv"
 
 #: CSV가 쓰는 컬럼명 → 응답 스키마가 쓰는 필드명.
 _COLUMN_RENAMES = {"admin_type": "administrative_type"}
@@ -93,6 +98,11 @@ def region_total() -> int:
     return len(_rows())
 
 
+def all_region_ids() -> tuple[str, ...]:
+    """전국 region_id. 전국 응답을 지역 단위로 걸러낼 때 쓴다."""
+    return tuple(_by_id())
+
+
 def find_region(region_id: str) -> dict[str, Any] | None:
     row = _by_id().get(region_id)
     return None if row is None else dict(row)
@@ -143,8 +153,60 @@ def _tour_api_codes() -> dict[str, tuple[str, str]]:
 
 
 def tour_api_code(region_id: str) -> tuple[str, str] | None:
-    """TourAPI 조회용 (area_code, sigungu_code). 매핑이 없으면 `None`."""
+    """TourAPI 조회용 (area_code, sigungu_code). 매핑이 없으면 `None`.
+
+    관광자원(`/portfolio`)과 중심관광지(`/hubs`) 전용이다. 관광 수요지수 API는
+    코드 체계가 달라 `demand_codes()`를 써야 한다.
+    """
     return _tour_api_codes().get(region_id)
+
+
+@lru_cache(maxsize=1)
+def _demand_codes() -> dict[str, tuple[str, ...]]:
+    """region_id → 관광 수요지수 API의 법정동 코드들.
+
+    일반구가 있는 시는 구 코드 여러 개가 대응하고, 호출측이 그 값들을
+    평균한다. 공표되지 않는 지역은 표에 빈 값으로 남아 여기서 빠진다.
+    """
+    try:
+        text = REGION_DEMAND_CODES_CSV_PATH.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        raise RegionTableError(
+            f"관광 수요지수 코드 표를 읽을 수 없습니다: {REGION_DEMAND_CODES_CSV_PATH}"
+        ) from exc
+    codes: dict[str, tuple[str, ...]] = {}
+    for row in csv.DictReader(text.splitlines()):
+        values = tuple(
+            item.strip() for item in str(row.get("demand_codes") or "").split(";") if item.strip()
+        )
+        if values:
+            codes[str(row["region_id"]).strip()] = values
+    if not codes:
+        raise RegionTableError("관광 수요지수 코드 표에 사용할 수 있는 행이 없습니다.")
+    return codes
+
+
+def demand_codes(region_id: str) -> tuple[str, ...] | None:
+    """관광 수요지수 API 조회용 법정동 코드들. 공표되지 않으면 `None`."""
+    return _demand_codes().get(region_id)
+
+
+@lru_cache(maxsize=1)
+def legacy_region_codes() -> frozenset[str]:
+    """행정구역 개편 전 코드 집합.
+
+    2026년 개편으로 광주와 전남이 우리 표에서 `12`로 합쳐졌지만, 원천 API는
+    개편이 반영되기 전 달에 대해 여전히 옛 코드(순천시 `46150`)로 공표한다.
+    과거 월을 조회할 때 그 행을 버리지 않으려면 이 집합이 필요하다.
+
+    일반구 코드는 개편과 무관하므로 제외한다.
+    """
+    return frozenset(
+        code
+        for region_id, codes in _demand_codes().items()
+        if len(codes) == 1 and codes[0] != region_id
+        for code in codes
+    )
 
 
 def resolve_by_name(

@@ -9,6 +9,7 @@ from __future__ import annotations
 import unittest
 
 from apps.api.app.services import performance
+from apps.api.app.services import regions as region_table
 from apps.api.app.services.performance import (
     UnavailableScorer,
     select_benchmarks,
@@ -86,20 +87,117 @@ class SelectBenchmarksTest(unittest.TestCase):
         self.assertEqual(select_benchmarks(TARGET, PEERS, scorer=UnavailableScorer()), [])
 
 
-class RegionCodeFilterTest(unittest.TestCase):
-    def test_regions_without_a_tour_api_code_are_excluded(self):
-        # 제물포구(28125)는 2026년 개편 신설로 TourAPI 코드가 없다.
-        coded = performance._regions_with_codes(["47130", "28125", "47110"])
-        self.assertEqual(sorted(coded), ["47110", "47130"])
+class DemandCodeLookupTest(unittest.TestCase):
+    """수요지수 API는 법정동 코드로 조회한다. TourAPI 코드와 다른 체계다."""
 
-    def test_same_named_regions_in_one_group_are_both_excluded(self):
-        # 방문자 API는 지역명으로만 조인된다. 같은 집단에 중구가 둘이면
-        # 어느 쪽 값인지 알 수 없다.
-        coded = performance._regions_with_codes(["11140", "26110", "47130"])
-        self.assertEqual(sorted(coded), ["47130"])
+    def test_a_plain_city_maps_to_its_own_code(self):
+        self.assertEqual(performance._regions_with_codes(["47130"]), {"47130": ("47:47130",)})
+
+    def test_a_city_with_general_districts_maps_to_every_district(self):
+        # 수요지수 API는 수원시(41110)를 공표하지 않고 4개 구만 공표한다.
+        coded = performance._regions_with_codes(["41110"])
+        self.assertEqual(coded["41110"], ("41:41111", "41:41113", "41:41115", "41:41117"))
+
+    def test_a_reorganized_region_maps_to_its_pre_reorganization_code(self):
+        # 순천시는 우리 표에서 12150이지만 API는 아직 46150으로 공표한다.
+        # 뒤 3자리를 전남에 붙이면 46770(고흥군)이 나오므로 그렇게 만들지 않는다.
+        self.assertEqual(performance._regions_with_codes(["12150"]), {"12150": ("46:46150",)})
+        self.assertEqual(performance._regions_with_codes(["12770"]), {"12770": ("46:46800",)})
+
+    def test_same_named_regions_are_both_kept(self):
+        # 조인이 region_id로 이뤄지므로 서울 중구와 부산 중구는 다른 키다.
+        coded = performance._regions_with_codes(["11140", "26110"])
+        self.assertEqual(sorted(coded), ["11140", "26110"])
+        self.assertNotEqual(coded["11140"], coded["26110"])
 
     def test_an_unknown_region_is_skipped(self):
         self.assertEqual(performance._regions_with_codes(["99999"]), {})
+
+    def test_the_tour_api_map_is_a_separate_code_system(self):
+        # 두 표를 섞어 쓰면 조회가 조용히 실패한다. 경주시는 TourAPI 35/2,
+        # 수요지수 47130이다.
+        self.assertEqual(region_table.tour_api_code("47130"), ("35", "2"))
+        self.assertEqual(region_table.demand_codes("47130"), ("47130",))
+
+
+class VisitorTotalTest(unittest.TestCase):
+    def test_the_direct_code_is_used_when_present(self):
+        total = performance._visitor_total("12150", ("46:46150",), {"12150": 5.0, "46150": 9.0})
+        self.assertEqual(total, 5.0)
+
+    def test_the_pre_reorganization_code_is_the_fallback(self):
+        # 개편이 반영되지 않은 달에는 광주·전남이 옛 코드로만 공표된다.
+        total = performance._visitor_total("12150", ("46:46150",), {"46150": 9.0})
+        self.assertEqual(total, 9.0)
+
+    def test_a_city_with_general_districts_is_not_summed_from_its_districts(self):
+        # 시 단위 행이 따로 있으므로 구 값을 더해 시를 만들지 않는다.
+        total = performance._visitor_total(
+            "41110", ("41:41111", "41:41113"), {"41111": 1.0, "41113": 2.0}
+        )
+        self.assertIsNone(total)
+
+    def test_a_region_with_no_visitor_row_yields_nothing(self):
+        self.assertIsNone(performance._visitor_total("47130", ("47:47130",), {}))
+
+
+class LegacyCodeTest(unittest.TestCase):
+    def test_only_reorganized_regions_contribute_legacy_codes(self):
+        legacy = region_table.legacy_region_codes()
+        # 광주 5 + 전남 22 = 27곳이 개편으로 코드가 바뀌었다.
+        self.assertEqual(len(legacy), 27)
+        self.assertIn("46150", legacy)
+        # 일반구 코드는 개편과 무관하므로 들어오지 않는다.
+        self.assertNotIn("41111", legacy)
+        # 우리 표의 코드가 그대로인 지역도 들어오지 않는다.
+        self.assertNotIn("47130", legacy)
+
+
+class ScorerCacheTest(unittest.TestCase):
+    """방문자 조회는 한 달치 전국 데이터(하루 약 800행)다.
+
+    리포트 엔드포인트가 요청마다 이걸 다시 받으면 한 번의 요청이 원천 API
+    수십 호출이 된다. 기준월이 같으면 한 번만 받아야 한다.
+    """
+
+    def test_a_second_call_for_the_same_month_does_not_refetch(self):
+        from types import SimpleNamespace
+        from unittest import mock
+
+        from hankkeut_calculation.tourism_data.visitor_api import DailyRegionalVisitor
+
+        performance.VisitorScorer.clear_caches()
+        self.addCleanup(performance.VisitorScorer.clear_caches)
+        fetches: list[str] = []
+
+        class FakeVisitorClient:
+            def __init__(self, *args, **kwargs) -> None:
+                pass
+
+            def fetch_local_daily_visitors(self, *, start_ymd, end_ymd):
+                fetches.append(start_ymd)
+                return [
+                    DailyRegionalVisitor("20260701", "경주시", 10.0, "현지인(a)", "47130"),
+                    DailyRegionalVisitor("20260701", "포항시", 20.0, "현지인(a)", "47110"),
+                ]
+
+        real_require = performance.require_module
+
+        def fake_require(name, *, feature):
+            if name.endswith("visitor_api"):
+                return SimpleNamespace(VisitorApiClient=FakeVisitorClient)
+            return real_require(name, feature=feature)
+
+        scorer = performance.VisitorScorer()
+        with mock.patch.object(performance, "require_module", fake_require):
+            first = scorer._visitor_sums("key", "202607")
+            second = scorer._visitor_sums("key", "202607")
+            other_month = scorer._visitor_sums("key", "202606")
+
+        self.assertEqual(first, {"47130": 10.0, "47110": 20.0})
+        self.assertEqual(second, first)
+        self.assertEqual(fetches, ["20260701", "20260601"], "같은 달은 한 번만 받아야 한다")
+        self.assertEqual(other_month, first)
 
 
 class DefaultScorerTest(unittest.TestCase):
