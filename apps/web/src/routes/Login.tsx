@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { clearAccessToken, setAccessToken } from '../api/auth/session';
 import {
   type LoginValues,
   loginDefaultValues,
@@ -9,11 +11,28 @@ import {
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import {
+  currentUserQueryKey,
+  currentUserQueryOptions,
+} from '../hooks/useCurrentUserQuery';
 import useLoginMutation from '../hooks/useLoginMutation';
 import { ApiError } from '../types/api';
 
+const getReturnTo = (state: unknown): string => {
+  if (typeof state !== 'object' || state === null || !('returnTo' in state))
+    return '/';
+  const returnTo = state.returnTo;
+  return typeof returnTo === 'string' &&
+    returnTo.startsWith('/') &&
+    !returnTo.startsWith('//')
+    ? returnTo
+    : '/';
+};
+
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
   const mutation = useLoginMutation();
   const {
     register,
@@ -28,8 +47,16 @@ function Login() {
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await mutation.mutateAsync(values);
-      navigate('/');
+      const token = await mutation.mutateAsync(values);
+      queryClient.removeQueries({ queryKey: currentUserQueryKey });
+      setAccessToken(token.access_token);
+      try {
+        await queryClient.fetchQuery(currentUserQueryOptions);
+      } catch (error) {
+        clearAccessToken();
+        throw error;
+      }
+      navigate(getReturnTo(location.state), { replace: true });
     } catch (error) {
       setError('root.server', {
         message:
