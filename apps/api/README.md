@@ -1,7 +1,7 @@
 # API 애플리케이션
 
-프론트엔드가 호출할 HTTP API를 둡니다. 외부 관광 API 키는 이 애플리케이션과
-`pipelines/`에서만 읽고, 브라우저로 전달하지 않습니다.
+프론트엔드가 호출할 HTTP API를 둡니다. 외부 관광 API 키는 분석 작업과
+백엔드에서만 읽고, 브라우저로 전달하지 않습니다.
 
 ## 실행
 
@@ -86,6 +86,7 @@ app/
 ├── database.py   SQLAlchemy 엔진·세션
 ├── models.py     User, RevokedToken
 ├── security.py   비밀번호 해시, JWT 발급·검증
+├── serializers.py  ORM 응답 변환
 ├── examples.py   아직 연결되지 않은 엔드포인트의 고정 예시
 ├── data/         지역 표·코드 매핑·샘플 산출물
 ├── schemas/      Pydantic 응답 모델

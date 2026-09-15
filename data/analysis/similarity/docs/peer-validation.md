@@ -163,8 +163,8 @@ hankkeut-similarity --region 강남구                    # 자치구 한계 사
 
 ## 8. 2026-08-24 구현 갱신 — 17개 구조 변수 계약
 
-`PeerFinder` 구현은 `contracts.PEER_COLUMNS` 검증을 통과하는
-`hankkeut_similarity.peers.HankkeutSimilarityPeerFinder`로 제공한다. 반환 필수 컬럼은
+`PeerFinder` 구현은
+`hankkeut_similarity.peers.HankkeutSimilarityPeerFinder`로 제공한다. 반환 핵심 컬럼은
 `rank`, `region_id`, `similarity`이며, target 지역은 제외하고 유사도 하한
 기본값 0.40과 기본 최대 15개를 적용한다.
 

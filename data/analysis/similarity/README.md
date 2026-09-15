@@ -1,7 +1,7 @@
 # 과제 1: 유사 지역 탐색
 
-이 폴더는 관광 데이터 활용 공모전 프로젝트의 과제 1, 즉
-`hankkeut_contracts.PeerFinder` 구현만 담당한다.
+이 폴더는 구조적 특성으로 유사 지역 후보를 찾는
+`HankkeutSimilarityPeerFinder`와 관련 수집·검증 기능을 담당한다.
 
 목표는 사용자가 입력한 `target_region_id`와 구조적 여건이 비슷한
 시군구 `peer`를 찾는 것이다. 관광 콘텐츠 수, 방문자 수, 체류시간,
@@ -17,7 +17,7 @@ finder = HankkeutSimilarityPeerFinder(features)
 peers = finder.find_peers("47130", k=15)
 ```
 
-반환 DataFrame은 공용 계약의 필수 컬럼을 포함한다.
+반환 DataFrame은 향후 공용 계약에서도 사용할 핵심 컬럼을 포함한다.
 
 ```text
 rank, region_id, similarity
@@ -296,7 +296,6 @@ PYTHONPATH=data/analysis/similarity/src:data/analysis/contracts \
 - 테스트: `tests/`
 
 이 폴더는 benchmark 선정, 관광 성과 평가, 콘텐츠 공급 공백 계산을
-구현하지 않는다. 해당 작업은 `contracts`의 `PerformanceEvaluator`,
-`GapAnalyzer` 계약을 따르는 별도 분석 폴더에서 수행한다.
+구현하지 않는다. 해당 작업은 `evaluation`과 `calculation` 패키지에서 수행한다.
 
 `data/raw/`, `results/`, `.env`, `__pycache__/`는 `.gitignore` 대상이다.
