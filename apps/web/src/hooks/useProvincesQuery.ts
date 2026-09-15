@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchProvinces } from '../api/regions';
+import { fetchProvinces } from '../api/regions/list';
 
 export default function useProvincesQuery() {
   return useQuery({
