@@ -1,24 +1,20 @@
-"""아직 연결되지 않은 엔드포인트가 돌려주는 고정 예시 payload.
+"""아직 연결되지 않은 엔드포인트의 고정 예시와 구조 응답 메타데이터.
 
 여기 있는 숫자는 **화면 개발용 표본**이며 정책 판단에 쓰면 안 된다.
 
-지금 이 모듈에 의존하는 엔드포인트는 다음 다섯 개뿐이다. 외부 API 키가 있어야
-계산할 수 있어 아직 연결하지 못했다.
+고정 숫자를 응답하는 엔드포인트는 성과와 비교 두 개뿐이다. 구조 특성 응답은
+이 모듈의 라벨·그룹·가중치·출처 형식만 재사용하고, 실제 값과 대상 지역은
+``region_features.csv``의 전국 스냅숏으로 교체한다.
 
 ===================================  ==========================
 엔드포인트                            필요한 키
 ===================================  ==========================
-``GET /regions/{id}``                 SGIS (인구·면적만)
-``GET /regions/{id}/structure``       SGIS
-``GET /regions/{id}/portfolio``       TourAPI
-``GET /regions/{id}/hubs``            HUB
 ``GET /regions/{id}/performance``     VISITOR
 ``GET /compare``                      TourAPI + VISITOR
 ===================================  ==========================
 
 ``/regions``·``/provinces``는 ``services.regions``의 전국 표를 읽고,
 ``/peers``·``/gaps``·``/report``는 ``services.artifacts``의 분석 산출물을 읽는다.
-엔드포인트를 하나씩 연결할 때마다 해당 픽스처를 지우고 이 표도 줄인다.
 """
 
 from __future__ import annotations

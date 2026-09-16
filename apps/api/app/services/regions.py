@@ -29,6 +29,10 @@ REGION_CODE_MAP_CSV_PATH = _DATA_DIR / "region_code_map.csv"
 #: 일반구가 있는 시는 구 코드 여러 개에 대응한다.
 REGION_DEMAND_CODES_CSV_PATH = _DATA_DIR / "region_demand_codes.csv"
 
+#: 유사 지역 분석에 사용한 전국 17개 구조 변수 스냅숏. API는 요청마다 SGIS를
+#: 다시 호출하지 않고 이 재현 가능한 입력표를 읽는다.
+REGION_FEATURES_CSV_PATH = _DATA_DIR / "region_features.csv"
+
 #: CSV가 쓰는 컬럼명 → 응답 스키마가 쓰는 필드명.
 _COLUMN_RENAMES = {"admin_type": "administrative_type"}
 
@@ -105,6 +109,64 @@ def all_region_ids() -> tuple[str, ...]:
 
 def find_region(region_id: str) -> dict[str, Any] | None:
     row = _by_id().get(region_id)
+    return None if row is None else dict(row)
+
+
+@lru_cache(maxsize=1)
+def _features_by_id() -> dict[str, dict[str, float]]:
+    """전국 구조 변수 표를 ``region_id``로 읽는다.
+
+    식별용 문자열 열을 제외한 값은 모두 수치여야 한다. 잘못된 스냅숏을 예시값
+    또는 0으로 조용히 대체하지 않고 시작 단계에서 명확히 실패시킨다.
+    """
+    try:
+        text = REGION_FEATURES_CSV_PATH.read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        raise RegionTableError(
+            f"지역 구조 변수 표를 읽을 수 없습니다: {REGION_FEATURES_CSV_PATH}"
+        ) from exc
+
+    reader = csv.DictReader(text.splitlines())
+    identity_columns = {
+        "region_id",
+        "province_name",
+        "region_name",
+        "admin_type",
+    }
+    feature_columns = [
+        name for name in (reader.fieldnames or ()) if name not in identity_columns
+    ]
+    if not feature_columns:
+        raise RegionTableError("지역 구조 변수 표에 변수 컬럼이 없습니다.")
+
+    rows: dict[str, dict[str, float]] = {}
+    for line_number, raw in enumerate(reader, start=2):
+        region_id = str(raw.get("region_id") or "").strip()
+        if region_id in rows:
+            raise RegionTableError(f"지역 구조 변수 표의 region_id가 중복됩니다: {region_id}")
+        try:
+            rows[region_id] = {
+                name: float(str(raw.get(name) or "").strip())
+                for name in feature_columns
+            }
+        except ValueError as exc:
+            raise RegionTableError(
+                f"지역 구조 변수 표 {line_number}행에 수치가 아닌 값이 있습니다."
+            ) from exc
+
+    missing = set(_by_id()) - set(rows)
+    extra = set(rows) - set(_by_id())
+    if missing or extra:
+        raise RegionTableError(
+            "지역 표와 구조 변수 표의 region_id가 일치하지 않습니다. "
+            f"누락 {len(missing)}개, 초과 {len(extra)}개"
+        )
+    return rows
+
+
+def find_region_features(region_id: str) -> dict[str, float] | None:
+    """지역의 구조 변수 스냅숏. 알 수 없는 지역이면 ``None``."""
+    row = _features_by_id().get(region_id)
     return None if row is None else dict(row)
 
 

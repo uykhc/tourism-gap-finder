@@ -34,11 +34,20 @@ def list_regions(
 @router.get("/{region_id}", response_model=RegionDetail, summary="지역 상세")
 def get_region(region_id: RegionIdPath) -> RegionDetail:
     """지역 기본 정보."""
-    # TODO(실연결): SGIS 인구·면적을 병합한다. 지역 정보 자체는 전국 표에서 온다.
     region = region_table.find_region(region_id)
     if region is None:
         raise HTTPException(status_code=404, detail=f"Unknown region_id: {region_id}")
-    return RegionDetail.model_validate({**examples.REGION_DETAIL, **region})
+    features = region_table.find_region_features(region_id)
+    if features is None:  # 지역 표와 구조 변수 표의 정합성 검증에 대한 방어선
+        raise HTTPException(status_code=503, detail=f"지역 구조 변수가 없습니다: {region_id}")
+    return RegionDetail.model_validate(
+        {
+            **region,
+            "area_km2": features["area_km2"],
+            "total_population": int(features["total_population"]),
+            "coastal": bool(features["coastal_dummy"]),
+        }
+    )
 
 
 @router.get(
@@ -48,7 +57,15 @@ def get_region(region_id: RegionIdPath) -> RegionDetail:
 )
 def get_structure(region_id: RegionIdPath) -> StructureProfile:
     """유사도 계산에 쓰는 구조 변수 17개와 출처."""
-    # TODO(실연결): hankkeut_similarity.pipeline.load_dataset() 의 features +
-    #   provenance. SGIS_CONSUMER_KEY/SECRET 이 없으면 503 (mock 금지).
-    del region_id
-    return StructureProfile.model_validate(examples.structure_profile())
+    region = region_table.find_region(region_id)
+    features = region_table.find_region_features(region_id)
+    if region is None or features is None:
+        raise HTTPException(status_code=404, detail=f"Unknown region_id: {region_id}")
+
+    # 기존 예시가 가진 라벨·그룹·가중치·출처 메타데이터는 계약 템플릿으로
+    # 재사용하되, 대상과 17개 값은 전국 구조 변수 스냅숏에서 교체한다.
+    payload = examples.structure_profile()
+    payload["target"] = region
+    for item in payload["features"]:
+        item["value"] = features[item["feature"]]
+    return StructureProfile.model_validate(payload)

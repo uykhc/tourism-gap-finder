@@ -12,7 +12,7 @@ python3 -m pip install -e data/analysis/calculation \
                        -e data/analysis/evaluation \
                        -e data/analysis/similarity
 
-uvicorn apps.api.app.main:app --reload --port 8000
+uvicorn apps.api.app.main:app --reload --port 8000 --env-file .env
 python3 -m pytest apps/api/tests
 ```
 
@@ -53,13 +53,13 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 | 엔드포인트 | 응답 출처 | 필요한 키 |
 |---|---|---|
 | `/auth/*`, `/users/*` | 데이터베이스 | 없음 |
-| `/regions`, `/regions/{id}`, `/provinces` | `app/data/regions.csv` 전국 230개 | 없음 |
+| `/regions`, `/provinces` | `app/data/regions.csv` 전국 230개 | 없음 |
+| `/regions/{id}`, `/regions/{id}/structure` | `app/data/region_features.csv` 전국 230개 | 없음 |
 | `/regions/{id}/peers` | `peer_candidates` 산출물 | 없음 |
 | `/regions/{id}/gaps` | `relative_supply` + `datalab_navigation` 산출물 | 없음 |
 | `/regions/{id}/report` | 위 산출물 + `ai_reports` | 없음 |
-| `/regions/{id}/structure` | **예시 데이터** | SGIS |
-| `/regions/{id}/portfolio` | **예시 데이터** | TourAPI |
-| `/regions/{id}/hubs` | **예시 데이터** | HUB |
+| `/regions/{id}/portfolio` | 실시간 TourAPI 관광자원 조회 | TourAPI |
+| `/regions/{id}/hubs` | 실시간 중심 관광지 조회 | HUB |
 | `/regions/{id}/performance` | **예시 데이터** | VISITOR |
 | `/compare` | **예시 데이터** | TourAPI + VISITOR |
 
@@ -73,7 +73,9 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 잘못된 요청은 화면에서 구분해야 하기 때문입니다. 존재하지 않는 `region_id`만
 404입니다.
 
-예시 데이터를 쓰는 엔드포인트의 payload는 `app/examples.py`에 모여 있습니다.
+아직 예시 데이터를 쓰는 성과·비교 엔드포인트의 payload는 `app/examples.py`에
+모여 있습니다. 지역 상세·구조 특성은 분석 시점의 전국 구조 변수 스냅숏을
+읽고, 포트폴리오·중심 관광지는 요청 시 외부 API를 호출합니다.
 
 프론트엔드에 건네는 보고서 응답 예시: `tests/fixtures/report_47130.json`.
 
