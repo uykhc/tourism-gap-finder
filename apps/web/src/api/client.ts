@@ -1,11 +1,18 @@
 import axios from 'axios';
 import { ApiError, type ApiFieldError } from '../types/api';
+import { clearAccessToken, getAccessToken } from './auth/session';
 
 export const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 ).replace(/\/+$/, '');
 
 export const apiClient = axios.create({ baseURL: apiBaseUrl, timeout: 15000 });
+
+apiClient.interceptors.request.use((config) => {
+  const accessToken = getAccessToken();
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
 
 const fieldMessages: Record<string, string> = {
   email: '이메일 형식을 확인해 주세요.',
@@ -48,7 +55,11 @@ apiClient.interceptors.response.use(
     let message = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
     let fields: ApiFieldError[] = [];
     if (status === 401) {
-      message = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      if (error.config?.url !== '/auth/login') clearAccessToken();
+      message =
+        error.config?.url === '/auth/login'
+          ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+          : '로그인 후 다시 시도해 주세요.';
     } else if (status === 409) {
       message = '이미 가입된 이메일입니다.';
       fields = [{ field: 'email', message }];

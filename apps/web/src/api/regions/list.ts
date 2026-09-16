@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { ApiError } from '../types/api';
-import type { RegionRef } from '../types/auth';
-import type { ProvinceSummary } from '../types/regions';
-import { apiClient } from './client';
+import { ApiError } from '../../types/api';
+import type { RegionRef } from '../../types/auth';
+import type { ProvinceSummary } from '../../types/regions';
+import { apiClient } from '../client';
 
 const provincesSchema = z.object({
   items: z.array(

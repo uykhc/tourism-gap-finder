@@ -6,7 +6,6 @@ import MyPageAccount from './routes/MyPageAccount';
 import MyPageRegion from './routes/MyPageRegion';
 import NotFound from './routes/NotFound';
 import RegionComparison from './routes/RegionComparison';
-import RegionDashboard from './routes/RegionDashboard';
 
 export const router = createBrowserRouter([
   {
@@ -32,7 +31,9 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard/:regionCode',
-        Component: RegionDashboard,
+        lazy: async () => ({
+          Component: (await import('./routes/RegionDashboard')).default,
+        }),
       },
       {
         path: 'compare',

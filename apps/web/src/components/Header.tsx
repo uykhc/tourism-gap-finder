@@ -7,6 +7,7 @@ interface GuestHeaderProps {
 
 interface AuthenticatedHeaderProps {
   variant: 'authenticated';
+  isLoggingOut: boolean;
   onLogout: () => void;
 }
 
@@ -36,8 +37,12 @@ function Header(props: HeaderProps) {
               <Button asChild variant="outline">
                 <Link to="/mypage/account">내 정보</Link>
               </Button>
-              <Button type="button" onClick={props.onLogout}>
-                로그아웃
+              <Button
+                type="button"
+                disabled={props.isLoggingOut}
+                onClick={props.onLogout}
+              >
+                {props.isLoggingOut ? '로그아웃 중…' : '로그아웃'}
               </Button>
             </>
           ) : (
