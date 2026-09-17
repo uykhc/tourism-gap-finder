@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import argparse
-import json
+import os
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from .region_collector import DEFAULT_INITIAL_TILE_METERS, DEFAULT_MIN_TILE_METERS
-from .region_cli import _load_features, _region_name, _write_json
+from .region_cli import _load_features, _region_name
+from .content_store import KakaoContentStore
 from .tourism_content import (
     DEFAULT_TAXONOMY_PATH,
     KakaoTourismContentCollector,
@@ -28,11 +27,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--initial-tile-meters", type=int, default=DEFAULT_INITIAL_TILE_METERS)
     parser.add_argument("--minimum-tile-meters", type=int, default=DEFAULT_MIN_TILE_METERS)
     parser.add_argument("--rest-api-key", help="Overrides KAKAO_REST_API_KEY for this run.")
-    parser.add_argument("--output", type=Path, default=Path("data/analysis/kakao_regions/kakao_tourism_content.json"))
-    parser.add_argument("--checkpoint-dir", type=Path, help="Directory for per-region completed results. Defaults beside --output.")
-    resume_group = parser.add_mutually_exclusive_group()
-    resume_group.add_argument("--resume", dest="resume", action="store_true", default=True)
-    resume_group.add_argument("--no-resume", dest="resume", action="store_false")
+    parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
+    parser.add_argument("--collector-version", default="kakao-tourism-content/1")
+    parser.add_argument("--note", help="Optional collection-run note.")
     return parser
 
 
@@ -48,60 +45,67 @@ def main(argv: list[str] | None = None) -> int:
     if not key:
         print("Error: provide --rest-api-key or KAKAO_REST_API_KEY.", file=sys.stderr)
         return 2
+    database_url = args.content_database_url or os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL")
+    if not database_url:
+        print("Error: provide --content-database-url or CONTENT_DATABASE_URL.", file=sys.stderr)
+        return 2
     taxonomy = load_tourism_content_taxonomy(args.taxonomy)
     collector = KakaoTourismContentCollector(KakaoLocalClient(key), taxonomy)
-    checkpoint_dir = args.checkpoint_dir or args.output.parent / f"{args.output.stem}_checkpoints"
-    checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    results: list[dict[str, Any]] = []
-    for index, feature in enumerate(selected, start=1):
-        region_name = _region_name(feature)
-        checkpoint_path = checkpoint_dir / _checkpoint_name(index, region_name)
-        result = _load_checkpoint(checkpoint_path, taxonomy.version) if args.resume else None
-        if result is None:
+    try:
+        store = KakaoContentStore(database_url)
+        run_id = store.start_run(
+            taxonomy_version=taxonomy.version,
+            collector_version=args.collector_version,
+            note=args.note,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    completed = 0
+    try:
+        for index, feature in enumerate(selected, start=1):
+            region = _region_metadata(feature)
             geometry = feature.get("geometry")
             if not isinstance(geometry, dict):
-                raise SystemExit(f"{region_name}: GeoJSON feature geometry is missing.")
+                raise ValueError(f"{region['region_name']}: GeoJSON feature geometry is missing.")
             result = collector.collect_region(
-                region_name=region_name,
+                region_name=region["region_name"],
                 geometry=geometry,
                 initial_tile_meters=args.initial_tile_meters,
                 minimum_tile_meters=args.minimum_tile_meters,
             ).to_dict()
-            _write_json(checkpoint_path, result)
-            print(f"[{index}/{len(selected)}] saved {region_name}: {result['collected_count']}")
-        else:
-            print(f"[{index}/{len(selected)}] reused {region_name}")
-        results.append(result)
-        _write_json(args.output, _payload(args.boundaries, args.taxonomy, results, checkpoint_dir))
-    _write_json(args.output, _payload(args.boundaries, args.taxonomy, results, checkpoint_dir))
+            store.save_region(
+                run_id=run_id,
+                region=region,
+                content_type_counts=result["content_type_counts"],
+                is_complete=bool(result["is_complete"]),
+                truncated_tile_count=int(result["truncated_tile_count"]),
+            )
+            completed += 1
+            print(f"[{index}/{len(selected)}] stored {region['region_name']}: {result['classified_count']}")
+    except Exception as exc:
+        store.finish_run(run_id=run_id, status="failed", region_count=completed, note=str(exc))
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
+    store.finish_run(run_id=run_id, status="completed", region_count=completed)
+    print(f"Completed collection run {run_id}: {completed} regions")
     return 0
 
 
-def _checkpoint_name(index: int, region_name: str) -> str:
-    safe_name = "".join(character if character.isalnum() or character in "-_" else "_" for character in region_name)
-    return f"{index:03d}_{safe_name}.json"
-
-
-def _load_checkpoint(path: Path, taxonomy_version: str) -> dict[str, Any] | None:
-    if not path.exists():
-        return None
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
-    required = {"region_name", "taxonomy_version", "content_type_counts", "places"}
-    if not isinstance(payload, dict) or not required.issubset(payload):
-        return None
-    return payload if payload["taxonomy_version"] == taxonomy_version else None
-
-
-def _payload(boundaries: Path, taxonomy: Path, results: list[dict[str, Any]], checkpoint_dir: Path) -> dict[str, Any]:
+def _region_metadata(feature: dict[str, object]) -> dict[str, str]:
+    properties = feature.get("properties")
+    if not isinstance(properties, dict):
+        raise ValueError("Every boundary feature needs properties.")
+    required = ("region_id", "area_code", "sigungu_code", "province_name")
+    missing = [key for key in required if not str(properties.get(key, "")).strip()]
+    if missing:
+        raise ValueError("전국 DB 적재용 GeoJSON properties 누락: " + ", ".join(missing))
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "boundary_file": str(boundaries),
-        "taxonomy_file": str(taxonomy),
-        "checkpoint_directory": str(checkpoint_dir),
-        "regions": results,
+        "region_id": str(properties["region_id"]).strip(),
+        "area_code": str(properties["area_code"]).strip(),
+        "sigungu_code": str(properties["sigungu_code"]).strip(),
+        "province_name": str(properties["province_name"]).strip(),
+        "region_name": _region_name(feature),
     }
 
 

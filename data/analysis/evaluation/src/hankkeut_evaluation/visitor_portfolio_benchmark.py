@@ -24,7 +24,7 @@ from hankkeut_calculation.tourism_data.tourism_demand_api import (
     previous_months,
 )
 
-DEFAULT_CONFIG_PATH = Path("config/gyeonggi/performance_evaluator.json")
+DEFAULT_CONFIG_PATH = Path("config/national/performance_evaluator.json")
 DEFAULT_OUTPUT_DIR = Path("results/portfolio_benchmarks")
 
 # Backwards-compatible sample scope.  Production callers should pass their own
@@ -72,8 +72,10 @@ class CityTourismScore:
     resource_demand_percentile: float
     demand_intensity_percentile: float
     composite_score: float
+    region_id: str | None = None
+    province_name: str | None = None
 
-    def to_dict(self) -> dict[str, float | str]:
+    def to_dict(self) -> dict[str, Any]:
         return {key: getattr(self, key) for key in self.__dataclass_fields__}
 
 
@@ -163,9 +165,72 @@ def aggregate_daily_visitor_sums(
     return rows, seen_names
 
 
+def aggregate_daily_visitor_sums_by_region(
+    records: list[DailyRegionalVisitor],
+    *,
+    regions: tuple[Any, ...],
+    visitor_type_names: tuple[str, ...] = (),
+) -> tuple[list[dict[str, Any]], set[str]]:
+    """Aggregate visitor records against nationwide-safe region identifiers.
+
+    The visitor API currently exposes a display name, not an administrative
+    code.  A bare name is accepted only when it belongs to one input region;
+    names such as ``중구`` are deliberately treated as ambiguous.  Providers
+    that return a province-qualified name can be mapped through the automatic
+    ``시도명 시군구명`` aliases, or an exact ``visitor_region_name`` configured
+    on the portfolio region definition.
+    """
+    aliases: dict[str, set[str]] = {}
+    labels: dict[str, str] = {}
+    for item in regions:
+        definition = item.definition
+        region_id = _region_id(definition.area_code, definition.sigungu_code)
+        labels[region_id] = definition.region_name
+        names = {
+            definition.region_name,
+            f"{definition.province_name} {definition.region_name}",
+            f"{definition.province_name}{definition.region_name}",
+        }
+        if definition.visitor_region_name:
+            names.add(definition.visitor_region_name)
+        for name in names:
+            aliases.setdefault(_normalise_region_name(name), set()).add(region_id)
+
+    selected_types = set(visitor_type_names)
+    totals: dict[str, float] = {}
+    ambiguous_names: set[str] = set()
+    for record in records:
+        if selected_types and record.visitor_type not in selected_types:
+            continue
+        candidates = aliases.get(_normalise_region_name(record.region_name), set())
+        if len(candidates) == 1:
+            region_id = next(iter(candidates))
+            totals[region_id] = totals.get(region_id, 0.0) + record.visitor_count
+        elif len(candidates) > 1:
+            ambiguous_names.add(record.region_name)
+    if ambiguous_names:
+        raise ValueError(
+            "전국 방문자 API의 동명 지역을 코드 없이 구분할 수 없습니다: "
+            + ", ".join(sorted(ambiguous_names))
+            + ". 원천 응답의 시도 표기를 사용하거나 visitor_region_name을 설정하세요."
+        )
+    rows = [
+        {
+            "region_id": region_id,
+            "region_name": labels[region_id],
+            "daily_visitor_sum": round(total, 2),
+        }
+        for region_id, total in totals.items()
+    ]
+    rows.sort(key=lambda row: (-float(row["daily_visitor_sum"]), str(row["region_id"])))
+    for rank, row in enumerate(rows, start=1):
+        row["visitor_rank"] = rank
+    return rows, set(totals)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="경기도 시의 방문자·관광 수요 지수로 우수 관광 지역을 선정합니다."
+        description="전국 시군구의 방문자·관광 수요 지수로 우수 관광 지역을 선정합니다."
     )
     parser.add_argument("--input", type=Path, help="전체 포트폴리오 벤치마크 JSON")
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
@@ -188,13 +253,6 @@ def main(argv: list[str] | None = None) -> int:
         all_results = tuple(portfolio_region_result_from_dict(item) for item in payload["region_results"])
         if not all_results:
             raise ValueError("포트폴리오 입력에 성공한 지역 결과가 없습니다.")
-        # Visitor API records have no nationwide id.  Never guess when a name
-        # is duplicated (중구/서구/남구 등); the collector must then preserve a
-        # province/code field before a nationwide benchmark can be produced.
-        names = [item.definition.region_name for item in all_results]
-        duplicates = sorted({name for name in names if names.count(name) > 1})
-        if duplicates:
-            raise ValueError("전국 방문자 API의 지역명만으로 구분할 수 없는 동명 시군구: " + ", ".join(duplicates))
         client = VisitorApiClient(service_key, timeout_seconds=args.timeout, page_size=args.page_size)
         demand_client = TourismDemandApiClient(service_key, timeout_seconds=args.timeout, page_size=args.page_size)
         demand_ym, demand_scores = fetch_latest_common_demand_scores_by_area(
@@ -210,14 +268,29 @@ def main(argv: list[str] | None = None) -> int:
         print(f"오류: {exc}", file=sys.stderr)
         return 2
 
-    results_by_name = {item.definition.region_name: item for item in all_results}
-    ranked_regions, matched_names = aggregate_daily_visitor_sums(
+    results_by_id = {
+        _region_id(item.definition.area_code, item.definition.sigungu_code): item
+        for item in all_results
+    }
+    if len(results_by_id) != len(all_results):
+        raise ValueError("포트폴리오 입력에 중복된 시도·시군구 코드가 있습니다.")
+    ranked_regions, matched_region_ids = aggregate_daily_visitor_sums_by_region(
         records,
-        allowed_region_names=set(results_by_name),
+        regions=all_results,
         visitor_type_names=config.visitor_type_names,
     )
     region_codes = {
-        item.definition.region_name: (f"{item.definition.area_code}:{item.definition.sigungu_code}",)
+        _region_id(item.definition.area_code, item.definition.sigungu_code): (
+            _region_id(item.definition.area_code, item.definition.sigungu_code),
+        )
+        for item in all_results
+    }
+    region_labels = {
+        _region_id(item.definition.area_code, item.definition.sigungu_code): item.definition.region_name
+        for item in all_results
+    }
+    province_names = {
+        _region_id(item.definition.area_code, item.definition.sigungu_code): item.definition.province_name
         for item in all_results
     }
     city_scores = build_regional_tourism_scores(
@@ -227,12 +300,14 @@ def main(argv: list[str] | None = None) -> int:
         visitor_weight=config.visitor_weight,
         resource_demand_weight=config.resource_demand_weight,
         demand_intensity_weight=config.demand_intensity_weight,
+        region_labels=region_labels,
+        province_names=province_names,
     )
     selected_scores = city_scores[: config.top_region_count]
     if len(selected_scores) < config.top_region_count:
         print(f"오류: 선정 가능한 지역이 {len(selected_scores)}개뿐입니다.", file=sys.stderr)
         return 2
-    selected_results = tuple(results_by_name[item.region_name] for item in selected_scores)
+    selected_results = tuple(results_by_id[item.region_id] for item in selected_scores if item.region_id)
     distributions = build_portfolio_distributions(selected_results)
     generated_at = str(payload.get("generated_at", ""))
     date_stamp = generated_at[:10].replace("-", "") if generated_at else "undated"
@@ -247,13 +322,13 @@ def main(argv: list[str] | None = None) -> int:
         "visitor_metric": "기간 내 일별 순방문자 수의 합(고유 개인 수 아님)",
         "demand_base_ym": demand_ym,
         "selection_weights": {"visitor": config.visitor_weight, "resource_demand": config.resource_demand_weight, "demand_intensity": config.demand_intensity_weight},
-        "selection_scope": "입력 포트폴리오에 포함된 전국 시군구(동명은 원본 코드 필요)",
+        "selection_scope": "입력 포트폴리오에 포함된 전국 시군구(시도·시군구 코드 기준)",
         "visitor_type_names": list(config.visitor_type_names),
         "observed_visitor_type_names": sorted(
             {record.visitor_type for record in records if record.visitor_type}
         ),
         "api_record_count": len(records),
-        "matched_region_count": len(matched_names),
+        "matched_region_count": len(matched_region_ids),
         "city_scores": [item.to_dict() for item in city_scores],
         "selected_regions": [item.to_dict() for item in selected_scores],
         "distributions": [item.to_dict() for item in distributions],
@@ -265,7 +340,10 @@ def main(argv: list[str] | None = None) -> int:
     json_path.write_text(json.dumps(output, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     _write_csv(ranking_path, [item.to_dict() for item in city_scores])
     _write_csv(distribution_path, [item.to_dict() for item in distributions])
-    print("완료: 우수 관광 지역 " + ", ".join(item.region_name for item in selected_scores))
+    print("완료: 우수 관광 지역 " + ", ".join(
+        f"{item.province_name} {item.region_name}" if item.province_name else item.region_name
+        for item in selected_scores
+    ))
     if not config.visitor_type_names:
         print("참고: API 응답의 모든 방문자 구분값을 합산했습니다. JSON의 observed_visitor_type_names를 확인하세요.")
     for path in (json_path, ranking_path, distribution_path):
@@ -346,6 +424,8 @@ def build_regional_tourism_scores(
     visitor_weight: float,
     resource_demand_weight: float,
     demand_intensity_weight: float,
+    region_labels: dict[str, str] | None = None,
+    province_names: dict[str, str] | None = None,
 ) -> list[CityTourismScore]:
     """Rank any configured set of regions, rather than a fixed province.
 
@@ -354,16 +434,19 @@ def build_regional_tourism_scores(
     nationwide five-digit region id; keeping that mapping in configuration
     prevents silent name-based joins (``중구`` etc.) across provinces.
     """
-    visitor_by_name = {str(row["region_name"]): float(row["daily_visitor_sum"]) for row in visitor_rows}
-    if set(visitor_by_name) != set(region_sigungu_codes):
-        missing = sorted(set(region_sigungu_codes) - set(visitor_by_name))
+    visitor_by_region = {
+        str(row.get("region_id", row["region_name"])): float(row["daily_visitor_sum"])
+        for row in visitor_rows
+    }
+    if set(visitor_by_region) != set(region_sigungu_codes):
+        missing = sorted(set(region_sigungu_codes) - set(visitor_by_region))
         raise ValueError("방문자 수가 없는 지역: " + ", ".join(missing))
     raw_rows = []
-    for city_name, codes in region_sigungu_codes.items():
+    for region_id, codes in region_sigungu_codes.items():
         values = {key: [demand_scores[key][code].value for code in codes] for key in demand_scores}
         raw_rows.append((
-            city_name,
-            visitor_by_name[city_name],
+            region_id,
+            visitor_by_region[region_id],
             sum(values["resource_service"]) / len(codes) / 2 + sum(values["resource_culture"]) / len(codes) / 2,
             sum(values["intensity_stay"]) / len(codes) / 2 + sum(values["intensity_spend"]) / len(codes) / 2,
         ))
@@ -372,15 +455,17 @@ def build_regional_tourism_scores(
     intensity_percentiles = _percentile_by_name({name: intensity for name, _, _, intensity in raw_rows})
     result = [
         CityTourismScore(
-            region_name=name,
+            region_name=(region_labels or {}).get(name, name),
             visitor_sum=round(visitor, 2), resource_demand=round(resource, 4), demand_intensity=round(intensity, 4),
             visitor_percentile=visitor_percentiles[name], resource_demand_percentile=resource_percentiles[name],
             demand_intensity_percentile=intensity_percentiles[name],
             composite_score=round(visitor_percentiles[name] * visitor_weight + resource_percentiles[name] * resource_demand_weight + intensity_percentiles[name] * demand_intensity_weight, 4),
+            region_id=name if region_labels is not None else None,
+            province_name=(province_names or {}).get(name),
         )
         for name, visitor, resource, intensity in raw_rows
     ]
-    return sorted(result, key=lambda item: (-item.composite_score, item.region_name))
+    return sorted(result, key=lambda item: (-item.composite_score, item.region_name, item.region_id or ""))
 
 
 def _percentile_by_name(values: dict[str, float]) -> dict[str, float]:
@@ -410,12 +495,20 @@ def _last_day_of_month(base_ym: str) -> str:
     return (date(next_year, next_month, 1) - timedelta(days=1)).strftime("%Y%m%d")
 
 
+def _region_id(area_code: str, sigungu_code: str) -> str:
+    return f"{area_code}:{sigungu_code}"
+
+
+def _normalise_region_name(value: str) -> str:
+    return re.sub(r"\s+", "", value).strip()
+
+
 def _resolve_input_path(input_path: Path | None, output_dir: Path) -> Path:
     if input_path is not None:
         if not input_path.is_file():
             raise ValueError(f"전체 포트폴리오 결과 파일이 없습니다: {input_path}")
         return input_path
-    candidates = sorted(output_dir.glob("gyeonggi_portfolio_benchmark_????????.json"))
+    candidates = sorted(output_dir.glob("*_portfolio_benchmark_????????.json"))
     if not candidates:
         raise ValueError("전체 포트폴리오 결과가 없습니다. 먼저 hankkeut-portfolio-benchmark를 실행하세요.")
     return candidates[-1]

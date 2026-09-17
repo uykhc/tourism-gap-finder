@@ -3,6 +3,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from hankkeut_calculation.datalab_navigation.navigation_demand import (
     build_supply_pressure_report,
@@ -35,12 +36,19 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             excluded = next(record for record in demand_import.records if record.base_ym == "202501" and record.source_type == "기타관광")
             self.assertFalse(excluded.included)
 
-            kakao_path = directory_path / "kakao.json"
-            kakao_path.write_text(json.dumps({"regions": [{
-                "region_name": "수원시", "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
+            supply = {
                 "content_type_counts": {"음식": 2, "숙박": 2, "문화관광": 3, "체험관광": 2, "레저스포츠": 2, "쇼핑": 4},
-            }]}, ensure_ascii=False), encoding="utf-8")
-            report = build_supply_pressure_report(demand_import, taxonomy=taxonomy, kakao_collection_path=kakao_path, month_count=2)
+                "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
+                "source": "postgres:region_content_counts/41:115",
+            }
+            with patch(
+                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
+                return_value=supply,
+            ):
+                report = build_supply_pressure_report(
+                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
+                    region_id="41:115", month_count=2,
+                )
 
         metrics = {metric["content_type"]: metric for metric in report["content_type_metrics"]}
         self.assertEqual(metrics["문화관광"]["navigation_search_count"], 90)
@@ -59,6 +67,33 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             taxonomy = load_navigation_demand_taxonomy(Path("config/datalab/navigation_destination_type_taxonomy.json"))
             with self.assertRaisesRegex(ValueError, "전체 검색량"):
                 import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
+
+    def test_can_use_postgres_counts_with_a_nationwide_region_id(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "navigation.csv"
+            _write_csv(csv_path, [
+                ("202501", "전체", "100"), ("202501", "음식", "10"), ("202501", "숙박", "10"),
+                ("202501", "문화관광", "20"), ("202501", "자연관광", "5"), ("202501", "역사관광", "5"),
+                ("202501", "체험관광", "10"), ("202501", "레저스포츠", "10"), ("202501", "쇼핑", "20"), ("202501", "기타관광", "10"),
+            ])
+            taxonomy = load_navigation_demand_taxonomy(Path("config/datalab/navigation_destination_type_taxonomy.json"))
+            demand_import = import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
+            supply = {
+                "content_type_counts": {"음식": 2, "숙박": 2, "문화관광": 2, "체험관광": 2, "레저스포츠": 2, "쇼핑": 2},
+                "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
+                "source": "postgres:region_content_counts/41:115",
+            }
+            with patch(
+                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
+                return_value=supply,
+            ) as load_database:
+                report = build_supply_pressure_report(
+                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
+                    region_id="41:115", month_count=1,
+                )
+
+        load_database.assert_called_once_with("postgresql://example", "41:115", taxonomy.content_types)
+        self.assertEqual(report["provenance"]["kakao_supply_source"], "postgres:region_content_counts/41:115")
 
     def test_restores_an_omitted_zero_destination_type_when_total_proves_it(self):
         with tempfile.TemporaryDirectory() as directory:
