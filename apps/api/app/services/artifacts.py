@@ -21,6 +21,7 @@ from typing import Any
 from fastapi import HTTPException
 
 from . import regions as region_table
+from .errors import report_not_ready
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,6 +33,10 @@ PEER_CANDIDATES_DIR = "peer_candidates"
 RELATIVE_SUPPLY_DIR = "relative_supply"
 DATALAB_NAVIGATION_DIR = "datalab_navigation"
 AI_REPORTS_DIR = "ai_reports"
+PERFORMANCE_DIR = "performance"
+PORTFOLIOS_DIR = "portfolios"
+HUBS_DIR = "hubs"
+RELEASE_MANIFEST = "release-manifest.json"
 
 #: 유사도 패키지 `provenance.py`가 실제로 내보내는 뱃지 값.
 _SOURCE_TYPES = {
@@ -63,6 +68,22 @@ def _read(path: Path) -> dict[str, Any]:
         raise HTTPException(503, detail=f"분석 산출물을 읽을 수 없습니다: {path.name}") from exc
     # 캐시된 원본을 핸들러가 변형할 수 없도록 사본을 돌려준다.
     return copy.deepcopy(_read_cached(str(path), mtime_ns))
+
+
+def active_root() -> Path:
+    """Return the atomically activated release, or the legacy root.
+
+    Production releases are written under ``releases/<release_id>`` and a
+    ``current`` symlink is swapped only after validation. Existing development
+    fixtures remain readable directly from ``ARTIFACT_ROOT``.
+    """
+    current = ARTIFACT_ROOT / "current"
+    return current.resolve() if current.is_dir() else ARTIFACT_ROOT
+
+
+def release_manifest() -> dict[str, Any] | None:
+    path = active_root() / RELEASE_MANIFEST
+    return _read(path) if path.is_file() else None
 
 
 def _embedded_region_id(payload: dict[str, Any]) -> str | None:
@@ -115,9 +136,13 @@ def _find_artifact(region_id: str, directory: str) -> dict[str, Any] | None:
     region = region_table.find_region(region_id)
     if region is None:
         return None
-    directory_path = ARTIFACT_ROOT / directory
+    directory_path = active_root() / directory
     if not directory_path.is_dir():
         return None
+    exact = directory_path / f"{region_id}.json"
+    if exact.is_file():
+        payload = _read(exact)
+        return payload if _matches_region(payload, region_id, region["region_name"]) else None
     paths = sorted(
         directory_path.glob("*.json"),
         key=lambda path: path.stat().st_mtime_ns,
@@ -161,6 +186,85 @@ def load_ai_report(region_id: str) -> dict[str, Any] | None:
     return report if isinstance(report, dict) else None
 
 
+def load_performance(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, PERFORMANCE_DIR)
+
+
+def load_portfolio(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, PORTFOLIOS_DIR)
+
+
+def load_hubs(region_id: str) -> dict[str, Any] | None:
+    return _find_artifact(region_id, HUBS_DIR)
+
+
+def performance_score(region_id: str) -> dict[str, Any]:
+    require_region(region_id)
+    payload = load_performance(region_id)
+    if payload is None:
+        report_not_ready(region_id, [PERFORMANCE_DIR])
+    value = payload.get("performance")
+    if not isinstance(value, dict):
+        raise HTTPException(503, detail=f"성과 산출물 형식이 올바르지 않습니다: {region_id}")
+    return value
+
+
+def portfolio_report(region_id: str) -> dict[str, Any]:
+    require_region(region_id)
+    payload = load_portfolio(region_id)
+    if payload is None:
+        report_not_ready(region_id, [PORTFOLIOS_DIR])
+    value = payload.get("portfolio")
+    if not isinstance(value, dict):
+        raise HTTPException(503, detail=f"포트폴리오 산출물 형식이 올바르지 않습니다: {region_id}")
+    return value
+
+
+def hub_report(region_id: str, *, base_year_month: str, limit: int) -> dict[str, Any]:
+    require_region(region_id)
+    payload = load_hubs(region_id)
+    if payload is None:
+        report_not_ready(region_id, [HUBS_DIR])
+    value = payload.get("hubs")
+    if not isinstance(value, dict):
+        raise HTTPException(503, detail=f"중심 관광지 산출물 형식이 올바르지 않습니다: {region_id}")
+    if value.get("base_year_month") != base_year_month:
+        report_not_ready(region_id, [f"{HUBS_DIR}:{base_year_month}"])
+    spots = list(value.get("spots", []))[:limit]
+    return {**value, "limit": limit, "extracted_count": len(spots), "spots": spots}
+
+
+def comparison(region_ids: list[str]) -> dict[str, Any]:
+    regions = [require_region(region_id) for region_id in region_ids]
+    first_peers = load_peer_candidates(region_ids[0])
+    if first_peers is None:
+        report_not_ready(region_ids[0], [PEER_CANDIDATES_DIR])
+    similarity = {
+        str(item.get("region_id")): float(item["similarity"])
+        for item in first_peers.get("peers", [])
+        if isinstance(item, dict) and item.get("region_id") and item.get("similarity") is not None
+    }
+    columns: list[dict[str, Any]] = []
+    for index, (region_id, region) in enumerate(zip(region_ids, regions, strict=True)):
+        portfolio = portfolio_report(region_id)
+        performance = performance_score(region_id)
+        columns.append({
+            "region": region,
+            "area_square_km": portfolio.get("area_square_km"),
+            "total_resource_count": portfolio.get("total_resource_count"),
+            "total_count_per_square_km": portfolio.get("total_count_per_square_km"),
+            "composite_score": performance.get("composite_score"),
+            "similarity_to_first": None if index == 0 else similarity.get(region_id),
+            "portfolio_metrics": portfolio.get("metrics", []),
+        })
+    return {
+        "columns": columns,
+        "limitations": [
+            "성과와 관광자원 지표는 release manifest에 기록된 동일 분석 버전의 사전 산출물입니다."
+        ],
+    }
+
+
 def peer_region_ids(region_id: str) -> set[str]:
     """이 지역의 peer 후보 `region_id` 집합. 이름 해석의 후보 집합이 된다."""
     payload = load_peer_candidates(region_id)
@@ -202,9 +306,7 @@ def peers(region_id: str, *, k: int, min_similarity: float) -> dict[str, Any]:
     require_region(region_id)
     payload = load_peer_candidates(region_id)
     if payload is None:
-        raise HTTPException(
-            404, detail=f"{region_id}의 유사 지역 분석 결과가 없습니다. 분석 작업을 먼저 실행하세요."
-        )
+        report_not_ready(region_id, [PEER_CANDIDATES_DIR])
     selected = [
         item for item in payload.get("peers", [])
         if isinstance(item, dict) and float(item.get("similarity", 0.0)) >= min_similarity
@@ -263,13 +365,7 @@ def gaps(region_id: str) -> dict[str, Any]:
         name for name, value in (("상대적 공급", relative), ("공급압력", pressure)) if value is None
     ]
     if missing or relative is None or pressure is None:
-        raise HTTPException(
-            404,
-            detail=(
-                f"{region['region_name']}의 {' · '.join(missing)} 분석 결과가 없습니다. "
-                "분석 작업을 먼저 실행하세요."
-            ),
-        )
+        report_not_ready(region_id, missing)
     target_report = require_target_report(pressure)
     peer_names = [
         str(item.get("region_name") or "").strip()

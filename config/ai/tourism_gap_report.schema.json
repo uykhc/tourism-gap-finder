@@ -3,7 +3,7 @@
   "title": "Tourism Gap Insight Report",
   "type": "object",
   "additionalProperties": false,
-  "required": ["region_name", "analysis_period", "status", "gap_types", "sources", "limitations"],
+  "required": ["region_name", "analysis_period", "status", "gap_types", "recommended_actions", "sources", "limitations"],
   "properties": {
     "region_name": {"type": "string", "minLength": 1},
     "analysis_period": {"type": "string", "pattern": "^[0-9]{6}~[0-9]{6}$"},
@@ -36,16 +36,34 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["title", "peer_region", "summary", "source_ids"],
+              "required": ["title", "peer_region", "case_type", "period", "operator", "summary", "source_ids"],
               "properties": {
                 "title": {"type": "string", "minLength": 1},
                 "peer_region": {"type": "string", "minLength": 1},
+                "case_type": {"enum": ["FACILITY", "PROGRAM"]},
+                "period": {"type": "string", "minLength": 1},
+                "operator": {"type": "string", "minLength": 1},
                 "summary": {"type": "string", "minLength": 1},
                 "source_ids": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
               }
             }
           },
           "applicability_insight": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "recommended_actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "rationale", "evidence_texts", "case_titles"],
+        "properties": {
+          "title": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string", "minLength": 1},
+          "evidence_texts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "case_titles": {"type": "array", "items": {"type": "string", "minLength": 1}}
         }
       }
     },
@@ -60,7 +78,7 @@
           "title": {"type": "string", "minLength": 1},
           "publisher": {"type": "string", "minLength": 1},
           "url": {"type": "string", "pattern": "^https://"},
-          "published_at": {"type": ["string", "null"]}
+          "published_at": {"type": "string", "minLength": 1}
         }
       }
     },

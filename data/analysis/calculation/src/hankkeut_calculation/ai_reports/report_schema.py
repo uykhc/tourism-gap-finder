@@ -29,7 +29,10 @@ CONTENT_TYPE_LABELS = {
     "LEISURE_SPORTS": "레저스포츠",
     "SHOPPING": "쇼핑",
 }
-ROOT_KEYS = frozenset({"region_name", "analysis_period", "status", "gap_types", "sources", "limitations"})
+ROOT_KEYS = frozenset({
+    "region_name", "analysis_period", "status", "gap_types",
+    "recommended_actions", "sources", "limitations",
+})
 
 
 def validate_report_payload(payload: dict[str, Any]) -> None:
@@ -41,7 +44,8 @@ def validate_report_payload(payload: dict[str, Any]) -> None:
     if not isinstance(payload["limitations"], list) or not all(isinstance(item, str) and item.strip() for item in payload["limitations"]):
         raise ValueError("limitations는 비어 있지 않은 문자열 배열이어야 합니다.")
     source_ids = _validate_sources(payload["sources"])
-    _validate_gap_types(payload["gap_types"], source_ids)
+    case_titles = _validate_gap_types(payload["gap_types"], source_ids)
+    _validate_actions(payload["recommended_actions"], case_titles)
 
 
 def _validate_sources(value: Any) -> set[str]:
@@ -52,7 +56,7 @@ def _validate_sources(value: Any) -> set[str]:
     for index, source in enumerate(value):
         if not isinstance(source, dict):
             raise ValueError(f"sources[{index}]는 객체여야 합니다.")
-        _require_exact_keys(source, allowed, f"sources[{index}]", optional={"published_at"})
+        _require_exact_keys(source, allowed, f"sources[{index}]")
         source_id = _require_nonempty_string(source["source_id"], f"sources[{index}].source_id")
         if source_id in source_ids:
             raise ValueError("sources.source_id는 중복될 수 없습니다.")
@@ -62,17 +66,17 @@ def _validate_sources(value: Any) -> set[str]:
         url = _require_nonempty_string(source["url"], f"sources[{index}].url")
         if urlparse(url).scheme != "https":
             raise ValueError(f"sources[{index}].url은 HTTPS URL이어야 합니다.")
-        if "published_at" in source and source["published_at"] is not None:
-            _require_nonempty_string(source["published_at"], f"sources[{index}].published_at")
+        _require_nonempty_string(source["published_at"], f"sources[{index}].published_at")
     return source_ids
 
 
-def _validate_gap_types(value: Any, source_ids: set[str]) -> None:
+def _validate_gap_types(value: Any, source_ids: set[str]) -> set[str]:
     # A valid comparison may produce no type above the gap threshold.  An empty
     # array is preferable to inventing a lowest-risk or highest-ranked gap.
     if not isinstance(value, list):
         raise ValueError("gap_types는 배열이어야 합니다.")
     seen_types: set[str] = set()
+    case_titles: set[str] = set()
     allowed = frozenset({"content_type", "judgement", "quantitative_evidence", "peer_cases", "applicability_insight"})
     for index, gap_type in enumerate(value):
         if not isinstance(gap_type, dict):
@@ -85,7 +89,8 @@ def _validate_gap_types(value: Any, source_ids: set[str]) -> None:
         _require_nonempty_string(gap_type["judgement"], f"gap_types[{index}].judgement")
         _require_nonempty_string(gap_type["applicability_insight"], f"gap_types[{index}].applicability_insight")
         _validate_evidence(gap_type["quantitative_evidence"], index)
-        _validate_cases(gap_type["peer_cases"], source_ids, index)
+        case_titles.update(_validate_cases(gap_type["peer_cases"], source_ids, index))
+    return case_titles
 
 
 def _validate_evidence(value: Any, gap_index: int) -> None:
@@ -102,19 +107,48 @@ def _validate_evidence(value: Any, gap_index: int) -> None:
         _require_nonempty_string(evidence["comparison"], f"quantitative_evidence[{index}].comparison")
 
 
-def _validate_cases(value: Any, source_ids: set[str], gap_index: int) -> None:
+def _validate_cases(value: Any, source_ids: set[str], gap_index: int) -> set[str]:
     if not isinstance(value, list):
         raise ValueError(f"gap_types[{gap_index}].peer_cases는 배열이어야 합니다.")
-    allowed = frozenset({"title", "peer_region", "summary", "source_ids"})
+    allowed = frozenset({
+        "title", "peer_region", "case_type", "period", "operator", "summary", "source_ids"
+    })
+    titles: set[str] = set()
     for index, case in enumerate(value):
         if not isinstance(case, dict):
             raise ValueError("peer_cases 항목은 객체여야 합니다.")
         _require_exact_keys(case, allowed, f"peer_cases[{index}]")
-        for key in ("title", "peer_region", "summary"):
+        for key in ("title", "peer_region", "period", "operator", "summary"):
             _require_nonempty_string(case[key], f"peer_cases[{index}].{key}")
+        if case["case_type"] not in {"FACILITY", "PROGRAM"}:
+            raise ValueError(f"peer_cases[{index}].case_type이 올바르지 않습니다.")
+        titles.add(case["title"])
         case_source_ids = case["source_ids"]
         if not isinstance(case_source_ids, list) or not case_source_ids or not all(isinstance(item, str) and item in source_ids for item in case_source_ids):
             raise ValueError(f"peer_cases[{index}].source_ids는 등록된 source_id를 하나 이상 참조해야 합니다.")
+    return titles
+
+
+def _validate_actions(value: Any, case_titles: set[str]) -> None:
+    if not isinstance(value, list) or not value:
+        raise ValueError("recommended_actions는 비어 있지 않은 배열이어야 합니다.")
+    allowed = frozenset({"title", "rationale", "evidence_texts", "case_titles"})
+    for index, action in enumerate(value):
+        if not isinstance(action, dict):
+            raise ValueError(f"recommended_actions[{index}]는 객체여야 합니다.")
+        _require_exact_keys(action, allowed, f"recommended_actions[{index}]")
+        for key in ("title", "rationale"):
+            _require_nonempty_string(action[key], f"recommended_actions[{index}].{key}")
+        evidence = action["evidence_texts"]
+        if not isinstance(evidence, list) or not evidence or not all(
+            isinstance(item, str) and item.strip() for item in evidence
+        ):
+            raise ValueError("recommended_actions.evidence_texts는 비어 있지 않은 문자열 배열이어야 합니다.")
+        titles = action["case_titles"]
+        if not isinstance(titles, list) or not all(
+            isinstance(item, str) and item in case_titles for item in titles
+        ):
+            raise ValueError("recommended_actions.case_titles는 등록된 사례 제목만 참조해야 합니다.")
 
 
 def _validate_period(value: Any) -> None:

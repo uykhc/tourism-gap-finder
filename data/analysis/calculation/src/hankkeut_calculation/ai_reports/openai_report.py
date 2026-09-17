@@ -98,7 +98,10 @@ class OpenAIWebCaseSearchProvider(CaseSearchProvider):
                 {"role": "system", "content": (
                     "Find verifiable Korean tourism cases. Prefer official public institutions, "
                     "local governments, operators, and research institutions. Do not use blogs "
-                    "or community posts. State only facts supported by cited pages."
+                    "or community posts. State only facts supported by cited pages. Start the "
+                    "answer with the source publication date as PUBLISHED_AT: YYYY-MM-DD or "
+                    "PUBLISHED_AT: YYYY. If the cited page has no publication date, start with "
+                    "PUBLISHED_AT: UNKNOWN."
                 )},
                 {"role": "user", "content": query.query},
             ],
@@ -106,6 +109,9 @@ class OpenAIWebCaseSearchProvider(CaseSearchProvider):
             store=False,
         )
         evidence = _brief_case_evidence(_response_output_text(response))
+        published_at = _publication_date(evidence)
+        if published_at is None:
+            return []
         # One attributable recommendation per Peer/type query is enough for a
         # pilot report and prevents search prose from dominating model input.
         for citation in _response_url_citations(response):
@@ -113,7 +119,7 @@ class OpenAIWebCaseSearchProvider(CaseSearchProvider):
             if citation["title"] and citation["url"] and source_kind in PREFERRED_SOURCE_KINDS:
                 return [CaseSearchDocument(
                     title=citation["title"], url=citation["url"], publisher=_publisher_from_url(citation["url"]),
-                    source_kind=source_kind, snippet=evidence,
+                    source_kind=source_kind, snippet=evidence, published_at=published_at,
                 )]
         return []
 
@@ -145,7 +151,7 @@ class OpenAITourismReportGenerator:
             input=[
                 {"role": "system", "content": _system_instruction(self._interpretation_rules)},
                 {"role": "user", "content": json.dumps({
-                    "analysis_context": context,
+        "analysis_context": context,
                     "peer_regions": _unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS),
                     "approved_sources": [source.to_dict() | {"evidence_snippet": source.evidence_snippet} for source in sources],
                 }, ensure_ascii=False)},
@@ -162,7 +168,7 @@ class OpenAITourismReportGenerator:
         if not isinstance(payload, dict):
             raise ValueError("OpenAI 응답 리포트가 객체가 아닙니다.")
         validate_report_payload(payload)
-        _validate_report_against_input(payload, context, sources)
+        _validate_report_against_input(payload, context, sources, peer_regions)
         return ReportGenerationResult(payload, self._model, getattr(response, "id", None), sources)
 
 
@@ -251,8 +257,12 @@ def _prepare_context(context: Mapping[str, Any], *, max_gap_types: int) -> dict[
     return prepared
 
 
-def _validate_report_against_input(report: Mapping[str, Any], context: Mapping[str, Any],
-                                   sources: Sequence[SupportedCaseSource]) -> None:
+def _validate_report_against_input(
+    report: Mapping[str, Any],
+    context: Mapping[str, Any],
+    sources: Sequence[SupportedCaseSource],
+    peer_regions: Sequence[str],
+) -> None:
     if report["region_name"] != context["region_name"] or report["analysis_period"] != context["analysis_period"]:
         raise ValueError("리포트의 지역 또는 분석기간이 입력값과 다릅니다.")
     if report["status"] != "provisional":
@@ -264,16 +274,28 @@ def _validate_report_against_input(report: Mapping[str, Any], context: Mapping[s
     if not {item["content_type"] for item in report["gap_types"]}.issubset(allowed_types):
         raise ValueError("리포트가 선택되지 않은 관광 유형을 포함합니다.")
     metrics = {item["content_type"]: item for item in context["content_type_metrics"]}
+    allowed_source_ids = {source.source_id for source in sources}
+    allowed_peers = set(_unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS))
+    emitted_case_titles: set[str] = set()
     for item in report["gap_types"]:
         expected = metrics[item["content_type"]]["searches_per_place"]
         if not any(evidence["target_value"] == expected for evidence in item["quantitative_evidence"]):
             raise ValueError("리포트 정량근거에 입력 공급압력 값이 포함되지 않았습니다.")
+        for case in item["peer_cases"]:
+            if case["peer_region"] not in allowed_peers:
+                raise ValueError("리포트가 허용되지 않은 Peer 지역을 포함합니다.")
+            if not set(case["source_ids"]).issubset(allowed_source_ids):
+                raise ValueError("리포트 사례가 승인되지 않은 출처를 참조합니다.")
+            emitted_case_titles.add(case["title"])
+    for action in report["recommended_actions"]:
+        if not set(action["case_titles"]).issubset(emitted_case_titles):
+            raise ValueError("추천 실행안이 생성되지 않은 사례를 참조합니다.")
 
 
 
 
 def _system_instruction(interpretation_rules: str) -> str:
-    return """You write Korean tourism-gap insight reports as strict JSON. Use only the supplied analysis_context for numbers. Never invent a number, source, URL, publisher, date, case, or peer region. Copy approved_sources to sources exactly. A peer case may cite only supplied source_ids; if no approved source supports a case, use an empty peer_cases array. Each peer_cases.summary must be at most two concise Korean sentences and must not restate a source body. The pilot has no national or peer percentile, so it must remain provisional and state this in limitations. If peer_supply_pressure_comparison is supplied, use it only as a cautious structural-peer comparison and clearly retain its data-quality limitations. If relative_supply_comparison is supplied, use it only as a separate relative-supply signal based on composition share or 100-km² density; do not confuse it with demand pressure. Select only selected_content_types. If selected_content_types is empty, return gap_types as an empty array and state that no priority gap candidate was found under the supplied comparison rule. For each included type, put its exact searches_per_place value from content_type_metrics in quantitative_evidence. Supply pressure is a screening signal, not proof that a new facility will succeed.
+    return """You write Korean tourism-gap insight reports as strict JSON. Use only the supplied analysis_context for numbers. Never invent a number, source, URL, publisher, date, case, operator, or peer region. Copy approved_sources to sources exactly. A peer case may cite only supplied source_ids; include case_type, period, and operator only when the approved source evidence supports them. If complete case metadata is unavailable, use an empty peer_cases array. Each peer_cases.summary must be at most two concise Korean sentences and must not restate a source body. Produce at least one recommended_action grounded in supplied quantitative evidence; case_titles may reference only emitted peer case titles. The pilot has no national or peer percentile, so it must remain provisional and state this in limitations. If peer_supply_pressure_comparison is supplied, use it only as a cautious structural-peer comparison and clearly retain its data-quality limitations. If relative_supply_comparison is supplied, use it only as a separate relative-supply signal based on composition share or 100-km² density; do not confuse it with demand pressure. Select only selected_content_types. If selected_content_types is empty, return gap_types as an empty array and recommend only additional data validation. For each included type, put its exact searches_per_place value from content_type_metrics in quantitative_evidence. Supply pressure is a screening signal, not proof that a new facility will succeed.
 
 The following interpretation rules are normative and override any intuitive but conflicting interpretation:\n\n""" + interpretation_rules
 
@@ -315,6 +337,18 @@ def _brief_case_evidence(value: str, *, limit: int = MAX_CASE_EVIDENCE_CHARS) ->
     if len(normalized) <= limit:
         return normalized
     return normalized[:limit - 1].rstrip() + "…"
+
+
+_PUBLISHED_AT_PATTERN = re.compile(
+    r"\bPUBLISHED_AT:\s*((?:19|20)\d{2}(?:-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]))?)\b",
+    re.IGNORECASE,
+)
+
+
+def _publication_date(value: str) -> str | None:
+    """Accept only the publication date explicitly requested from web search."""
+    match = _PUBLISHED_AT_PATTERN.search(value)
+    return match.group(1) if match else None
 
 
 def _response_url_citations(response: Any) -> list[dict[str, str]]:

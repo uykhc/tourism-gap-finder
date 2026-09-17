@@ -8,6 +8,9 @@ on:
       - 'data/analysis/**'
       - 'config/**'
       - 'pyproject.toml'
+      - 'alembic.ini'
+      - 'migrations/**'
+      - 'scripts/build_api_release.py'
       - '.github/workflows/api-ci.yml'
   push:
     branches: [main]
@@ -38,6 +41,11 @@ jobs:
       # sample artifacts; anything needing a key must fail with 503, not a mock.
       - name: API tests
         run: python -m pytest apps/api/tests -q
+
+      - name: Migration smoke test
+        env:
+          AUTH_DATABASE_URL: sqlite:////tmp/hankkeut-ci.db
+        run: alembic upgrade head
 
       - name: Analysis package tests
         run: |

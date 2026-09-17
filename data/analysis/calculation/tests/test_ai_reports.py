@@ -15,6 +15,7 @@ from hankkeut_calculation.ai_reports.openai_report import (
     DEFAULT_MODEL,
     OpenAITourismReportGenerator,
     _brief_case_evidence,
+    _publication_date,
     _prepare_context,
     collect_approved_case_sources,
     resolve_openai_api_key,
@@ -27,7 +28,7 @@ class CaseSearchTest(unittest.TestCase):
         self.assertEqual([query.peer_region for query in queries], ["강릉시", "전주시"])
         self.assertIn("체험관광", queries[0].query)
         sources = screen_case_documents([
-            CaseSearchDocument("공식 사례", "https://city.example/case", "강릉시", SourceKind.LOCAL_GOVERNMENT, "방문객 10만 명을 기록했다."),
+            CaseSearchDocument("공식 사례", "https://city.example/case", "강릉시", SourceKind.LOCAL_GOVERNMENT, "방문객 10만 명을 기록했다.", "2026-01-01"),
             CaseSearchDocument("제외", "http://news.example/case", "언론", SourceKind.NEWS, "근거"),
         ])
         self.assertEqual(len(sources), 1)
@@ -37,6 +38,12 @@ class CaseSearchTest(unittest.TestCase):
         brief = _brief_case_evidence("가 " * 200)
         self.assertLessEqual(len(brief), 240)
         self.assertTrue(brief.endswith("…"))
+
+    def test_accepts_only_an_explicit_web_source_publication_date(self):
+        self.assertEqual(_publication_date("PUBLISHED_AT: 2026-01-31\n근거"), "2026-01-31")
+        self.assertEqual(_publication_date("PUBLISHED_AT: 2024\n근거"), "2024")
+        self.assertIsNone(_publication_date("행사는 2026년에 열렸다."))
+        self.assertIsNone(_publication_date("PUBLISHED_AT: UNKNOWN"))
 
 
 class ReportSchemaTest(unittest.TestCase):
@@ -69,6 +76,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
                 "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
                 "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
             },
+            peer_regions=["강릉시"],
             approved_sources=[source],
         )
         self.assertEqual(result.model, DEFAULT_MODEL)
@@ -98,7 +106,26 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
                     "region_name": "수원시", "analysis_period": "202508~202607",
                     "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
                     "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
-                }, approved_sources=[source],
+                }, peer_regions=["강릉시"], approved_sources=[source],
+            )
+
+    def test_rejects_a_case_from_an_unapproved_peer_region(self):
+        generator = OpenAITourismReportGenerator(
+            _FakeClient(_FakeResponse(_payload())),
+            schema_path=Path("config/ai/tourism_gap_report.schema.json"),
+        )
+        source = screen_case_documents([
+            CaseSearchDocument("공식 문서", "https://city.example/case", "강릉시", SourceKind.LOCAL_GOVERNMENT, "성과", "2026-01-01"),
+        ])[0]
+        with self.assertRaisesRegex(ValueError, "허용되지 않은 Peer"):
+            generator.generate(
+                ai_report_context={
+                    "region_name": "수원시", "analysis_period": "202508~202607",
+                    "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
+                    "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
+                },
+                peer_regions=["전주시"],
+                approved_sources=[source],
             )
 
     def test_individual_peer_ratio_at_or_above_one_is_a_gap_candidate(self):
@@ -175,6 +202,7 @@ class _RecordingCaseProvider:
             publisher=query.peer_region,
             source_kind=SourceKind.LOCAL_GOVERNMENT,
             snippet="공식 운영 근거",
+            published_at="2026-01-01",
         )]
 
 
@@ -187,8 +215,16 @@ def _payload():
             "content_type": "CULTURE_TOURISM",
             "judgement": "우선 검토 유형",
             "quantitative_evidence": [{"metric": "searches_per_place", "target_value": 8516.021, "comparison": "Peer 비교 전 잠정 순위"}],
-            "peer_cases": [{"title": "공식 사례", "peer_region": "강릉시", "summary": "운영 성과", "source_ids": ["source-1"]}],
+            "peer_cases": [{
+                "title": "공식 사례", "peer_region": "강릉시", "case_type": "PROGRAM",
+                "period": "2026", "operator": "강릉시", "summary": "운영 성과",
+                "source_ids": ["source-1"],
+            }],
             "applicability_insight": "수원시 여건을 검토한다.",
+        }],
+        "recommended_actions": [{
+            "title": "시범 운영", "rationale": "정량 근거를 먼저 검증한다.",
+            "evidence_texts": ["장소당 검색량 8516.021"], "case_titles": [],
         }],
         "sources": [{"source_id": "source-1", "title": "공식 문서", "publisher": "강릉시", "url": "https://city.example/case", "published_at": "2026-01-01"}],
         "limitations": ["파일럿 결과"],

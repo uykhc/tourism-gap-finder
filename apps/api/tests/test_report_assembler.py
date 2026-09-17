@@ -144,12 +144,12 @@ class SampleReportTest(unittest.TestCase):
             if item["signal_level"] == "NO_CLEAR_GAP":
                 self.assertNotIn(name, diagnosed)
 
-    def test_recommended_actions_are_empty_and_the_reason_is_recorded(self):
-        self.assertEqual(self.report["recommended_actions"], [])
-        self.assertTrue(
-            any("실행 제안" in line for line in self.report["methodology"]["limitations"]),
-            "생산자가 없다는 사실이 한계 목록에 남아야 한다",
-        )
+    def test_recommended_actions_are_grounded_and_reference_known_cases(self):
+        self.assertTrue(self.report["recommended_actions"])
+        case_ids = {item["case_id"] for item in self.report["benchmark_cases"]}
+        for action in self.report["recommended_actions"]:
+            self.assertTrue(action["evidence_texts"])
+            self.assertLessEqual(set(action["case_ids"]), case_ids)
 
     def test_cases_reference_only_registered_sources(self):
         source_ids = {item["source_id"] for item in self.report["sources"]}
@@ -157,10 +157,9 @@ class SampleReportTest(unittest.TestCase):
         for case in self.report["benchmark_cases"]:
             self.assertTrue(case["source_ids"])
             self.assertLessEqual(set(case["source_ids"]), source_ids)
-            # 생산자가 없는 항목은 값을 지어내지 않는다.
-            self.assertIsNone(case["case_type"])
-            self.assertIsNone(case["period"])
-            self.assertIsNone(case["operator"])
+            self.assertIn(case["case_type"], {"FACILITY", "PROGRAM"})
+            self.assertTrue(case["period"])
+            self.assertTrue(case["operator"])
         for diagnosis in self.report["detailed_diagnoses"]:
             self.assertLessEqual(set(diagnosis["case_ids"]), case_ids)
 
@@ -186,25 +185,17 @@ class SampleReportTest(unittest.TestCase):
 
 
 class DataPoorRegionTest(unittest.TestCase):
-    def test_a_region_without_artifacts_returns_200_and_insufficient_data(self):
-        # 데이터 부족은 HTTP 오류가 아니다. 화면이 상태를 구분해 보여줄 수 있어야 한다.
+    def test_a_region_without_artifacts_returns_report_not_ready(self):
         response = TestClient(app).get("/regions/41110/report")
-        self.assertEqual(response.status_code, 200)
-        report = response.json()
-        self.assertEqual(report["summary"]["diagnosis_status"], "INSUFFICIENT_DATA")
-        self.assertIsNone(report["summary"]["primary_gap_type"])
-        self.assertEqual(report["summary"]["key_metrics"], [])
-        self.assertEqual(report["summary"]["one_line_review"]["source"], "TEMPLATE")
-        for field in ("category_overview", "detailed_diagnoses", "recommended_actions",
-                      "benchmark_cases", "sources"):
-            self.assertEqual(report[field], [], field)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()["detail"]["code"], "REPORT_NOT_READY")
 
     def test_only_an_unknown_region_id_is_a_404(self):
         self.assertEqual(TestClient(app).get("/regions/99999/report").status_code, 404)
 
 
 class EmptyGapTypesTest(unittest.TestCase):
-    """AI 스키마에서 `gap_types: []`는 적법하다. 판정 문장을 지어내선 안 된다."""
+    """AI 스키마에서 `gap_types: []`여도 실행 제안은 구조화되어야 한다."""
 
     def test_an_empty_gap_list_still_returns_a_report(self):
         with TemporaryDirectory() as directory:

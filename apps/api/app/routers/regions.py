@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from .. import examples
-from ..deps import RegionIdPath
+from ..deps import CurrentUser, RegionIdPath
 from ..schemas.common import Page
 from ..schemas.regions import RegionDetail, RegionSummary, StructureProfile
 from ..services import regions as region_table
@@ -32,7 +32,7 @@ def list_regions(
 
 
 @router.get("/{region_id}", response_model=RegionDetail, summary="지역 상세")
-def get_region(region_id: RegionIdPath) -> RegionDetail:
+def get_region(region_id: RegionIdPath, _: CurrentUser) -> RegionDetail:
     """지역 기본 정보."""
     region = region_table.find_region(region_id)
     if region is None:
@@ -55,7 +55,7 @@ def get_region(region_id: RegionIdPath) -> RegionDetail:
     response_model=StructureProfile,
     summary="구조 특성 17개 변수",
 )
-def get_structure(region_id: RegionIdPath) -> StructureProfile:
+def get_structure(region_id: RegionIdPath, _: CurrentUser) -> StructureProfile:
     """유사도 계산에 쓰는 구조 변수 17개와 출처."""
     region = region_table.find_region(region_id)
     features = region_table.find_region_features(region_id)

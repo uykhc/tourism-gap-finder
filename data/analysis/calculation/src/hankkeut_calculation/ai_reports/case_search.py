@@ -97,7 +97,14 @@ def screen_case_documents(documents: list[CaseSearchDocument], *, source_id_pref
     for document in documents:
         if document.source_kind not in PREFERRED_SOURCE_KINDS:
             continue
-        if not _is_https_url(document.url) or not document.title.strip() or not document.publisher.strip() or not document.snippet.strip():
+        if (
+            not _is_https_url(document.url)
+            or not document.title.strip()
+            or not document.publisher.strip()
+            or not document.snippet.strip()
+            or not document.published_at
+            or not document.published_at.strip()
+        ):
             continue
         normalized_url = document.url.strip()
         if normalized_url in seen_urls:
@@ -108,7 +115,7 @@ def screen_case_documents(documents: list[CaseSearchDocument], *, source_id_pref
             title=document.title.strip(),
             publisher=document.publisher.strip(),
             url=normalized_url,
-            published_at=document.published_at.strip() if document.published_at else None,
+            published_at=document.published_at.strip(),
             source_kind=document.source_kind,
             evidence_snippet=document.snippet.strip(),
         ))

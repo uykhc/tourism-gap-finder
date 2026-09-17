@@ -12,6 +12,8 @@ WORKDIR /app
 # sample artifacts that live under apps/api/app/data.
 COPY pyproject.toml README.md ./
 COPY apps/api ./apps/api
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 COPY data/analysis/calculation ./data/analysis/calculation
 COPY data/analysis/evaluation ./data/analysis/evaluation
 # Only the similarity package's own sources; its data/, results/ and tests/ are
@@ -32,4 +34,4 @@ USER appuser
 EXPOSE 8000
 
 # Railway injects PORT at runtime.  8000 remains useful for `docker run`.
-CMD ["sh", "-c", "uvicorn apps.api.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn apps.api.app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

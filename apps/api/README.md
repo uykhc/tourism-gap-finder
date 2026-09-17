@@ -16,9 +16,16 @@ uvicorn apps.api.app.main:app --reload --port 8000 --env-file .env
 python3 -m pytest apps/api/tests
 ```
 
-분석 패키지가 없어도 앱은 뜬다. 지역 표와 산출물만 쓰는 엔드포인트는 그대로
-동작하고, 패키지나 키가 필요한 엔드포인트만 무엇이 없는지 담은 `503`을
-반환한다 (`app/services/analysis_runtime.py`).
+운영 DB 스키마는 Alembic으로 관리합니다. Docker 이미지는 애플리케이션 시작 전에
+자동으로 아래 명령을 실행합니다.
+
+```bash
+alembic upgrade head
+```
+
+운영 요청 경로는 분석 패키지나 외부 API를 호출하지 않고, 검증 후 활성화된
+사전 계산 산출물만 읽습니다. 알려진 지역의 산출물이 없거나 미완성이면
+`REPORT_NOT_READY` 오류를 반환합니다.
 
 - Swagger UI: <http://localhost:8000/docs>
 - ReDoc: <http://localhost:8000/redoc>
@@ -36,17 +43,18 @@ Railway가 제공하는 `PORT`를 사용하며 `/health`를 배포 헬스체크�
 
 ```dotenv
 AUTH_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
+AUTH_JWT_SECRET=32자 이상의 무작위 비밀값
 API_CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
+ANALYSIS_ARTIFACT_ROOT=/data/artifacts
 ```
 
 이미지에는 API와 분석 패키지 소스, 그리고 `apps/api/app/data`의 지역 표·코드
-매핑·경주시 샘플 산출물이 들어간다. 분석 작업 자체는 따로 돌리며, 그 결과를
-쓰려면 `ANALYSIS_ARTIFACT_ROOT`로 볼륨을 가리킨다. 산출물이 없는 지역은 404가
-아니라 `INSUFFICIENT_DATA`로 응답하므로 화면은 그대로 뜬다.
+매핑·경주시 샘플 산출물이 들어갑니다. 분석 작업은 배포 전에 따로 실행하고,
+운영에서는 `ANALYSIS_ARTIFACT_ROOT`가 가리키는 영구 볼륨의 활성 release만 읽습니다.
 
 API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Vercel의 공개
-환경변수에 넣지 않는다. 키가 없는 엔드포인트는 무엇이 없는지 담은 `503`을
-반환하며, 모의 데이터를 대신 내보내지 않는다.
+환경변수에 넣지 않습니다. 외부 관광 API와 OpenAI 키는 사전 계산 작업에서만
+사용하며 운영 HTTP 요청에서는 사용하지 않습니다.
 
 ## 현재 상태
 
@@ -58,24 +66,56 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 | `/regions/{id}/peers` | `peer_candidates` 산출물 | 없음 |
 | `/regions/{id}/gaps` | `relative_supply` + `datalab_navigation` 산출물 | 없음 |
 | `/regions/{id}/report` | 위 산출물 + `ai_reports` | 없음 |
-| `/regions/{id}/portfolio` | 실시간 TourAPI 관광자원 조회 | TourAPI |
-| `/regions/{id}/hubs` | 실시간 중심 관광지 조회 | HUB |
-| `/regions/{id}/performance` | **예시 데이터** | VISITOR |
-| `/compare` | **예시 데이터** | TourAPI + VISITOR |
+| `/regions/{id}/portfolio` | 사전 계산 `portfolios` 산출물 | 없음 |
+| `/regions/{id}/hubs` | 사전 계산 `hubs` 산출물 | 없음 |
+| `/regions/{id}/performance` | 사전 계산 `performance` 산출물 | 없음 |
+| `/compare` | 사전 계산 `portfolios`·`performance`·Peer 산출물 | 없음 |
 
-산출물을 읽는 세 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. 경주시
+산출물 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. 경주시
 (`47130`) 샘플 한 벌이 커밋돼 있어 별도 준비 없이 200을 확인할 수 있고, 실제
 분석 결과는 `ANALYSIS_ARTIFACT_ROOT`로 다른 경로를 가리켜 씁니다. 샘플은
 `scripts/build_sample_artifacts.py`가 실제 생산자 함수를 호출해 만듭니다.
 
-`/peers`·`/gaps`는 해당 지역 산출물이 없으면 404입니다. `/report`는 404가 아니라
-200과 `summary.diagnosis_status: INSUFFICIENT_DATA`로 응답합니다 — 데이터 부족과
-잘못된 요청은 화면에서 구분해야 하기 때문입니다. 존재하지 않는 `region_id`만
-404입니다.
+`/report`·`/performance`·`/compare`는 Bearer 인증이 필요합니다. 알려진 지역이지만
+배포 가능한 산출물이 없으면 409와 `detail.code: REPORT_NOT_READY`를 반환하고,
+존재하지 않는 `region_id`만 404를 반환합니다.
 
-아직 예시 데이터를 쓰는 성과·비교 엔드포인트의 payload는 `app/examples.py`에
-모여 있습니다. 지역 상세·구조 특성은 분석 시점의 전국 구조 변수 스냅숏을
-읽고, 포트폴리오·중심 관광지는 요청 시 외부 API를 호출합니다.
+## 전국 release
+
+원천 CSV와 지역별 산출물을 release 디렉터리에 준비한 뒤 다음 명령으로 230개
+지역을 검증합니다. 모든 지역이 통과한 경우에만 `current` 링크가 원자적으로
+교체됩니다.
+
+```bash
+python scripts/build_api_release.py \
+  --release-id 2026-09 \
+  --artifact-root /data/artifacts \
+  --raw-root /data/raw/datalab_navigation \
+  --pipeline-config /data/config/release-pipeline.json \
+  --activate
+```
+
+데이터랩 CSV는 `<raw-root>/<region_id>/navigation.csv`에 두며 `기준연월`,
+`목적지 유형`, `목적지 검색량` 열이 필요합니다. release는 `peer_candidates`,
+`relative_supply`, `datalab_navigation`, `ai_reports`, `performance`, `portfolios`, `hubs`
+각 디렉터리에 `<region_id>.json`을 가져야 합니다. 실패 내역은
+`release-manifest.json`에 지역별로 기록됩니다.
+
+`--pipeline-config`는 지역별 생산 명령을 실행하는 선택형 JSON입니다. 각 단계는
+`name`, 쉘을 사용하지 않는 `command` 문자열 배열, `outputs` 배열을 가지며
+`{region_id}`, `{region_name}`, `{raw_csv}`, `{release_root}`, `{cache_root}`를 사용할 수
+있습니다. 완료 단계는 입력 CSV 해시·명령·`ANALYSIS_CODE_VERSION`이 같을 때만
+재사용됩니다. 표준 출력과 오류는 지역별 `logs/`, 상태는 `checkpoints/`에 남으므로
+중단 후 같은 명령을 다시 실행하거나 `--retry-failed`로 실패 지역만 재시도할 수
+있습니다. 외부 API 생산기는 `{cache_root}` 또는 `HANKKEUT_CACHE_ROOT`를 캐시 위치로
+사용하도록 구성합니다.
+
+직전 release로 복구할 때는 그 release ID와 `--retry-failed --activate`를 사용합니다.
+이미 완료된 230개 지역을 다시 생산하지 않고 검증된 기존 release의 `current` 링크를
+원자적으로 복원합니다.
+
+지역 상세·구조 특성은 분석 시점의 전국 구조 변수 스냅숏을 읽습니다. 성과,
+비교, 포트폴리오, 중심 관광지 역시 release의 사전 계산 JSON을 반환합니다.
 
 프론트엔드에 건네는 보고서 응답 예시: `tests/fixtures/report_47130.json`.
 

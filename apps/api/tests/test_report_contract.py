@@ -82,6 +82,17 @@ class ReportContractTest(unittest.TestCase):
     def test_the_report_path_is_unchanged(self):
         self.assertIn("/regions/{region_id}/report", self.spec["paths"])
 
+    def test_complete_report_fields_are_required(self):
+        report_required = set(self.schemas["RegionReport"]["required"])
+        self.assertIn("analysis_period", report_required)
+        self.assertEqual(
+            set(self.schemas["ReportEvidence"]["required"]),
+            {"supply_density", "searches_per_place"},
+        )
+        case_required = set(self.schemas["BenchmarkCase"]["required"])
+        self.assertTrue({"case_type", "period", "operator"} <= case_required)
+        self.assertIn("published_at", self.schemas["ReportSource"]["required"])
+
 
 class ExampleResponseTest(unittest.TestCase):
     """커밋된 예시 응답이 실제 응답과 어긋나지 않는지 본다.

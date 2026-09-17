@@ -182,8 +182,8 @@ class SearchesPerPlaceEvidence(BaseModel):
 
 
 class ReportEvidence(BaseModel):
-    supply_density: SupplyDensityEvidence | None = Field(default=None)
-    searches_per_place: SearchesPerPlaceEvidence | None = Field(default=None)
+    supply_density: SupplyDensityEvidence
+    searches_per_place: SearchesPerPlaceEvidence
 
 
 # ---------------------------------------------------------------------------
@@ -192,14 +192,14 @@ class ReportEvidence(BaseModel):
 class CategoryOverviewItem(BaseModel):
     content_type: ContentType
     signal_level: GapSignalLevel
-    supply_place_count: int | None = Field(default=None, examples=[87])
-    composition_share: float | None = Field(default=None, examples=[0.069])
-    supply_density_per_100_km2: float | None = Field(default=None, examples=[6.569])
+    supply_place_count: int = Field(examples=[87])
+    composition_share: float = Field(examples=[0.069])
+    supply_density_per_100_km2: float = Field(examples=[6.569])
     lower_benchmark_count: int = Field(ge=0, examples=[2])
     total_benchmark_count: int = Field(ge=0, examples=[2])
     lowest_benchmark_supply_ratio: float | None = Field(default=None, examples=[0.6938])
-    searches_per_place: float | None = Field(default=None, examples=[2117.5862])
-    search_rank: int | None = Field(default=None, ge=1, examples=[1])
+    searches_per_place: float = Field(examples=[2117.5862])
+    search_rank: int = Field(ge=1, examples=[1])
 
 
 class BenchmarkComparison(BaseModel):
@@ -242,12 +242,10 @@ class BenchmarkCase(BaseModel):
     case_id: str = Field(min_length=1, examples=["case-01"])
     benchmark_region_name: str = Field(min_length=1, examples=["포항시"])
     title: str = Field(min_length=1, examples=["포항 스페이스워크"])
-    #: 사례 유형·기간·운영주체는 산출물에 생산자가 없어 확정할 수 없다.
-    #: 값을 지어내지 않고 null로 둔다.
-    case_type: BenchmarkCaseType | None = Field(default=None)
+    case_type: BenchmarkCaseType
     content_type: ContentType
-    period: str | None = Field(default=None, examples=[None])
-    operator: str | None = Field(default=None, examples=[None])
+    period: str = Field(min_length=1, examples=["2021"])
+    operator: str = Field(min_length=1, examples=["포항시"])
     summary: str = Field(min_length=1)
     applicability: str = Field(min_length=1)
     source_ids: list[str] = Field(default_factory=list, examples=[["source-1"]])
@@ -270,7 +268,7 @@ class ReportSource(BaseModel):
     url: HttpUrl = Field(examples=["https://www.seosan.go.kr/"])
     #: 실제 값이 "상시 갱신", "2021-11-18 외" 같은 자유 문자열이라 날짜로
     #: 강제하지 않는다.
-    published_at: str | None = Field(default=None, examples=["2024"])
+    published_at: str = Field(min_length=1, examples=["2024"])
 
 
 class RegionReport(BaseModel):
@@ -280,7 +278,7 @@ class RegionReport(BaseModel):
     report_status: ReportStatus
     generated_at: str = Field(examples=["2026-09-13T02:00:00+00:00"])
     target: RegionRef
-    analysis_period: AnalysisPeriod | None = Field(default=None)
+    analysis_period: AnalysisPeriod
     summary: ReportSummary
     evidence: ReportEvidence
     category_overview: list[CategoryOverviewItem] = Field(default_factory=list)

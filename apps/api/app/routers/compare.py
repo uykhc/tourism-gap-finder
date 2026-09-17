@@ -7,8 +7,9 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 from pydantic import StringConstraints
 
-from .. import examples
+from ..deps import CurrentUser
 from ..schemas.compare import ComparisonResult
+from ..services import artifacts
 
 router = APIRouter(tags=["compare"])
 
@@ -28,9 +29,6 @@ RegionIds = Annotated[
 
 
 @router.get("/compare", response_model=ComparisonResult, summary="여러 지역 나란히 비교")
-def compare_regions(region_ids: RegionIds) -> ComparisonResult:
+def compare_regions(region_ids: RegionIds, _: CurrentUser) -> ComparisonResult:
     """지역 2~5곳의 공급 구성과 성과 비교표."""
-    # TODO(실연결): 각 지역에 대해 hankkeut_calculation 의 analyze_portfolio +
-    #   성과 점수를 모으고, similarity_to_first 는 첫 지역 기준 find_peers 결과에서
-    #   가져온다. 요청당 TourAPI 수집이 2~5회라 캐시 정책을 함께 정해야 한다.
-    return ComparisonResult.model_validate(examples.comparison_result(region_ids))
+    return ComparisonResult.model_validate(artifacts.comparison(region_ids))

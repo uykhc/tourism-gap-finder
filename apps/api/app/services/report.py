@@ -33,6 +33,7 @@ from ..schemas.reports import (
 )
 from . import artifacts
 from .benchmarks import BenchmarkSelection, resolve_benchmarks
+from .errors import report_not_ready
 
 #: 조립 규칙이 바뀌면 올린다. 같은 산출물이라도 응답 구조가 달라지기 때문이다.
 ASSEMBLER_VERSION = "1.0.0"
@@ -50,10 +51,6 @@ _PROVISIONAL_NOTICE = (
     "검증 우선순위이며 신규 시설·사업의 성공 근거가 아닙니다."
 )
 
-_NO_PRODUCER_FOR_ACTIONS = (
-    "실행 제안은 현재 분석 산출물에 생산자가 없어 제공하지 않습니다."
-)
-
 _FACILITY_KEYWORDS = re.compile(r"시설|센터|타워|공원|워크|박물관|미술관|전망|둘레길|전시관")
 
 
@@ -61,11 +58,23 @@ _FACILITY_KEYWORDS = re.compile(r"시설|센터|타워|공원|워크|박물관|�
 # 조립 입력
 # ---------------------------------------------------------------------------
 def build_region_report(region_id: str) -> dict[str, Any]:
-    """존재하지 않는 `region_id`만 404다. 산출물이 없으면 200 + INSUFFICIENT_DATA."""
+    """존재하지 않는 지역은 404, 배포 가능 산출물이 없으면 REPORT_NOT_READY다."""
     region = artifacts.require_region(region_id)
     relative = artifacts.load_relative_supply(region_id)
     pressure = artifacts.load_supply_pressure(region_id)
     ai_report = artifacts.load_ai_report(region_id)
+    missing = [
+        name
+        for name, value in (
+            (artifacts.PEER_CANDIDATES_DIR, artifacts.load_peer_candidates(region_id)),
+            (artifacts.RELATIVE_SUPPLY_DIR, relative),
+            (artifacts.DATALAB_NAVIGATION_DIR, pressure),
+            (artifacts.AI_REPORTS_DIR, ai_report),
+        )
+        if value is None
+    ]
+    if missing:
+        report_not_ready(region_id, missing)
     benchmarks = resolve_benchmarks(region_id, relative)
 
     target_report: dict[str, Any] | None = None
@@ -78,6 +87,7 @@ def build_region_report(region_id: str) -> dict[str, Any]:
 
     limitations = _limitations(relative, target_report, ai_report, benchmarks, status)
     diagnoses, cases = _diagnoses_and_cases(ai_report, signals, limitations)
+    actions = _recommended_actions(ai_report, cases)
 
     return {
         "report_version": _report_version(relative, pressure, ai_report),
@@ -94,7 +104,7 @@ def build_region_report(region_id: str) -> dict[str, Any]:
         "evidence": _evidence(region, primary, status, signals, target_report),
         "category_overview": _category_overview(status, signals),
         "detailed_diagnoses": diagnoses,
-        "recommended_actions": [],
+        "recommended_actions": actions,
         "benchmark_cases": cases,
         "methodology": _methodology(relative, target_report, benchmarks, limitations),
         "sources": _sources(ai_report),
@@ -468,10 +478,10 @@ def _diagnoses_and_cases(
                     "case_id": case_id,
                     "benchmark_region_name": key[0],
                     "title": key[1],
-                    "case_type": _case_type(case),
+                    "case_type": str(case.get("case_type") or ""),
                     "content_type": content_type,
-                    "period": None,
-                    "operator": None,
+                    "period": str(case.get("period") or ""),
+                    "operator": str(case.get("operator") or ""),
                     "summary": str(case.get("summary") or ""),
                     "applicability": str(gap_type.get("applicability_insight") or ""),
                     "source_ids": case_source_ids,
@@ -488,10 +498,29 @@ def _diagnoses_and_cases(
     return diagnoses, cases
 
 
-def _case_type(case: dict[str, Any]) -> str | None:
-    """사례 유형은 산출물에 생산자가 없다. 지어내지 않고 null로 둔다."""
-    del case
-    return None
+def _recommended_actions(
+    ai_report: dict[str, Any], cases: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    case_id_by_title = {item["title"]: item["case_id"] for item in cases}
+    actions = ai_report.get("recommended_actions")
+    if not isinstance(actions, list) or not actions:
+        raise HTTPException(502, detail="AI 보고서에 recommended_actions가 없습니다.")
+    result: list[dict[str, Any]] = []
+    for order, action in enumerate(actions, start=1):
+        if not isinstance(action, dict):
+            raise HTTPException(502, detail="AI 보고서의 recommended_actions 형식이 잘못됐습니다.")
+        result.append({
+            "order": order,
+            "title": str(action.get("title") or ""),
+            "rationale": str(action.get("rationale") or ""),
+            "evidence_texts": [str(item) for item in action.get("evidence_texts", [])],
+            "case_ids": [
+                case_id_by_title[title]
+                for title in action.get("case_titles", [])
+                if title in case_id_by_title
+            ],
+        })
+    return result
 
 
 def _quantitative_evidence(signal: dict[str, Any]) -> list[dict[str, Any]]:
@@ -545,11 +574,7 @@ def _one_line_review(
     status: DiagnosisStatus,
     signals: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    """AI 산출물의 판정 문장 첫 문장을 쓰고, 없으면 템플릿 문장을 만든다.
-
-    TODO: 확정된 구조화 결과를 넘겨 요청 시점에 한 문장만 생성하는 경로를
-    두기로 했다. 실패·키 없음·지연 시 아래 템플릿으로 대체한다.
-    """
+    """사전 생성 AI 판정의 첫 문장을 쓰고, 없으면 템플릿 문장을 만든다."""
     sentence = _first_sentence(_primary_judgement(ai_report, primary))
     if sentence:
         return {
@@ -622,7 +647,6 @@ def _limitations(
         )
     if status is DiagnosisStatus.INSUFFICIENT_DATA:
         lines.append("비교에 필요한 분석 산출물이 없어 빈칸 진단을 산출하지 않았습니다.")
-    lines.append(_NO_PRODUCER_FOR_ACTIONS)
     return _dedupe(lines)
 
 
