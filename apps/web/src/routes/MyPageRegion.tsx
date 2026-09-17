@@ -101,7 +101,11 @@ function MyPageRegion() {
           }
           onClick={toggleSelector}
         >
-          {selectorOpen ? '변경 취소' : '지역 변경'}
+          {selectorOpen
+            ? '변경 취소'
+            : currentRegion
+              ? '지역 변경'
+              : '지역 설정'}
         </Button>
       </div>
       {feedback && (
