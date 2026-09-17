@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from ..kakao_places.content_store import psycopg_connection_url
+
 DEFAULT_TAXONOMY_PATH = Path("config/datalab/navigation_destination_type_taxonomy.json")
 REQUIRED_COLUMNS = ("기준연월", "목적지 유형", "목적지 검색량")
 
@@ -159,11 +161,14 @@ def build_supply_pressure_report(
     demand_import: NavigationDemandImport,
     *,
     taxonomy: NavigationDemandTaxonomy,
-    kakao_collection_path: Path,
+    content_database_url: str,
+    region_id: str,
     month_count: int = 12,
 ) -> dict[str, Any]:
     selected_records = demand_import.select_latest_months(month_count)
-    supply_region = _load_kakao_supply(kakao_collection_path, demand_import.region_name, taxonomy.content_types)
+    supply_region = _load_kakao_supply_from_database(
+        content_database_url, region_id, taxonomy.content_types,
+    )
     demand_by_type = _aggregate_by_content_type(selected_records, included=True)
     excluded_by_type = _aggregate_by_content_type(selected_records, included=False)
     total_by_month = _aggregate_total_by_month(selected_records, taxonomy.total_source_type)
@@ -203,7 +208,7 @@ def build_supply_pressure_report(
             "demand_source": "한국관광 데이터랩",
             "demand_source_file": demand_import.source_file,
             "demand_taxonomy_version": taxonomy.version,
-            "kakao_collection_file": str(kakao_collection_path),
+            "kakao_supply_source": supply_region["source"],
             "kakao_taxonomy_version": supply_region["taxonomy_version"],
         },
         "data_quality": {
@@ -310,37 +315,68 @@ def _aggregate_total_by_month(records: tuple[NavigationDemandRecord, ...], total
     return {record.base_ym: record.search_count for record in records if record.source_type == total_source_type}
 
 
-def _load_kakao_supply(path: Path, region_name: str, content_types: tuple[str, ...]) -> dict[str, Any]:
+def _load_kakao_supply_from_database(
+    database_url: str,
+    region_id: str,
+    content_types: tuple[str, ...],
+) -> dict[str, Any]:
+    """Read the newest completed content-collection run for one region."""
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError as exc:
-        raise ValueError(f"Kakao collection file does not exist: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Kakao collection file is not valid JSON: {path}") from exc
-    regions = payload.get("regions") if isinstance(payload, dict) else None
-    if not isinstance(regions, list):
-        raise ValueError("Kakao collection JSON에 regions 배열이 없습니다.")
-    matches = [region for region in regions if isinstance(region, dict) and region.get("region_name") == region_name]
-    if len(matches) != 1:
-        raise ValueError(f"Kakao collection JSON에서 {region_name} 지역을 하나만 찾을 수 있어야 합니다.")
-    region = matches[0]
-    counts = region.get("content_type_counts")
-    if not isinstance(counts, dict):
-        raise ValueError("Kakao collection JSON에 content_type_counts가 없습니다.")
-    normalized_counts = {}
-    for content_type in content_types:
-        try:
-            value = int(counts[content_type])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise ValueError(f"Kakao 공급 장소 수가 올바르지 않습니다: {content_type}") from exc
-        if value < 0:
-            raise ValueError(f"Kakao 공급 장소 수는 음수가 될 수 없습니다: {content_type}")
-        normalized_counts[content_type] = value
+        import psycopg
+    except ImportError as exc:  # pragma: no cover - depends on optional extra
+        raise ValueError("Postgres 조회에는 psycopg가 필요합니다. database extra를 설치하세요.") from exc
+    query = """
+        with latest_run as (
+          select r.run_id, r.taxonomy_version, r.collected_at
+          from public.content_collection_runs r
+          join public.region_content_counts c on c.run_id = r.run_id
+          where r.status = 'completed' and c.region_id = %s
+          order by r.collected_at desc
+          limit 1
+        )
+        select c.content_type, c.place_count, c.is_complete,
+               c.truncated_tile_count, latest_run.taxonomy_version,
+               latest_run.collected_at
+        from public.region_content_counts c
+        join latest_run on latest_run.run_id = c.run_id
+        where c.region_id = %s
+    """
+    try:
+        with psycopg.connect(psycopg_connection_url(database_url)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, (region_id, region_id))
+                rows = cursor.fetchall()
+    except psycopg.Error as exc:
+        raise ValueError(f"카카오 공급 DB 조회에 실패했습니다: {exc}") from exc
+    if not rows:
+        raise ValueError(f"완료된 카카오 콘텐츠 수집 결과가 없습니다: {region_id}")
+    counts: dict[str, int] = {}
+    complete_values: list[bool] = []
+    truncated_count = 0
+    taxonomy_versions: set[str] = set()
+    collected_values: set[str] = set()
+    for content_type, place_count, is_complete, truncated, taxonomy_version, collected_at in rows:
+        if content_type in counts:
+            raise ValueError(f"카카오 공급 DB에 중복 유형이 있습니다: {content_type}")
+        counts[str(content_type)] = int(place_count)
+        complete_values.append(bool(is_complete))
+        # The collector currently records its region-wide truncation count on
+        # every one of the six aggregate rows.  Use max rather than sum so the
+        # report does not multiply the same quality warning six times.
+        truncated_count = max(truncated_count, int(truncated))
+        taxonomy_versions.add(str(taxonomy_version))
+        collected_values.add(str(collected_at))
+    missing = [content_type for content_type in content_types if content_type not in counts]
+    if missing:
+        raise ValueError("카카오 공급 DB에 콘텐츠 유형이 없습니다: " + ", ".join(missing))
+    if len(taxonomy_versions) != 1 or len(collected_values) != 1:
+        raise ValueError("카카오 공급 DB의 최신 수집 실행 메타데이터가 일관되지 않습니다.")
     return {
-        "content_type_counts": normalized_counts,
-        "taxonomy_version": str(region.get("taxonomy_version", "")),
-        "truncated_tile_count": int(region.get("truncated_tile_count", 0)),
-        "is_complete": bool(region.get("is_complete", False)),
+        "content_type_counts": {content_type: counts[content_type] for content_type in content_types},
+        "taxonomy_version": next(iter(taxonomy_versions)),
+        "truncated_tile_count": truncated_count,
+        "is_complete": all(complete_values),
+        "source": f"postgres:region_content_counts/{region_id}",
     }
 
 

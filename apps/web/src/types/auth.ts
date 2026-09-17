@@ -5,6 +5,22 @@ export interface SignUpRequest {
   default_region: string | null;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface ChangePasswordRequest {
+  new_password: string;
+  new_password_confirm: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
 export interface RegionRef {
   region_id: string;
   province_name: string;

@@ -1,0 +1,195 @@
+import type { RegionRef } from '../../types/auth';
+import type { ProvinceSummary } from '../../types/regions';
+
+// 백엔드 examples.py의 표본을 미러링한다. region_count는 실제 전국 기준이라
+// 표본 지역 수와 다를 수 있다.
+export const provinces: ProvinceSummary[] = [
+  { province_name: '서울특별시', region_count: 25 },
+  { province_name: '부산광역시', region_count: 16 },
+  { province_name: '대구광역시', region_count: 9 },
+  { province_name: '인천광역시', region_count: 11 },
+  { province_name: '광주광역시', region_count: 5 },
+  { province_name: '대전광역시', region_count: 5 },
+  { province_name: '울산광역시', region_count: 5 },
+  { province_name: '세종특별자치시', region_count: 1 },
+  { province_name: '경기도', region_count: 31 },
+  { province_name: '강원특별자치도', region_count: 18 },
+  { province_name: '충청북도', region_count: 11 },
+  { province_name: '충청남도', region_count: 15 },
+  { province_name: '전북특별자치도', region_count: 14 },
+  { province_name: '전라남도', region_count: 22 },
+  { province_name: '경상북도', region_count: 22 },
+  { province_name: '경상남도', region_count: 18 },
+  { province_name: '제주특별자치도', region_count: 2 },
+];
+
+export const regions: RegionRef[] = [
+  {
+    region_id: '47130',
+    province_name: '경상북도',
+    region_name: '경주시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '47110',
+    province_name: '경상북도',
+    region_name: '포항시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '44210',
+    province_name: '충청남도',
+    region_name: '서산시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '44270',
+    province_name: '충청남도',
+    region_name: '당진시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '52130',
+    province_name: '전북특별자치도',
+    region_name: '군산시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '12150',
+    province_name: '전라남도',
+    region_name: '순천시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '12130',
+    province_name: '전라남도',
+    region_name: '여수시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '12190',
+    province_name: '전라남도',
+    region_name: '광양시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '11680',
+    province_name: '서울특별시',
+    region_name: '강남구',
+    administrative_type: '자치구',
+  },
+  {
+    region_id: '47940',
+    province_name: '경상북도',
+    region_name: '울릉군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51110',
+    province_name: '강원특별자치도',
+    region_name: '춘천시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51130',
+    province_name: '강원특별자치도',
+    region_name: '원주시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51150',
+    province_name: '강원특별자치도',
+    region_name: '강릉시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51170',
+    province_name: '강원특별자치도',
+    region_name: '동해시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51190',
+    province_name: '강원특별자치도',
+    region_name: '태백시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51210',
+    province_name: '강원특별자치도',
+    region_name: '속초시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51230',
+    province_name: '강원특별자치도',
+    region_name: '삼척시',
+    administrative_type: '시',
+  },
+  {
+    region_id: '51720',
+    province_name: '강원특별자치도',
+    region_name: '홍천군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51730',
+    province_name: '강원특별자치도',
+    region_name: '횡성군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51750',
+    province_name: '강원특별자치도',
+    region_name: '영월군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51760',
+    province_name: '강원특별자치도',
+    region_name: '평창군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51770',
+    province_name: '강원특별자치도',
+    region_name: '정선군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51780',
+    province_name: '강원특별자치도',
+    region_name: '철원군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51790',
+    province_name: '강원특별자치도',
+    region_name: '화천군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51800',
+    province_name: '강원특별자치도',
+    region_name: '양구군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51810',
+    province_name: '강원특별자치도',
+    region_name: '인제군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51820',
+    province_name: '강원특별자치도',
+    region_name: '고성군',
+    administrative_type: '군',
+  },
+  {
+    region_id: '51830',
+    province_name: '강원특별자치도',
+    region_name: '양양군',
+    administrative_type: '군',
+  },
+];

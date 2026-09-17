@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
+import { clearAccessToken, setAccessToken } from '../api/auth/session';
 import AccountInfoStep from '../components/signup/AccountInfoStep';
 import InterestRegionStep, {
   type InterestRegionStepProps,
@@ -15,6 +17,11 @@ import {
   signupDefaultValues,
   signupSchema,
 } from '../components/signup/signupSchema';
+import {
+  currentUserQueryKey,
+  currentUserQueryOptions,
+} from '../hooks/useCurrentUserQuery';
+import useLoginMutation from '../hooks/useLoginMutation';
 import useSignUpMutation from '../hooks/useSignUpMutation';
 import { ApiError } from '../types/api';
 import type { UserResponse } from '../types/auth';
@@ -53,6 +60,8 @@ export default function SignUp({ regionSelector }: SignUpProps) {
   } = methods;
   const regionCode = useWatch({ control, name: 'default_region' });
   const mutation = useSignUpMutation();
+  const loginMutation = useLoginMutation();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     mounted.current = true;
@@ -111,7 +120,20 @@ export default function SignUp({ regionSelector }: SignUpProps) {
             default_region: nextRegion,
           });
           if (!mounted.current) return;
-          // 추후 자동 로그인은 이 성공 처리 지점에 연결한다.
+          // 가입 응답에는 토큰이 없어 같은 자격증명으로 로그인을 한 번 더 호출한다.
+          // 실패해도 가입 자체는 이미 끝났으니 완료 화면은 보여주고 수동 로그인으로 넘긴다.
+          try {
+            const token = await loginMutation.mutateAsync({
+              email: values.email,
+              password: values.password,
+            });
+            queryClient.removeQueries({ queryKey: currentUserQueryKey });
+            setAccessToken(token.access_token);
+            await queryClient.fetchQuery(currentUserQueryOptions);
+          } catch {
+            clearAccessToken();
+          }
+          if (!mounted.current) return;
           setUser(result);
           reset(signupDefaultValues);
           setStep('complete');
@@ -129,6 +151,7 @@ export default function SignUp({ regionSelector }: SignUpProps) {
       if (mounted.current) showError(error);
     } finally {
       mutation.reset();
+      loginMutation.reset();
       busy.current = false;
       if (mounted.current) setSubmitting(false);
     }

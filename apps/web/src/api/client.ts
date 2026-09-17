@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ApiError, type ApiFieldError } from '../types/api';
+import { clearAccessToken, getAccessToken } from './auth/session';
 
 export const apiBaseUrl = (
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -7,11 +8,19 @@ export const apiBaseUrl = (
 
 export const apiClient = axios.create({ baseURL: apiBaseUrl, timeout: 15000 });
 
+apiClient.interceptors.request.use((config) => {
+  const accessToken = getAccessToken();
+  if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`;
+  return config;
+});
+
 const fieldMessages: Record<string, string> = {
   email: '이메일 형식을 확인해 주세요.',
   password: '비밀번호는 영문·숫자 포함 8~128자로 입력해 주세요.',
   password_confirm: '비밀번호 확인을 다시 입력해 주세요.',
   default_region: '관심 지역을 다시 선택하거나 건너뛰어 주세요.',
+  new_password: '비밀번호는 영문·숫자 포함 8~128자로 입력해 주세요.',
+  new_password_confirm: '비밀번호 확인을 다시 입력해 주세요.',
 };
 
 const getFieldErrors = (detail: unknown): ApiFieldError[] => {
@@ -45,9 +54,15 @@ apiClient.interceptors.response.use(
       typeof data === 'object' && data !== null && 'detail' in data
         ? data.detail
         : undefined;
-    let message = '회원가입을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    let message = '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.';
     let fields: ApiFieldError[] = [];
-    if (status === 409) {
+    if (status === 401) {
+      if (error.config?.url !== '/auth/login') clearAccessToken();
+      message =
+        error.config?.url === '/auth/login'
+          ? '이메일 또는 비밀번호가 올바르지 않습니다.'
+          : '로그인 후 다시 시도해 주세요.';
+    } else if (status === 409) {
       message = '이미 가입된 이메일입니다.';
       fields = [{ field: 'email', message }];
     } else if (status === 422) {
@@ -63,8 +78,7 @@ apiClient.interceptors.response.use(
         ];
       }
     } else if (status === undefined) {
-      message =
-        '가입 처리 결과를 확인하지 못했어요. 연결 상태를 확인해 주세요. 이미 가입되었다면 로그인해 주세요.';
+      message = '연결 상태를 확인한 후 다시 시도해 주세요.';
     }
     // Axios 오류의 요청 config에 든 비밀번호를 UI와 mutation에 전달하지 않는다.
     return Promise.reject(new ApiError(message, status, fields));

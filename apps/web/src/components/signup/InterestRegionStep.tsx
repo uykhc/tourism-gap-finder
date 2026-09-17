@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import RegionSelector from '../region/RegionSelector';
 import { Button } from '../ui/button';
 
 export interface RegionSelectorConnection {
@@ -31,11 +32,15 @@ export default function InterestRegionStep({
         </p>
       </div>
       <div className="w-full max-w-[883.2px] pt-[38.4px] pb-3">
-        {/* 팀원 카드가 완성되면 이 삽입 지점에서 실제 props만 연결한다. */}
         {regionSelector ? (
           regionSelector(connection)
         ) : (
-          <div className="min-h-[250.1px]" aria-hidden="true" />
+          <RegionSelector
+            value={connection.value}
+            onChange={connection.onChange}
+            onComplete={connection.onComplete}
+            disabled={connection.disabled}
+          />
         )}
         {connection.error && (
           <p className="mt-3 text-body-small text-destructive" role="alert">

@@ -24,6 +24,7 @@ hankkeut-ai-tourism-report = "hankkeut_calculation.ai_reports.cli:main"
 
 [project.optional-dependencies]
 ai = ["openai>=1.0,<3.0"]
+database = ["psycopg[binary]>=3.2,<4.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

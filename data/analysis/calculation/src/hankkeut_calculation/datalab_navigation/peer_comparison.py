@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -109,9 +110,9 @@ def build_peer_supply_pressure_comparison(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Build target-vs-peer supply-pressure context for an AI pilot report.")
     parser.add_argument("--target-report", required=True, type=Path)
-    parser.add_argument("--peer", action="append", required=True, help="REGION_NAME=monthly_csv_path; repeat for each peer.")
+    parser.add_argument("--peer", action="append", required=True, help="REGION_ID,REGION_NAME=monthly_csv_path; repeat for each peer.")
     parser.add_argument("--max-peers", type=int, default=DEFAULT_MAX_COMPARISON_PEERS)
-    parser.add_argument("--kakao-collection", required=True, type=Path)
+    parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12)
     parser.add_argument("--output", required=True, type=Path)
@@ -123,12 +124,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         target = _load_json(args.target_report)
         taxonomy = load_navigation_demand_taxonomy(args.taxonomy)
+        database_url = args.content_database_url or os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL")
+        if not database_url:
+            raise ValueError("CONTENT_DATABASE_URL이 필요합니다.")
         names, reports = [], []
         for raw_peer in args.peer:
-            name, path = _parse_peer(raw_peer)
+            region_id, name, path = _parse_peer(raw_peer)
             demand_import = import_navigation_demand_csv(path, region_name=name, taxonomy=taxonomy)
             reports.append(build_supply_pressure_report(
-                demand_import, taxonomy=taxonomy, kakao_collection_path=args.kakao_collection, month_count=args.months,
+                demand_import, taxonomy=taxonomy, content_database_url=database_url,
+                region_id=region_id, month_count=args.months,
             ))
             names.append(name)
         result = build_peer_supply_pressure_comparison(
@@ -143,11 +148,12 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _parse_peer(value: str) -> tuple[str, Path]:
-    name, separator, raw_path = value.partition("=")
-    if not separator or not name.strip() or not raw_path.strip():
-        raise ValueError("--peer는 REGION_NAME=monthly_csv_path 형식이어야 합니다.")
-    return name.strip(), Path(raw_path.strip())
+def _parse_peer(value: str) -> tuple[str, str, Path]:
+    identity, separator, raw_path = value.partition("=")
+    region_id, comma, name = identity.partition(",")
+    if not separator or not comma or not region_id.strip() or not name.strip() or not raw_path.strip():
+        raise ValueError("--peer는 REGION_ID,REGION_NAME=monthly_csv_path 형식이어야 합니다.")
+    return region_id.strip(), name.strip(), Path(raw_path.strip())
 
 
 def _load_json(path: Path) -> dict[str, Any]:
