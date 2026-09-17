@@ -27,6 +27,7 @@ class PortfolioBenchmarkRegion:
     area_code: str
     sigungu_code: str
     area_square_km: float
+    visitor_region_name: str | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "PortfolioBenchmarkRegion":
@@ -59,6 +60,12 @@ class PortfolioBenchmarkRegion:
             area_code=str(value["area_code"]).strip(),
             sigungu_code=str(value["sigungu_code"]).strip(),
             area_square_km=area_square_km,
+            visitor_region_name=(
+                str(value["visitor_region_name"]).strip()
+                if value.get("visitor_region_name") is not None
+                and str(value["visitor_region_name"]).strip()
+                else None
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -72,6 +79,7 @@ class PortfolioBenchmarkRegion:
             "area_code": self.area_code,
             "sigungu_code": self.sigungu_code,
             "area_square_km": self.area_square_km,
+            "visitor_region_name": self.visitor_region_name,
         }
 
 

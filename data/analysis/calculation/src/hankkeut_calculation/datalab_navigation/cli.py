@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 from .navigation_demand import (
@@ -18,7 +19,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Import a monthly Data Lab navigation CSV and calculate single-region supply pressure.")
     parser.add_argument("--input", required=True, type=Path, help="Data Lab CSV with 기준연월, 목적지 유형, 목적지 검색량 columns.")
     parser.add_argument("--region-name", required=True)
-    parser.add_argument("--kakao-collection", required=True, type=Path, help="Output JSON from hankkeut-kakao-tourism-content.")
+    parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
+    parser.add_argument("--region-id", required=True, help="Nationwide region identifier (for example 41:115).")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12, help="Use this many latest available months (default: 12).")
     parser.add_argument("--import-output", type=Path, default=Path("data/analysis/datalab_navigation/navigation_demand_import.json"))
@@ -34,7 +36,8 @@ def main(argv: list[str] | None = None) -> int:
         report = build_supply_pressure_report(
             demand_import,
             taxonomy=taxonomy,
-            kakao_collection_path=args.kakao_collection,
+            content_database_url=args.content_database_url or os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL") or "",
+            region_id=args.region_id,
             month_count=args.months,
         )
     except ValueError as exc:

@@ -37,7 +37,7 @@ $env:PYTHONPATH = 'packages/analysis'
 python -m hankkeut_analysis.kakao_places.region_cli --boundaries data/raw/gyeonggi_sigungu.geojson --region-name 수원시 --category CT1
 ```
 
-기본값은 모든 입력 시군구와 지원 카테고리(`CT1`, `AT4`, `AD5`, `FD6`, `CE7`, `PK6`, `SW8`, `PO3`)를 장소 목록 방식으로 수집하여 `data/analysis/kakao_regions/kakao_region_categories.json`에 저장한다.
+기본값은 모든 입력 시군구와 지원 카테고리(`CT1`, `AT4`, `AD5`, `FD6`, `CE7`, `PK6`, `SW8`, `PO3`)를 수집한다. 이 명령은 원본 장소 목록을 운영 DB에 적재하지 않는다.
 
 밀집 지역에서는 결과 한도를 피하기 위해 처음 5 km 격자에서 시작해 필요 시 250 m까지 4분할한다. 출력의 `truncated_tile_count`가 0보다 크면 해당 카테고리는 여전히 누락 가능성이 있으므로 더 작은 `--minimum-tile-meters`로 재수집하거나 분석에서 제외한다.
 
@@ -48,9 +48,26 @@ python -m hankkeut_analysis.kakao_places.region_cli --boundaries data/raw/gyeong
 분석에 사용할 수집은 아래 명령을 사용한다.
 
 ```bash
+export CONTENT_DATABASE_URL='postgresql://...'
 hankkeut-kakao-tourism-content \
-  --boundaries data/raw/gyeonggi_sigungu.geojson \
+  --boundaries data/raw/national_sigungu.geojson \
   --region-name 수원시
+```
+
+관광 콘텐츠 수집기는 원본 장소 목록을 JSON 파일로 저장하지 않는다. 수집 실행 이력은
+`content_collection_runs`, 지역 마스터는 `regions`, 6개 유형별 장소 수와 품질 지표는
+`region_content_counts`에 저장한다. 분석 리포트는 이 DB 집계를 조회한다.
+
+전국 적재용 GeoJSON feature에는 아래 `properties`가 필요하다.
+
+```json
+{
+  "region_id": "41:115",
+  "area_code": "41",
+  "sigungu_code": "115",
+  "province_name": "경기도",
+  "region_name": "수원시"
+}
 ```
 
 분류 규칙과 키워드 사전은 `config/kakao/tourism_content_taxonomy.json`에 있다.
@@ -62,6 +79,8 @@ hankkeut-kakao-tourism-content \
 함께 저장된다. `is_complete`가 `false`이면 최소 격자에서도 검색 결과가 잘렸으므로 해당
 지역·유형의 공급량을 분석에 사용하기 전에 재수집 또는 검토해야 한다.
 
-## 체크포인트와 재개
+## 실행 실패와 재수집
 
-수집은 시군·카테고리 또는 시군 하나씩 순차적으로 진행하며, 완료 직후 각각 별도 JSON 체크포인트를 저장한다. 기본적으로 다시 실행하면 완료된 체크포인트를 재사용하므로, 중간에 종료돼도 미완료 항목만 이어서 수집한다. `--no-resume`을 지정하면 선택 범위를 다시 수집한다.
+수집 시작 시 실행 이력을 `running`으로 만들고, 모든 선택 지역 적재가 끝나면
+`completed`로 확정한다. 중간 실패 시 `failed`로 남으므로 분석은 불완전한 실행을 읽지
+않는다. 재수집은 새 실행 이력을 만들며, 최신 `completed` 실행이 분석에 사용된다.
