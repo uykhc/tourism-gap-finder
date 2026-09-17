@@ -18,3 +18,13 @@ export const updateInterestRegion = async (
   }
   return result.data;
 };
+
+export const deleteAccount = async (): Promise<void> => {
+  const response = await apiClient.delete<unknown>('/users/me');
+  if (response.status !== 204) {
+    throw new ApiError(
+      '회원 탈퇴를 처리하지 못했어요. 다시 시도해 주세요.',
+      response.status
+    );
+  }
+};

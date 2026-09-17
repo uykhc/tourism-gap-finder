@@ -10,6 +10,11 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ChangePasswordRequest {
+  new_password: string;
+  new_password_confirm: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   token_type: string;
