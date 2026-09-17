@@ -19,6 +19,8 @@ const fieldMessages: Record<string, string> = {
   password: '비밀번호는 영문·숫자 포함 8~128자로 입력해 주세요.',
   password_confirm: '비밀번호 확인을 다시 입력해 주세요.',
   default_region: '관심 지역을 다시 선택하거나 건너뛰어 주세요.',
+  new_password: '비밀번호는 영문·숫자 포함 8~128자로 입력해 주세요.',
+  new_password_confirm: '비밀번호 확인을 다시 입력해 주세요.',
 };
 
 const getFieldErrors = (detail: unknown): ApiFieldError[] => {
