@@ -1,0 +1,613 @@
+{
+  "result_version": "structural-peers-v1+2026-09-18",
+  "target": {
+    "region_id": "28710",
+    "province_name": "인천광역시",
+    "region_name": "강화군",
+    "administrative_type": "군"
+  },
+  "selection_type": "structural_similarity_candidates",
+  "warning": "이 목록은 구조적으로 유사한 후보입니다. 관광 성과 검증 전에는 '우수 Peer'로 해석하지 않습니다.",
+  "peers": [
+    {
+      "rank": 1,
+      "region_id": "12870",
+      "province_name": "전라남도",
+      "region_name": "신안군",
+      "administrative_type": "군",
+      "similarity": 0.4371659775439297,
+      "distance": 0.8274423446832652,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 2,
+      "region_id": "12860",
+      "province_name": "전라남도",
+      "region_name": "진도군",
+      "administrative_type": "군",
+      "similarity": 0.42061255274303694,
+      "distance": 0.866043171310962,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 3,
+      "region_id": "12850",
+      "province_name": "전라남도",
+      "region_name": "완도군",
+      "administrative_type": "군",
+      "similarity": 0.3522458460730327,
+      "distance": 1.0434259208263714,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 4,
+      "region_id": "28720",
+      "province_name": "인천광역시",
+      "region_name": "옹진군",
+      "administrative_type": "군",
+      "similarity": 0.3143556685378463,
+      "distance": 1.157230231747348,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 5,
+      "region_id": "44770",
+      "province_name": "충청남도",
+      "region_name": "서천군",
+      "administrative_type": "군",
+      "similarity": 0.29249586183829435,
+      "distance": 1.2293047599716904,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 6,
+      "region_id": "52800",
+      "province_name": "전북특별자치도",
+      "region_name": "부안군",
+      "administrative_type": "군",
+      "similarity": 0.2924826886249366,
+      "distance": 1.22934979824993,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 7,
+      "region_id": "52790",
+      "province_name": "전북특별자치도",
+      "region_name": "고창군",
+      "administrative_type": "군",
+      "similarity": 0.289941600164297,
+      "distance": 1.2380757550248427,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 8,
+      "region_id": "12830",
+      "province_name": "전라남도",
+      "region_name": "영광군",
+      "administrative_type": "군",
+      "similarity": 0.28827073210212173,
+      "distance": 1.2438551983877326,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 9,
+      "region_id": "44825",
+      "province_name": "충청남도",
+      "region_name": "태안군",
+      "administrative_type": "군",
+      "similarity": 0.28519763968043815,
+      "distance": 1.2545728664915365,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 10,
+      "region_id": "12820",
+      "province_name": "전라남도",
+      "region_name": "함평군",
+      "administrative_type": "군",
+      "similarity": 0.27929823912063206,
+      "distance": 1.2754751106673068,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 11,
+      "region_id": "48840",
+      "province_name": "경상남도",
+      "region_name": "남해군",
+      "administrative_type": "군",
+      "similarity": 0.2734076370280292,
+      "distance": 1.2967914215490304,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 12,
+      "region_id": "44800",
+      "province_name": "충청남도",
+      "region_name": "홍성군",
+      "administrative_type": "군",
+      "similarity": 0.2715343700018645,
+      "distance": 1.3036665546116568,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 13,
+      "region_id": "44760",
+      "province_name": "충청남도",
+      "region_name": "부여군",
+      "administrative_type": "군",
+      "similarity": 0.2693680822159887,
+      "distance": 1.3116764993226036,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 14,
+      "region_id": "12790",
+      "province_name": "전라남도",
+      "region_name": "해남군",
+      "administrative_type": "군",
+      "similarity": 0.26824256128955354,
+      "distance": 1.3158636283700729,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 15,
+      "region_id": "44810",
+      "province_name": "충청남도",
+      "region_name": "예산군",
+      "administrative_type": "군",
+      "similarity": 0.26094772393835647,
+      "distance": 1.3434351831443712,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 16,
+      "region_id": "12780",
+      "province_name": "전라남도",
+      "region_name": "강진군",
+      "administrative_type": "군",
+      "similarity": 0.2465727888610776,
+      "distance": 1.4000980395914828,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 17,
+      "region_id": "44790",
+      "province_name": "충청남도",
+      "region_name": "청양군",
+      "administrative_type": "군",
+      "similarity": 0.24625782460416407,
+      "distance": 1.4013762243924641,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 18,
+      "region_id": "47900",
+      "province_name": "경상북도",
+      "region_name": "예천군",
+      "administrative_type": "군",
+      "similarity": 0.2457182901424548,
+      "distance": 1.403569561271362,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 19,
+      "region_id": "12740",
+      "province_name": "전라남도",
+      "region_name": "고흥군",
+      "administrative_type": "군",
+      "similarity": 0.24165195584606095,
+      "distance": 1.4202567870094964,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 20,
+      "region_id": "43720",
+      "province_name": "충청북도",
+      "region_name": "보은군",
+      "administrative_type": "군",
+      "similarity": 0.2395214125991756,
+      "distance": 1.4291124607030612,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 21,
+      "region_id": "52750",
+      "province_name": "전북특별자치도",
+      "region_name": "임실군",
+      "administrative_type": "군",
+      "similarity": 0.23921840138658818,
+      "distance": 1.430378330990838,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 22,
+      "region_id": "12770",
+      "province_name": "전라남도",
+      "region_name": "장흥군",
+      "administrative_type": "군",
+      "similarity": 0.23914003328086528,
+      "distance": 1.430705985321752,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 23,
+      "region_id": "52770",
+      "province_name": "전북특별자치도",
+      "region_name": "순창군",
+      "administrative_type": "군",
+      "similarity": 0.2340862789014443,
+      "distance": 1.452065518328428,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 24,
+      "region_id": "12750",
+      "province_name": "전라남도",
+      "region_name": "보성군",
+      "administrative_type": "군",
+      "similarity": 0.2327853436831325,
+      "distance": 1.4576385217942849,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 25,
+      "region_id": "43760",
+      "province_name": "충청북도",
+      "region_name": "괴산군",
+      "administrative_type": "군",
+      "similarity": 0.2296445538600161,
+      "distance": 1.4712225834490127,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 26,
+      "region_id": "43730",
+      "province_name": "충청북도",
+      "region_name": "옥천군",
+      "administrative_type": "군",
+      "similarity": 0.22928400158035436,
+      "distance": 1.4727938622442356,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 27,
+      "region_id": "41800",
+      "province_name": "경기도",
+      "region_name": "연천군",
+      "administrative_type": "군",
+      "similarity": 0.2273142907571971,
+      "distance": 1.4814216783129346,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 28,
+      "region_id": "12720",
+      "province_name": "전라남도",
+      "region_name": "곡성군",
+      "administrative_type": "군",
+      "similarity": 0.21956602397418495,
+      "distance": 1.516102299102836,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 29,
+      "region_id": "48740",
+      "province_name": "경상남도",
+      "region_name": "창녕군",
+      "administrative_type": "군",
+      "similarity": 0.21824855182492103,
+      "distance": 1.5221207196799906,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 30,
+      "region_id": "48850",
+      "province_name": "경상남도",
+      "region_name": "하동군",
+      "administrative_type": "군",
+      "similarity": 0.2157085057260384,
+      "distance": 1.5338272932349675,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 31,
+      "region_id": "43740",
+      "province_name": "충청북도",
+      "region_name": "영동군",
+      "administrative_type": "군",
+      "similarity": 0.2149375359175086,
+      "distance": 1.537407823682909,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 32,
+      "region_id": "48720",
+      "province_name": "경상남도",
+      "region_name": "의령군",
+      "administrative_type": "군",
+      "similarity": 0.21474470413070915,
+      "distance": 1.5383053790471863,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 33,
+      "region_id": "12800",
+      "province_name": "전라남도",
+      "region_name": "영암군",
+      "administrative_type": "군",
+      "similarity": 0.214245643558319,
+      "distance": 1.5406320551610617,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 34,
+      "region_id": "12810",
+      "province_name": "전라남도",
+      "region_name": "무안군",
+      "administrative_type": "군",
+      "similarity": 0.213973006977432,
+      "distance": 1.5419054075355285,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 35,
+      "region_id": "47820",
+      "province_name": "경상북도",
+      "region_name": "청도군",
+      "administrative_type": "군",
+      "similarity": 0.21362388124129908,
+      "distance": 1.5435383745815157,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 36,
+      "region_id": "12710",
+      "province_name": "전라남도",
+      "region_name": "담양군",
+      "administrative_type": "군",
+      "similarity": 0.21266339024729006,
+      "distance": 1.548044690784841,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 37,
+      "region_id": "52720",
+      "province_name": "전북특별자치도",
+      "region_name": "진안군",
+      "administrative_type": "군",
+      "similarity": 0.2119819300986734,
+      "distance": 1.5512542433264824,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 38,
+      "region_id": "52740",
+      "province_name": "전북특별자치도",
+      "region_name": "장수군",
+      "administrative_type": "군",
+      "similarity": 0.21177333297224585,
+      "distance": 1.5522387603883583,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 39,
+      "region_id": "47730",
+      "province_name": "경상북도",
+      "region_name": "의성군",
+      "administrative_type": "군",
+      "similarity": 0.21150549044680916,
+      "distance": 1.5535043212733666,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 40,
+      "region_id": "43745",
+      "province_name": "충청북도",
+      "region_name": "증평군",
+      "administrative_type": "군",
+      "similarity": 0.20991438582853944,
+      "distance": 1.5610555179221806,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 41,
+      "region_id": "44710",
+      "province_name": "충청남도",
+      "region_name": "금산군",
+      "administrative_type": "군",
+      "similarity": 0.20954893264338298,
+      "distance": 1.562797998189369,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 42,
+      "region_id": "51730",
+      "province_name": "강원특별자치도",
+      "region_name": "횡성군",
+      "administrative_type": "군",
+      "similarity": 0.2091043798371467,
+      "distance": 1.5649217266303947,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 43,
+      "region_id": "48880",
+      "province_name": "경상남도",
+      "region_name": "거창군",
+      "administrative_type": "군",
+      "similarity": 0.20667786365132254,
+      "distance": 1.576593912120724,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 44,
+      "region_id": "41830",
+      "province_name": "경기도",
+      "region_name": "양평군",
+      "administrative_type": "군",
+      "similarity": 0.2053985974272319,
+      "distance": 1.5828028100054827,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 45,
+      "region_id": "12840",
+      "province_name": "전라남도",
+      "region_name": "장성군",
+      "administrative_type": "군",
+      "similarity": 0.2049741685659111,
+      "distance": 1.584871314778833,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 46,
+      "region_id": "51780",
+      "province_name": "강원특별자치도",
+      "region_name": "철원군",
+      "administrative_type": "군",
+      "similarity": 0.20494293342558886,
+      "distance": 1.585023712130546,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 47,
+      "region_id": "27720",
+      "province_name": "대구광역시",
+      "region_name": "군위군",
+      "administrative_type": "군",
+      "similarity": 0.2027869899776193,
+      "distance": 1.5955991613070613,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 48,
+      "region_id": "47830",
+      "province_name": "경상북도",
+      "region_name": "고령군",
+      "administrative_type": "군",
+      "similarity": 0.20166714106677497,
+      "distance": 1.6011367572249409,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 49,
+      "region_id": "48890",
+      "province_name": "경상남도",
+      "region_name": "합천군",
+      "administrative_type": "군",
+      "similarity": 0.20084724599345427,
+      "distance": 1.605210630028611,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 50,
+      "region_id": "48870",
+      "province_name": "경상남도",
+      "region_name": "함양군",
+      "administrative_type": "군",
+      "similarity": 0.20005670335403472,
+      "distance": 1.6091544358472114,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    }
+  ],
+  "provenance": [
+    {
+      "소스": "지역 마스터",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "KorService2 /areaBasedList2 lDongRegnCd·lDongSignguCd",
+      "기준시점": "2026-08-17 수집분",
+      "행수": 230,
+      "비고": "KTO 실제 관광자원 lDong 5자리 코드 기준. 일반구는 모 시로 합산"
+    },
+    {
+      "소스": "인구·면적·사업체",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "SGIS OpenAPI3 population.json · hadmarea.geojson · company.json",
+      "기준시점": "인구 2020 총조사, 사업체 2024",
+      "행수": 230,
+      "비고": "면적은 경계 GeoJSON에 shoelace 공식 적용"
+    },
+    {
+      "소스": "기후평년값",
+      "신뢰도": "proxy",
+      "엔드포인트/출처": "data/processed/kma_climate_normals_by_region.csv",
+      "기준시점": "1991~2020 기상청 기후평년값",
+      "행수": 230,
+      "비고": "가까운 관측소 3개 역거리 제곱 보간"
+    },
+    {
+      "소스": "해안·도서 여부",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/reference/coastal_island.csv",
+      "기준시점": "2026년 행정구역 기준",
+      "행수": 76,
+      "비고": "원천 여건. 직접 정리한 표"
+    },
+    {
+      "소스": "지형 기복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/dem_terrain_relief_by_region.csv",
+      "기준시점": "국토지리정보원 한반도 90m DEM",
+      "행수": 230,
+      "비고": "시군구 경계 내 P90 고도-P10 고도. 2026년 분할 지역은 proxy"
+    },
+    {
+      "소스": "토지피복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/land_cover_by_region.csv",
+      "기준시점": "2024년 기준 국가토지피복통계",
+      "행수": 230,
+      "비고": "일반구는 모 시 합산, 인천 2026년 분할 지역은 보정표로 면적 배분"
+    }
+  ]
+}

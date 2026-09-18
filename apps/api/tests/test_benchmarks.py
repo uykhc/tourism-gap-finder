@@ -78,6 +78,23 @@ class ResolveBenchmarksTest(unittest.TestCase):
         self._resolve(Counting({TARGET: 0.10, "47110": 0.90}))
         self.assertEqual(len(calls), 1, f"조회가 {len(calls)}번 일어났다")
 
+    def test_precomputed_release_scores_are_used_before_live_api(self):
+        values = {TARGET: 10.0, "47110": 90.0, "44210": 5.0}
+
+        def load(region_id: str):
+            score = values.get(region_id)
+            return None if score is None else {"performance": {"composite_score": score}}
+
+        with (
+            mock.patch.object(benchmarks.artifacts, "load_performance", load),
+            mock.patch.object(performance, "default_scorer") as live,
+        ):
+            selection = benchmarks.resolve_benchmarks(TARGET, RELATIVE_SUPPLY)
+
+        self.assertEqual([region["region_id"] for region in selection.regions], ["47110"])
+        self.assertTrue(selection.performance_backed)
+        live.assert_not_called()
+
     def test_without_a_relative_supply_artifact_there_are_no_benchmarks(self):
         selection = benchmarks.resolve_benchmarks(TARGET, None)
         self.assertEqual(selection.regions, ())

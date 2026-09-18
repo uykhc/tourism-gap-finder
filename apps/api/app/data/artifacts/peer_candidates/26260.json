@@ -1,0 +1,613 @@
+{
+  "result_version": "structural-peers-v1+2026-09-18",
+  "target": {
+    "region_id": "26260",
+    "province_name": "부산광역시",
+    "region_name": "동래구",
+    "administrative_type": "자치구"
+  },
+  "selection_type": "structural_similarity_candidates",
+  "warning": "이 목록은 구조적으로 유사한 후보입니다. 관광 성과 검증 전에는 '우수 Peer'로 해석하지 않습니다.",
+  "peers": [
+    {
+      "rank": 1,
+      "region_id": "26470",
+      "province_name": "부산광역시",
+      "region_name": "연제구",
+      "administrative_type": "자치구",
+      "similarity": 0.8111591915491431,
+      "distance": 0.2092909536863327,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 2,
+      "region_id": "26230",
+      "province_name": "부산광역시",
+      "region_name": "부산진구",
+      "administrative_type": "자치구",
+      "similarity": 0.7099669810453935,
+      "distance": 0.34253681559806193,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 3,
+      "region_id": "31110",
+      "province_name": "울산광역시",
+      "region_name": "중구",
+      "administrative_type": "자치구",
+      "similarity": 0.5772375308947325,
+      "distance": 0.5495014318561356,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 4,
+      "region_id": "26320",
+      "province_name": "부산광역시",
+      "region_name": "북구",
+      "administrative_type": "자치구",
+      "similarity": 0.5460526320847016,
+      "distance": 0.6050399121234781,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 5,
+      "region_id": "26290",
+      "province_name": "부산광역시",
+      "region_name": "남구",
+      "administrative_type": "자치구",
+      "similarity": 0.5335173312486537,
+      "distance": 0.628263722828616,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 6,
+      "region_id": "11215",
+      "province_name": "서울특별시",
+      "region_name": "광진구",
+      "administrative_type": "자치구",
+      "similarity": 0.5068959983584804,
+      "distance": 0.6794494278761254,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 7,
+      "region_id": "26500",
+      "province_name": "부산광역시",
+      "region_name": "수영구",
+      "administrative_type": "자치구",
+      "similarity": 0.48901683940581114,
+      "distance": 0.7153583536874829,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 8,
+      "region_id": "12300",
+      "province_name": "광주광역시",
+      "region_name": "북구",
+      "administrative_type": "자치구",
+      "similarity": 0.48838437431056053,
+      "distance": 0.7166525308885155,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 9,
+      "region_id": "11260",
+      "province_name": "서울특별시",
+      "region_name": "중랑구",
+      "administrative_type": "자치구",
+      "similarity": 0.4784121657232521,
+      "distance": 0.7372826466455323,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 10,
+      "region_id": "12240",
+      "province_name": "광주광역시",
+      "region_name": "서구",
+      "administrative_type": "자치구",
+      "similarity": 0.4761405429899074,
+      "distance": 0.7420422099487367,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 11,
+      "region_id": "26350",
+      "province_name": "부산광역시",
+      "region_name": "해운대구",
+      "administrative_type": "자치구",
+      "similarity": 0.4656657710171692,
+      "distance": 0.7642871317655657,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 12,
+      "region_id": "11620",
+      "province_name": "서울특별시",
+      "region_name": "관악구",
+      "administrative_type": "자치구",
+      "similarity": 0.4643173077692318,
+      "distance": 0.7671871075258327,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 13,
+      "region_id": "26140",
+      "province_name": "부산광역시",
+      "region_name": "서구",
+      "administrative_type": "자치구",
+      "similarity": 0.4640046680665997,
+      "distance": 0.7678606663181268,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 14,
+      "region_id": "30140",
+      "province_name": "대전광역시",
+      "region_name": "중구",
+      "administrative_type": "자치구",
+      "similarity": 0.45882553915755786,
+      "distance": 0.7790852301550729,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 15,
+      "region_id": "11305",
+      "province_name": "서울특별시",
+      "region_name": "강북구",
+      "administrative_type": "자치구",
+      "similarity": 0.45760130966667184,
+      "distance": 0.7817569768868337,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 16,
+      "region_id": "26170",
+      "province_name": "부산광역시",
+      "region_name": "동구",
+      "administrative_type": "자치구",
+      "similarity": 0.4542309005672089,
+      "distance": 0.7891496186719116,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 17,
+      "region_id": "11320",
+      "province_name": "서울특별시",
+      "region_name": "도봉구",
+      "administrative_type": "자치구",
+      "similarity": 0.4533290523093318,
+      "distance": 0.7911370324000361,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 18,
+      "region_id": "11650",
+      "province_name": "서울특별시",
+      "region_name": "서초구",
+      "administrative_type": "자치구",
+      "similarity": 0.45280548986353314,
+      "distance": 0.7922926279097426,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 19,
+      "region_id": "11545",
+      "province_name": "서울특별시",
+      "region_name": "금천구",
+      "administrative_type": "자치구",
+      "similarity": 0.4465877079770556,
+      "distance": 0.8061194635172072,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 20,
+      "region_id": "11290",
+      "province_name": "서울특별시",
+      "region_name": "성북구",
+      "administrative_type": "자치구",
+      "similarity": 0.43877280277680425,
+      "distance": 0.823773533411702,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 21,
+      "region_id": "27200",
+      "province_name": "대구광역시",
+      "region_name": "남구",
+      "administrative_type": "자치구",
+      "similarity": 0.438150230139036,
+      "distance": 0.8251934362287071,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 22,
+      "region_id": "12270",
+      "province_name": "광주광역시",
+      "region_name": "남구",
+      "administrative_type": "자치구",
+      "similarity": 0.4265300488427451,
+      "distance": 0.8520724600357332,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 23,
+      "region_id": "30170",
+      "province_name": "대전광역시",
+      "region_name": "서구",
+      "administrative_type": "자치구",
+      "similarity": 0.41762283223222735,
+      "distance": 0.8731765690227232,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 24,
+      "region_id": "11410",
+      "province_name": "서울특별시",
+      "region_name": "서대문구",
+      "administrative_type": "자치구",
+      "similarity": 0.41537912485303063,
+      "distance": 0.8785636219250735,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 25,
+      "region_id": "11350",
+      "province_name": "서울특별시",
+      "region_name": "노원구",
+      "administrative_type": "자치구",
+      "similarity": 0.41467732661283585,
+      "distance": 0.8802545874158667,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 26,
+      "region_id": "12210",
+      "province_name": "광주광역시",
+      "region_name": "동구",
+      "administrative_type": "자치구",
+      "similarity": 0.4132388438824331,
+      "distance": 0.8837295386951721,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 27,
+      "region_id": "11110",
+      "province_name": "서울특별시",
+      "region_name": "종로구",
+      "administrative_type": "자치구",
+      "similarity": 0.41106374081481184,
+      "distance": 0.8890069893700083,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 28,
+      "region_id": "27260",
+      "province_name": "대구광역시",
+      "region_name": "수성구",
+      "administrative_type": "자치구",
+      "similarity": 0.4048064450457833,
+      "distance": 0.9043462395798392,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 29,
+      "region_id": "31140",
+      "province_name": "울산광역시",
+      "region_name": "남구",
+      "administrative_type": "자치구",
+      "similarity": 0.40362043373051837,
+      "distance": 0.9072803631159896,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 30,
+      "region_id": "11530",
+      "province_name": "서울특별시",
+      "region_name": "구로구",
+      "administrative_type": "자치구",
+      "similarity": 0.40340567757799356,
+      "distance": 0.9078125792477472,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 31,
+      "region_id": "11740",
+      "province_name": "서울특별시",
+      "region_name": "강동구",
+      "administrative_type": "자치구",
+      "similarity": 0.40153374906025224,
+      "distance": 0.9124636916927005,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 32,
+      "region_id": "26200",
+      "province_name": "부산광역시",
+      "region_name": "영도구",
+      "administrative_type": "자치구",
+      "similarity": 0.39864808999255064,
+      "distance": 0.9196762312339962,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 33,
+      "region_id": "26410",
+      "province_name": "부산광역시",
+      "region_name": "금정구",
+      "administrative_type": "자치구",
+      "similarity": 0.3964946688599635,
+      "distance": 0.9250926834958264,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 34,
+      "region_id": "11680",
+      "province_name": "서울특별시",
+      "region_name": "강남구",
+      "administrative_type": "자치구",
+      "similarity": 0.39547598359805214,
+      "distance": 0.9276652177697893,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 35,
+      "region_id": "11710",
+      "province_name": "서울특별시",
+      "region_name": "송파구",
+      "administrative_type": "자치구",
+      "similarity": 0.39529309558718095,
+      "distance": 0.9281277750926439,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 36,
+      "region_id": "11470",
+      "province_name": "서울특별시",
+      "region_name": "양천구",
+      "administrative_type": "자치구",
+      "similarity": 0.39491592158231126,
+      "distance": 0.9290823934918716,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 37,
+      "region_id": "28237",
+      "province_name": "인천광역시",
+      "region_name": "부평구",
+      "administrative_type": "자치구",
+      "similarity": 0.392581337412584,
+      "distance": 0.935011534152006,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 38,
+      "region_id": "11440",
+      "province_name": "서울특별시",
+      "region_name": "마포구",
+      "administrative_type": "자치구",
+      "similarity": 0.3925036109780683,
+      "distance": 0.9352095418578701,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 39,
+      "region_id": "26380",
+      "province_name": "부산광역시",
+      "region_name": "사하구",
+      "administrative_type": "자치구",
+      "similarity": 0.39184146318660984,
+      "distance": 0.9368979516422087,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 40,
+      "region_id": "11200",
+      "province_name": "서울특별시",
+      "region_name": "성동구",
+      "administrative_type": "자치구",
+      "similarity": 0.39176764546025206,
+      "distance": 0.937086356104999,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 41,
+      "region_id": "11590",
+      "province_name": "서울특별시",
+      "region_name": "동작구",
+      "administrative_type": "자치구",
+      "similarity": 0.385963243886754,
+      "distance": 0.9520131371426234,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 42,
+      "region_id": "11380",
+      "province_name": "서울특별시",
+      "region_name": "은평구",
+      "administrative_type": "자치구",
+      "similarity": 0.3848794104166966,
+      "distance": 0.9548252134547794,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 43,
+      "region_id": "11230",
+      "province_name": "서울특별시",
+      "region_name": "동대문구",
+      "administrative_type": "자치구",
+      "similarity": 0.3839338922220837,
+      "distance": 0.9572848968865559,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 44,
+      "region_id": "28177",
+      "province_name": "인천광역시",
+      "region_name": "미추홀구",
+      "administrative_type": "자치구",
+      "similarity": 0.3820116384337078,
+      "distance": 0.9623042037357276,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 45,
+      "region_id": "26530",
+      "province_name": "부산광역시",
+      "region_name": "사상구",
+      "administrative_type": "자치구",
+      "similarity": 0.3819809484953672,
+      "distance": 0.9623845446680407,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 46,
+      "region_id": "30110",
+      "province_name": "대전광역시",
+      "region_name": "동구",
+      "administrative_type": "자치구",
+      "similarity": 0.3805968731090819,
+      "distance": 0.9660145398420084,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 47,
+      "region_id": "27290",
+      "province_name": "대구광역시",
+      "region_name": "달서구",
+      "administrative_type": "자치구",
+      "similarity": 0.3686490535514106,
+      "distance": 0.9979101618862424,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 48,
+      "region_id": "30200",
+      "province_name": "대전광역시",
+      "region_name": "유성구",
+      "administrative_type": "자치구",
+      "similarity": 0.36042823372944544,
+      "distance": 1.0204624163345573,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 49,
+      "region_id": "27230",
+      "province_name": "대구광역시",
+      "region_name": "북구",
+      "administrative_type": "자치구",
+      "similarity": 0.35158824182332854,
+      "distance": 1.045294555643481,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 50,
+      "region_id": "11170",
+      "province_name": "서울특별시",
+      "region_name": "용산구",
+      "administrative_type": "자치구",
+      "similarity": 0.3491014336735526,
+      "distance": 1.0523927581091623,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    }
+  ],
+  "provenance": [
+    {
+      "소스": "지역 마스터",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "KorService2 /areaBasedList2 lDongRegnCd·lDongSignguCd",
+      "기준시점": "2026-08-17 수집분",
+      "행수": 230,
+      "비고": "KTO 실제 관광자원 lDong 5자리 코드 기준. 일반구는 모 시로 합산"
+    },
+    {
+      "소스": "인구·면적·사업체",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "SGIS OpenAPI3 population.json · hadmarea.geojson · company.json",
+      "기준시점": "인구 2020 총조사, 사업체 2024",
+      "행수": 230,
+      "비고": "면적은 경계 GeoJSON에 shoelace 공식 적용"
+    },
+    {
+      "소스": "기후평년값",
+      "신뢰도": "proxy",
+      "엔드포인트/출처": "data/processed/kma_climate_normals_by_region.csv",
+      "기준시점": "1991~2020 기상청 기후평년값",
+      "행수": 230,
+      "비고": "가까운 관측소 3개 역거리 제곱 보간"
+    },
+    {
+      "소스": "해안·도서 여부",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/reference/coastal_island.csv",
+      "기준시점": "2026년 행정구역 기준",
+      "행수": 76,
+      "비고": "원천 여건. 직접 정리한 표"
+    },
+    {
+      "소스": "지형 기복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/dem_terrain_relief_by_region.csv",
+      "기준시점": "국토지리정보원 한반도 90m DEM",
+      "행수": 230,
+      "비고": "시군구 경계 내 P90 고도-P10 고도. 2026년 분할 지역은 proxy"
+    },
+    {
+      "소스": "토지피복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/land_cover_by_region.csv",
+      "기준시점": "2024년 기준 국가토지피복통계",
+      "행수": 230,
+      "비고": "일반구는 모 시 합산, 인천 2026년 분할 지역은 보정표로 면적 배분"
+    }
+  ]
+}

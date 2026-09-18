@@ -137,9 +137,16 @@ def _performance_backed_benchmarks(
     if not resolved:
         return [], False
     peer_ids = [region["region_id"] for region in resolved]
+    requested_ids = [region_id, *peer_ids]
+    scores = _artifact_performance_scores(requested_ids)
+    if region_id in scores:
+        selected = performance.select_benchmarks(
+            region_id, peer_ids, scorer=_FixedScorer(scores), k=limit
+        )
+        return selected, True
     try:
         scorer = performance.default_scorer()
-        scores = scorer.score([region_id, *peer_ids])
+        scores = scorer.score(requested_ids)
         if region_id not in scores:
             return [], False
         selected = performance.select_benchmarks(
@@ -149,6 +156,22 @@ def _performance_backed_benchmarks(
         # 키나 패키지가 없는 것은 오류가 아니다. 성과 기반 선정만 못 한다.
         return [], False
     return selected, True
+
+
+def _artifact_performance_scores(region_ids: list[str]) -> dict[str, float]:
+    """Load precomputed scores without turning missing artifacts into zeroes."""
+    scores: dict[str, float] = {}
+    for region_id in region_ids:
+        payload = artifacts.load_performance(region_id)
+        performance_payload = payload.get("performance") if isinstance(payload, dict) else None
+        value = (
+            performance_payload.get("composite_score")
+            if isinstance(performance_payload, dict)
+            else None
+        )
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            scores[region_id] = float(value)
+    return scores
 
 
 class _FixedScorer:

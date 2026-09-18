@@ -49,7 +49,7 @@ ANALYSIS_ARTIFACT_ROOT=/data/artifacts
 ```
 
 이미지에는 API와 분석 패키지 소스, 그리고 `apps/api/app/data`의 지역 표·코드
-매핑·경주시 샘플 산출물이 들어갑니다. 분석 작업은 배포 전에 따로 실행하고,
+매핑·전국 Peer 산출물·경주시 공백/보고서 샘플이 들어갑니다. 분석 작업은 배포 전에 따로 실행하고,
 운영에서는 `ANALYSIS_ARTIFACT_ROOT`가 가리키는 영구 볼륨의 활성 release만 읽습니다.
 
 API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Vercel의 공개
@@ -63,7 +63,7 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 | `/auth/*`, `/users/*` | 데이터베이스 | 없음 |
 | `/regions`, `/provinces` | `app/data/regions.csv` 전국 230개 | 없음 |
 | `/regions/{id}`, `/regions/{id}/structure` | `app/data/region_features.csv` 전국 230개 | 없음 |
-| `/regions/{id}/peers` | `peer_candidates` 산출물 | 없음 |
+| `/regions/{id}/peers` | 전국 구조 변수 스냅숏으로 계산한 `peer_candidates` 230개 | 없음 |
 | `/regions/{id}/gaps` | `relative_supply` + `datalab_navigation` 산출물 | 없음 |
 | `/regions/{id}/report` | 위 산출물 + `ai_reports` | 없음 |
 | `/regions/{id}/portfolio` | 사전 계산 `portfolios` 산출물 | 없음 |
@@ -71,10 +71,19 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 | `/regions/{id}/performance` | 사전 계산 `performance` 산출물 | 없음 |
 | `/compare` | 사전 계산 `portfolios`·`performance`·Peer 산출물 | 없음 |
 
-산출물 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. 경주시
-(`47130`) 샘플 한 벌이 커밋돼 있어 별도 준비 없이 200을 확인할 수 있고, 실제
-분석 결과는 `ANALYSIS_ARTIFACT_ROOT`로 다른 경로를 가리켜 씁니다. 샘플은
-`scripts/build_sample_artifacts.py`가 실제 생산자 함수를 호출해 만듭니다.
+산출물 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. `/peers`는 전국
+230개 지역의 실제 구조 변수 스냅숏으로 생성한 산출물을 사용합니다. 다시 만들 때는
+아래 명령을 실행합니다.
+
+```bash
+python scripts/build_peer_artifacts.py
+```
+
+`/gaps`와 `/report`는 경주시(`47130`) 화면 개발용 샘플만 커밋돼 있습니다.
+이 샘플은 `scripts/build_sample_artifacts.py`가 실제 생산자 함수를 호출해 만들지만,
+수치는 실제 분석 결과가 아닙니다. 운영 분석 결과는 `ANALYSIS_ARTIFACT_ROOT`로
+다른 경로를 가리켜 씁니다. `/portfolio`·`/hubs`·`/performance`는 기본 산출물이
+없으므로 현재 저장소만 실행하면 `REPORT_NOT_READY`를 반환합니다.
 
 `/report`·`/performance`·`/compare`는 Bearer 인증이 필요합니다. 알려진 지역이지만
 배포 가능한 산출물이 없으면 409와 `detail.code: REPORT_NOT_READY`를 반환하고,
@@ -92,6 +101,7 @@ python scripts/build_api_release.py \
   --artifact-root /data/artifacts \
   --raw-root /data/raw/datalab_navigation \
   --pipeline-config /data/config/release-pipeline.json \
+  --base-year-month 202608 \
   --activate
 ```
 
@@ -101,14 +111,23 @@ python scripts/build_api_release.py \
 각 디렉터리에 `<region_id>.json`을 가져야 합니다. 실패 내역은
 `release-manifest.json`에 지역별로 기록됩니다.
 
-`--pipeline-config`는 지역별 생산 명령을 실행하는 선택형 JSON입니다. 각 단계는
-`name`, 쉘을 사용하지 않는 `command` 문자열 배열, `outputs` 배열을 가지며
-`{region_id}`, `{region_name}`, `{raw_csv}`, `{release_root}`, `{cache_root}`를 사용할 수
-있습니다. 완료 단계는 입력 CSV 해시·명령·`ANALYSIS_CODE_VERSION`이 같을 때만
+`--pipeline-config`는 생산 명령을 실행하는 선택형 JSON입니다. 전국에서 한 번 실행할
+작업은 `global_stages`, 지역별 작업은 `region_stages`에 둡니다. 각 단계는 `name`,
+쉘을 사용하지 않는 `command` 문자열 배열, `inputs`, `outputs` 배열을 가지며
+`{python}`, `{repository_root}`, `{release_root}`, `{cache_root}`를 사용할 수 있습니다.
+지역별 단계에서는 `{region_id}`, `{region_name}`, `{raw_csv}`도 사용할 수 있습니다.
+완료 단계는 선언된 입력 해시·명령·`ANALYSIS_CODE_VERSION`이 같을 때만
 재사용됩니다. 표준 출력과 오류는 지역별 `logs/`, 상태는 `checkpoints/`에 남으므로
 중단 후 같은 명령을 다시 실행하거나 `--retry-failed`로 실패 지역만 재시도할 수
 있습니다. 외부 API 생산기는 `{cache_root}` 또는 `HANKKEUT_CACHE_ROOT`를 캐시 위치로
 사용하도록 구성합니다.
+
+`pipelines/api-release.json`에는 전국 Peer·Kakao 콘텐츠·Performance와 지역별
+Portfolio·Hub·데이터랩·상대공급·AI 보고서 생산 단계가 연결돼 있습니다.
+`--only-stage peer_candidates`는 그 단계만 실행하고 release 활성화는 하지 않습니다.
+`--preflight`는 외부 호출 없이 키 존재 여부, 데이터랩 CSV와 7종 산출물의 지역별
+준비 수, 전국 경계·TourAPI 코드·기준월 상태를 JSON으로 보고하며 비밀값은 출력하지
+않습니다. `.env` 값은 필요한 subprocess에만 전달하며 로그에는 기록하지 않습니다.
 
 직전 release로 복구할 때는 그 release ID와 `--retry-failed --activate`를 사용합니다.
 이미 완료된 230개 지역을 다시 생산하지 않고 검증된 기존 release의 `current` 링크를

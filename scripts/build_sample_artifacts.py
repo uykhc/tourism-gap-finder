@@ -1,8 +1,8 @@
 """개발용 샘플 분석 산출물을 만든다 (경주시).
 
-API의 `/peers`·`/gaps`·`/report`는 분석 산출물 JSON을 읽는다. 레포에는 어떤
-모양의 산출물도 없어서 모든 지역이 404였다. 프론트가 화면을 붙일 수 있도록
-경주시 산출물 한 벌을 만들어 커밋한다.
+API의 `/gaps`·`/report`는 분석 산출물 JSON을 읽는다. 프론트가 화면을 붙일 수
+있도록 경주시 개발용 산출물을 만들어 커밋한다. `/peers`는 이 스크립트가 아닌
+`scripts/build_peer_artifacts.py`가 전국 실제 구조 변수 스냅숏으로 생성한다.
 
 직접 JSON을 손으로 쓰지 않고 **실제 생산자 함수를 호출한다.** 그래야 샘플의
 모양이 생산자 출력과 어긋날 수 없고, 리더가 실제 산출물에서 깨지는 일을
@@ -369,7 +369,6 @@ def build_ai_report() -> dict[str, Any]:
 def main() -> int:
     with tempfile.TemporaryDirectory() as directory:
         outputs = {
-            "peer_candidates/47130_structural_peer_candidates.json": build_peer_candidates(),
             "relative_supply/47130_relative_supply_gap_detailed.json": build_relative_supply(),
             "datalab_navigation/47130_individual_supply_pressure_detailed.json": build_supply_pressure(Path(directory)),
             "ai_reports/47130_detailed_gap_report_with_cases.json": build_ai_report(),

@@ -1,0 +1,613 @@
+{
+  "result_version": "structural-peers-v1+2026-09-18",
+  "target": {
+    "region_id": "50130",
+    "province_name": "제주특별자치도",
+    "region_name": "서귀포시",
+    "administrative_type": "시"
+  },
+  "selection_type": "structural_similarity_candidates",
+  "warning": "이 목록은 구조적으로 유사한 후보입니다. 관광 성과 검증 전에는 '우수 Peer'로 해석하지 않습니다.",
+  "peers": [
+    {
+      "rank": 1,
+      "region_id": "50110",
+      "province_name": "제주특별자치도",
+      "region_name": "제주시",
+      "administrative_type": "시",
+      "similarity": 0.4183214211211955,
+      "distance": 0.8715051918972954,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 2,
+      "region_id": "48310",
+      "province_name": "경상남도",
+      "region_name": "거제시",
+      "administrative_type": "시",
+      "similarity": 0.25496102091963946,
+      "distance": 1.3666446046465286,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 3,
+      "region_id": "48220",
+      "province_name": "경상남도",
+      "region_name": "통영시",
+      "administrative_type": "시",
+      "similarity": 0.2018417165125596,
+      "distance": 1.60027147036247,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 4,
+      "region_id": "12150",
+      "province_name": "전라남도",
+      "region_name": "순천시",
+      "administrative_type": "시",
+      "similarity": 0.19901838854425666,
+      "distance": 1.6143580537816917,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 5,
+      "region_id": "48240",
+      "province_name": "경상남도",
+      "region_name": "사천시",
+      "administrative_type": "시",
+      "similarity": 0.17898808995104037,
+      "distance": 1.7204360119414055,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 6,
+      "region_id": "51150",
+      "province_name": "강원특별자치도",
+      "region_name": "강릉시",
+      "administrative_type": "시",
+      "similarity": 0.16202575464908192,
+      "distance": 1.8199999770703046,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 7,
+      "region_id": "48170",
+      "province_name": "경상남도",
+      "region_name": "진주시",
+      "administrative_type": "시",
+      "similarity": 0.16178087915119638,
+      "distance": 1.8215124571680281,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 8,
+      "region_id": "48120",
+      "province_name": "경상남도",
+      "region_name": "창원시",
+      "administrative_type": "시",
+      "similarity": 0.15813987662056542,
+      "distance": 1.8442753425308491,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 9,
+      "region_id": "12190",
+      "province_name": "전라남도",
+      "region_name": "광양시",
+      "administrative_type": "시",
+      "similarity": 0.15099313613444415,
+      "distance": 1.8905208992636546,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 10,
+      "region_id": "12170",
+      "province_name": "전라남도",
+      "region_name": "나주시",
+      "administrative_type": "시",
+      "similarity": 0.1495285107696576,
+      "distance": 1.900268196844409,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 11,
+      "region_id": "52180",
+      "province_name": "전북특별자치도",
+      "region_name": "정읍시",
+      "administrative_type": "시",
+      "similarity": 0.14811125956534402,
+      "distance": 1.9097915338234988,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 12,
+      "region_id": "47110",
+      "province_name": "경상북도",
+      "region_name": "포항시",
+      "administrative_type": "시",
+      "similarity": 0.14743433276524198,
+      "distance": 1.9143724039254943,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 13,
+      "region_id": "51210",
+      "province_name": "강원특별자치도",
+      "region_name": "속초시",
+      "administrative_type": "시",
+      "similarity": 0.14429230800956397,
+      "distance": 1.9359141201701302,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 14,
+      "region_id": "12130",
+      "province_name": "전라남도",
+      "region_name": "여수시",
+      "administrative_type": "시",
+      "similarity": 0.1439510905455381,
+      "distance": 1.9382816860892373,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 15,
+      "region_id": "48330",
+      "province_name": "경상남도",
+      "region_name": "양산시",
+      "administrative_type": "시",
+      "similarity": 0.1365361217233727,
+      "distance": 1.9911660713548822,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 16,
+      "region_id": "48250",
+      "province_name": "경상남도",
+      "region_name": "김해시",
+      "administrative_type": "시",
+      "similarity": 0.13633576444459783,
+      "distance": 1.9926345796544707,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 17,
+      "region_id": "44180",
+      "province_name": "충청남도",
+      "region_name": "보령시",
+      "administrative_type": "시",
+      "similarity": 0.1334121466273822,
+      "distance": 2.0143120954675164,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 18,
+      "region_id": "52190",
+      "province_name": "전북특별자치도",
+      "region_name": "남원시",
+      "administrative_type": "시",
+      "similarity": 0.13107819196045842,
+      "distance": 2.0319612486517613,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 19,
+      "region_id": "51170",
+      "province_name": "강원특별자치도",
+      "region_name": "동해시",
+      "administrative_type": "시",
+      "similarity": 0.1291336569630068,
+      "distance": 2.0469073105136864,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 20,
+      "region_id": "44230",
+      "province_name": "충청남도",
+      "region_name": "논산시",
+      "administrative_type": "시",
+      "similarity": 0.12859066252374093,
+      "distance": 2.051121078494842,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 21,
+      "region_id": "48270",
+      "province_name": "경상남도",
+      "region_name": "밀양시",
+      "administrative_type": "시",
+      "similarity": 0.12706683281858905,
+      "distance": 2.0630420882746034,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 22,
+      "region_id": "44150",
+      "province_name": "충청남도",
+      "region_name": "공주시",
+      "administrative_type": "시",
+      "similarity": 0.12442046894389082,
+      "distance": 2.0840885708628965,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 23,
+      "region_id": "52140",
+      "province_name": "전북특별자치도",
+      "region_name": "익산시",
+      "administrative_type": "시",
+      "similarity": 0.12287638514639714,
+      "distance": 2.096576427769415,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 24,
+      "region_id": "52110",
+      "province_name": "전북특별자치도",
+      "region_name": "전주시",
+      "administrative_type": "시",
+      "similarity": 0.12245964431831881,
+      "distance": 2.099973737408874,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 25,
+      "region_id": "52210",
+      "province_name": "전북특별자치도",
+      "region_name": "김제시",
+      "administrative_type": "시",
+      "similarity": 0.12166629541668282,
+      "distance": 2.106473265442141,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 26,
+      "region_id": "52130",
+      "province_name": "전북특별자치도",
+      "region_name": "군산시",
+      "administrative_type": "시",
+      "similarity": 0.12092828638314114,
+      "distance": 2.1125575836058594,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 27,
+      "region_id": "12110",
+      "province_name": "전라남도",
+      "region_name": "목포시",
+      "administrative_type": "시",
+      "similarity": 0.120672667763408,
+      "distance": 2.11467362421519,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 28,
+      "region_id": "44210",
+      "province_name": "충청남도",
+      "region_name": "서산시",
+      "administrative_type": "시",
+      "similarity": 0.11848925387758984,
+      "distance": 2.132933007096347,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 29,
+      "region_id": "47280",
+      "province_name": "경상북도",
+      "region_name": "문경시",
+      "administrative_type": "시",
+      "similarity": 0.11837528945432747,
+      "distance": 2.1338952822469732,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 30,
+      "region_id": "41460",
+      "province_name": "경기도",
+      "region_name": "용인시",
+      "administrative_type": "시",
+      "similarity": 0.1177130393229293,
+      "distance": 2.139505486460121,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 31,
+      "region_id": "47250",
+      "province_name": "경상북도",
+      "region_name": "상주시",
+      "administrative_type": "시",
+      "similarity": 0.11758941195399154,
+      "distance": 2.1405562819757846,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 32,
+      "region_id": "51230",
+      "province_name": "강원특별자치도",
+      "region_name": "삼척시",
+      "administrative_type": "시",
+      "similarity": 0.1172861827294169,
+      "distance": 2.143138324554121,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 33,
+      "region_id": "47210",
+      "province_name": "경상북도",
+      "region_name": "영주시",
+      "administrative_type": "시",
+      "similarity": 0.11597106940340068,
+      "distance": 2.1544145206763687,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 34,
+      "region_id": "44250",
+      "province_name": "충청남도",
+      "region_name": "계룡시",
+      "administrative_type": "시",
+      "similarity": 0.11554728021013479,
+      "distance": 2.158075480313453,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 35,
+      "region_id": "47130",
+      "province_name": "경상북도",
+      "region_name": "경주시",
+      "administrative_type": "시",
+      "similarity": 0.11459322837380236,
+      "distance": 2.1663665656811717,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 36,
+      "region_id": "47290",
+      "province_name": "경상북도",
+      "region_name": "경산시",
+      "administrative_type": "시",
+      "similarity": 0.11436372297104923,
+      "distance": 2.168371357221886,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 37,
+      "region_id": "47150",
+      "province_name": "경상북도",
+      "region_name": "김천시",
+      "administrative_type": "시",
+      "similarity": 0.11391897014616129,
+      "distance": 2.172267871508901,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 38,
+      "region_id": "41430",
+      "province_name": "경기도",
+      "region_name": "의왕시",
+      "administrative_type": "시",
+      "similarity": 0.11142723953808222,
+      "distance": 2.1943834612886137,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 39,
+      "region_id": "41130",
+      "province_name": "경기도",
+      "region_name": "성남시",
+      "administrative_type": "시",
+      "similarity": 0.11065052878442692,
+      "distance": 2.201378433604252,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 40,
+      "region_id": "51130",
+      "province_name": "강원특별자치도",
+      "region_name": "원주시",
+      "administrative_type": "시",
+      "similarity": 0.11000263660577031,
+      "distance": 2.2072509443336097,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 41,
+      "region_id": "41210",
+      "province_name": "경기도",
+      "region_name": "광명시",
+      "administrative_type": "시",
+      "similarity": 0.10935622546571279,
+      "distance": 2.2131446019233127,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 42,
+      "region_id": "43110",
+      "province_name": "충청북도",
+      "region_name": "청주시",
+      "administrative_type": "시",
+      "similarity": 0.10854463607387384,
+      "distance": 2.220593798214335,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 43,
+      "region_id": "41150",
+      "province_name": "경기도",
+      "region_name": "의정부시",
+      "administrative_type": "시",
+      "similarity": 0.10661628646995261,
+      "distance": 2.2385189977762225,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 44,
+      "region_id": "41170",
+      "province_name": "경기도",
+      "region_name": "안양시",
+      "administrative_type": "시",
+      "similarity": 0.10609664669670013,
+      "distance": 2.2434048389822916,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 45,
+      "region_id": "41630",
+      "province_name": "경기도",
+      "region_name": "양주시",
+      "administrative_type": "시",
+      "similarity": 0.10586883600516338,
+      "distance": 2.245554347254557,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 46,
+      "region_id": "41250",
+      "province_name": "경기도",
+      "region_name": "동두천시",
+      "administrative_type": "시",
+      "similarity": 0.1040810943618532,
+      "distance": 2.2625849302112093,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 47,
+      "region_id": "41290",
+      "province_name": "경기도",
+      "region_name": "과천시",
+      "administrative_type": "시",
+      "similarity": 0.10321275481913608,
+      "distance": 2.270962840363003,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 48,
+      "region_id": "41310",
+      "province_name": "경기도",
+      "region_name": "구리시",
+      "administrative_type": "시",
+      "similarity": 0.10304495476533938,
+      "distance": 2.2725899319384366,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 49,
+      "region_id": "41110",
+      "province_name": "경기도",
+      "region_name": "수원시",
+      "administrative_type": "시",
+      "similarity": 0.10190182942667074,
+      "distance": 2.2837453857578844,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    },
+    {
+      "rank": 50,
+      "region_id": "41410",
+      "province_name": "경기도",
+      "region_name": "군포시",
+      "administrative_type": "시",
+      "similarity": 0.10113848645230902,
+      "distance": 2.2912645483195835,
+      "feature_weight_used": 1.0000000000000002,
+      "missing_feature_count": 0
+    }
+  ],
+  "provenance": [
+    {
+      "소스": "지역 마스터",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "KorService2 /areaBasedList2 lDongRegnCd·lDongSignguCd",
+      "기준시점": "2026-08-17 수집분",
+      "행수": 230,
+      "비고": "KTO 실제 관광자원 lDong 5자리 코드 기준. 일반구는 모 시로 합산"
+    },
+    {
+      "소스": "인구·면적·사업체",
+      "신뢰도": "실데이터",
+      "엔드포인트/출처": "SGIS OpenAPI3 population.json · hadmarea.geojson · company.json",
+      "기준시점": "인구 2020 총조사, 사업체 2024",
+      "행수": 230,
+      "비고": "면적은 경계 GeoJSON에 shoelace 공식 적용"
+    },
+    {
+      "소스": "기후평년값",
+      "신뢰도": "proxy",
+      "엔드포인트/출처": "data/processed/kma_climate_normals_by_region.csv",
+      "기준시점": "1991~2020 기상청 기후평년값",
+      "행수": 230,
+      "비고": "가까운 관측소 3개 역거리 제곱 보간"
+    },
+    {
+      "소스": "해안·도서 여부",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/reference/coastal_island.csv",
+      "기준시점": "2026년 행정구역 기준",
+      "행수": 76,
+      "비고": "원천 여건. 직접 정리한 표"
+    },
+    {
+      "소스": "지형 기복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/dem_terrain_relief_by_region.csv",
+      "기준시점": "국토지리정보원 한반도 90m DEM",
+      "행수": 230,
+      "비고": "시군구 경계 내 P90 고도-P10 고도. 2026년 분할 지역은 proxy"
+    },
+    {
+      "소스": "토지피복",
+      "신뢰도": "정적참조",
+      "엔드포인트/출처": "data/processed/land_cover_by_region.csv",
+      "기준시점": "2024년 기준 국가토지피복통계",
+      "행수": 230,
+      "비고": "일반구는 모 시 합산, 인천 2026년 분할 지역은 보정표로 면적 배분"
+    }
+  ]
+}
