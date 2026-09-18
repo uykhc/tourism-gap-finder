@@ -164,6 +164,30 @@ def test_missing_required_value_blocks_stage(tmp_path: Path) -> None:
     assert records[0]["missing_values"] == ["base_year_month"]
 
 
+def test_sqlite_does_not_satisfy_content_database_requirement(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.delenv("CONTENT_DATABASE_URL", raising=False)
+    monkeypatch.setenv("AUTH_DATABASE_URL", "sqlite:///local.db")
+    stages = [{
+        "name": "kakao_content",
+        "command": [sys.executable, "-c", "raise SystemExit('must not run')"],
+        "outputs": ["marker.json"],
+        "requires_postgresql_database": True,
+        "timeout_seconds": 30,
+    }]
+
+    records, errors = _run_global_pipeline(
+        stages=stages,
+        release_root=tmp_path / "release",
+        cache_root=tmp_path / "cache",
+    )
+
+    assert errors == ["stage kakao_content: blocked by missing prerequisites"]
+    assert records[0]["status"] == "blocked"
+    assert records[0]["missing_values"] == ["postgresql_content_database"]
+
+
 def test_blocked_stage_does_not_prevent_independent_later_stage(tmp_path: Path) -> None:
     release_root = tmp_path / "release"
     script = (

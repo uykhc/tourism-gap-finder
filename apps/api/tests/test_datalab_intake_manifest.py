@@ -23,7 +23,8 @@ def test_manifest_reports_recommended_path_and_readiness(tmp_path: Path) -> None
 
     assert payload["ready_count"] == 1
     assert payload["items"][0]["status"] == "ready"
-    assert payload["items"][0]["recommended_path"].endswith("47130\\navigation.csv")
+    recommended_path = Path(payload["items"][0]["recommended_path"])
+    assert recommended_path.parts[-2:] == ("47130", "navigation.csv")
 
 
 def test_invalid_csv_is_not_treated_as_zero(tmp_path: Path) -> None:

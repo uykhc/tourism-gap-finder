@@ -111,6 +111,11 @@ python scripts/build_api_release.py \
 각 디렉터리에 `<region_id>.json`을 가져야 합니다. 실패 내역은
 `release-manifest.json`에 지역별로 기록됩니다.
 
+전국 경계는 `sgis_boundaries` 단계가 SGIS EPSG:5179 응답을 WGS84로 변환해
+release의 `source-boundaries/national_sigungu.geojson`에 둡니다. SGIS에 아직 없는
+2026년 인천 신설 4개 구는 `data/raw/national_sigungu_overrides.geojson`에 공식 경계와
+TourAPI 코드를 제공해야 하며, 없으면 release를 만들지 않습니다.
+
 `--pipeline-config`는 생산 명령을 실행하는 선택형 JSON입니다. 전국에서 한 번 실행할
 작업은 `global_stages`, 지역별 작업은 `region_stages`에 둡니다. 각 단계는 `name`,
 쉘을 사용하지 않는 `command` 문자열 배열, `inputs`, `outputs` 배열을 가지며

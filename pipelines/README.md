@@ -13,10 +13,10 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
 
 ## 현재 자동 연결 범위
 
-설정에는 Peer, Kakao 콘텐츠 DB, Performance, Portfolio, Hub, 데이터랩 공급압력,
-상대공급, AI 보고서 생산 단계가 연결돼 있습니다. 외부 입력이 없는 단계는 명령을
-호출하지 않고 체크포인트에 `blocked`로 기록합니다. Peer 후보만은 전국 구조 변수
-파일만 필요하므로 지금 바로 실행할 수 있습니다.
+설정에는 SGIS 전국 경계, Peer, Kakao 콘텐츠 DB, Performance, Portfolio, Hub,
+데이터랩 공급압력, 상대공급, AI 보고서 생산 단계가 연결돼 있습니다. 외부 입력이
+없는 단계는 명령을 호출하지 않고 체크포인트에 `blocked`로 기록합니다. Peer 후보는
+전국 구조 변수 파일만 필요하므로 바로 실행할 수 있습니다.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\build_api_release.py `
@@ -41,11 +41,14 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
 
 출력에는 키의 존재 여부만 표시되고 값은 포함되지 않습니다. `ready`는 데이터랩
 CSV와 7종 산출물이 전국 230개 지역에 모두 있을 때만 `true`입니다.
-또한 전국 WGS84 경계, 콘텐츠 DB, 기준월, TourAPI 미매핑 지역도 별도로 보고합니다.
+또한 release 안의 전국 WGS84 경계, PostgreSQL 콘텐츠 DB, 기준월, TourAPI 미매핑
+지역도 별도로 보고합니다. `AUTH_DATABASE_URL`이 설정돼 있어도 SQLite이면 콘텐츠
+DB 준비 완료로 보지 않습니다.
 
 전체 실행에는 다음 입력이 추가로 필요합니다.
 
-- `data/raw/national_sigungu.geojson`: 230개 `region_id`를 포함한 WGS84 경계
+- `data/raw/national_sigungu_overrides.geojson`: SGIS가 아직 제공하지 않는 인천
+  신설 4개 구의 공식 WGS84 경계와 TourAPI `area_code`·`sigungu_code`
 - `CONTENT_DATABASE_URL`: `001_content_collection.sql`을 적용할 PostgreSQL
 - `<raw-root>/<region_id>/navigation.csv`: 전국 데이터랩 월별 CSV
 - `--base-year-month YYYYMM`: 중심 관광지·방문자·관광 수요지수의 공통 기준월
@@ -59,13 +62,17 @@ CSV와 7종 산출물이 전국 230개 지역에 모두 있을 때만 `true`입�
 파일이 있으면 필수 열, 데이터 행, `YYYYMM` 형식을 검사하며 값이 없다고 0으로
 간주하지 않습니다.
 
-2026년 인천 신설 4개 구는 현재 TourAPI 코드가 없어 Portfolio 단계에서 명시적으로
-실패합니다. 이전 구 데이터를 임의 배분하지 않습니다.
+`sgis_boundaries` 단계는 SGIS EPSG:5179 경계를 WGS84로 변환하고 일반구를 모 시로
+합칩니다. 2026년 인천 신설 4개 구는 SGIS 2025 경계와 TourAPI 코드에 아직 없으므로
+공식 override가 없으면 명시적으로 실패합니다. 이전 중구·동구·서구 경계를 복제하거나
+면적 비율로 임의 분할하지 않습니다. 완성된 경계는 release의
+`source-boundaries/national_sigungu.geojson`에 저장됩니다.
 
 ## 지역별 생산자 계약
 
 | 산출물 | 생산 입력 | 준비되지 않았을 때 |
 |---|---|---|
+| `source-boundaries` | SGIS + 인천 신설 구 공식 override | 누락 지역을 표시하고 단계 실패 |
 | `peer_candidates` | `region_features.csv` | 단계 실패 |
 | `portfolios` | KorService2 | 키/수집 결과 누락으로 기록 |
 | `hubs` | 중심 관광지 API | 키/수집 결과 누락으로 기록 |

@@ -263,6 +263,7 @@ def _parse_stages(raw_stages: list[Any], names: set[str]) -> list[dict[str, Any]
         requires_any_env = raw.get("requires_any_env", [])
         requires_values = raw.get("requires_values", [])
         requires_raw_csv = raw.get("requires_raw_csv", True)
+        requires_postgresql_database = raw.get("requires_postgresql_database", False)
         if not name or name in names:
             raise SystemExit("pipeline stage names must be non-empty and unique")
         if not isinstance(command, list) or not command or not all(isinstance(v, str) for v in command):
@@ -280,6 +281,10 @@ def _parse_stages(raw_stages: list[Any], names: set[str]) -> list[dict[str, Any]
             raise SystemExit(f"pipeline stage {name}: requires_values must be a string array")
         if not isinstance(requires_raw_csv, bool):
             raise SystemExit(f"pipeline stage {name}: requires_raw_csv must be boolean")
+        if not isinstance(requires_postgresql_database, bool):
+            raise SystemExit(
+                f"pipeline stage {name}: requires_postgresql_database must be boolean"
+            )
         timeout = raw.get("timeout_seconds", 1800)
         if not isinstance(timeout, int) or timeout < 1:
             raise SystemExit(f"pipeline stage {name}: timeout_seconds must be positive")
@@ -292,6 +297,7 @@ def _parse_stages(raw_stages: list[Any], names: set[str]) -> list[dict[str, Any]
             "requires_any_env": requires_any_env,
             "requires_values": requires_values,
             "requires_raw_csv": requires_raw_csv,
+            "requires_postgresql_database": requires_postgresql_database,
             "timeout_seconds": timeout,
         })
     return stages
@@ -414,6 +420,8 @@ def _run_stage_sequence(
         missing_values = [
             name for name in stage.get("requires_values", []) if not values.get(name)
         ]
+        if stage.get("requires_postgresql_database") and not _postgresql_database_url():
+            missing_values.append("postgresql_content_database")
         if missing_inputs or missing_env_groups or missing_values:
             record = {
                 "name": name,
@@ -543,6 +551,7 @@ def _preflight(
         label: any(name in env_names for name in alternatives)
         for label, alternatives in credential_groups.items()
     }
+    postgresql_database = _postgresql_database_url()
     region_ids = regions.all_region_ids()
     raw_valid = 0
     raw_invalid: list[str] = []
@@ -573,7 +582,13 @@ def _preflight(
     unmapped_tour_regions = [
         region_id for region_id in region_ids if regions.tour_api_code(region_id) is None
     ]
-    boundary_status = _boundary_status(Path("data/raw/national_sigungu.geojson"), region_ids)
+    boundary_path = _configured_boundary_path(
+        pipeline,
+        release_root=release_root,
+        cache_root=Path("data/cache"),
+        base_year_month=base_year_month,
+    )
+    boundary_status = _boundary_status(boundary_path, region_ids)
     stage_status = []
     base_values = {
         "release_root": str(release_root),
@@ -616,6 +631,8 @@ def _preflight(
             missing_values = [
                 name for name in stage.get("requires_values", []) if not base_values.get(name)
             ]
+            if stage.get("requires_postgresql_database") and not postgresql_database:
+                missing_values.append("postgresql_content_database")
             stage_status.append({
                 "name": stage["name"],
                 "scope": "global" if scope == "global_stages" else "region",
@@ -639,6 +656,10 @@ def _preflight(
         "ready": release_ready,
         "python": {"executable": sys.executable, "available": Path(sys.executable).is_file()},
         "credentials": credentials,
+        "content_database": {
+            "configured": credentials["content_database"],
+            "postgresql": postgresql_database,
+        },
         "analysis_parameters": {
             "base_year_month": base_year_month or None,
             "base_year_month_configured": bool(base_year_month),
@@ -679,6 +700,38 @@ def _boundary_status(path: Path, region_ids: tuple[str, ...]) -> dict[str, Any]:
         "region_count": len(found),
         "missing_region_ids": sorted(set(region_ids) - found),
     }
+
+
+def _configured_boundary_path(
+    pipeline: dict[str, list[dict[str, Any]]],
+    *,
+    release_root: Path,
+    cache_root: Path,
+    base_year_month: str,
+) -> Path:
+    values = {
+        "release_root": str(release_root),
+        "cache_root": str(cache_root),
+        "repository_root": str(Path.cwd()),
+        "python": sys.executable,
+        "base_year_month": base_year_month,
+    }
+    for stage in pipeline.get("global_stages", []):
+        if stage.get("name") != "kakao_content":
+            continue
+        for template in stage.get("inputs", []):
+            if str(template).lower().endswith(".geojson"):
+                return Path(str(template).format_map(values))
+    return Path("data/raw/national_sigungu.geojson")
+
+
+def _postgresql_database_url() -> bool:
+    values = {**_dotenv_values(), **{key: value for key, value in os.environ.items() if value}}
+    url = (
+        values.get("CONTENT_DATABASE_URL", "").strip()
+        or values.get("AUTH_DATABASE_URL", "").strip()
+    )
+    return url.startswith(("postgresql://", "postgresql+psycopg://"))
 
 
 def _configured_env_names(dotenv_path: Path = Path(".env")) -> set[str]:

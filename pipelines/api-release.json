@@ -1,6 +1,28 @@
 {
   "global_stages": [
     {
+      "name": "sgis_boundaries",
+      "command": [
+        "{python}", "scripts/build_sgis_boundaries.py",
+        "--boundary-year", "2025",
+        "--cache-dir", "{cache_root}/sgis-boundaries",
+        "--override-boundaries", "data/raw/national_sigungu_overrides.geojson",
+        "--output", "{release_root}/source-boundaries/national_sigungu.geojson"
+      ],
+      "inputs": [
+        "apps/api/app/data/regions.csv",
+        "apps/api/app/data/region_code_map.csv",
+        "data/analysis/similarity/data/reference/sgis_region_map.csv",
+        "data/raw/national_sigungu_overrides.geojson"
+      ],
+      "outputs": ["source-boundaries/national_sigungu.geojson"],
+      "requires_any_env": [
+        ["SGIS_CONSUMER_KEY"],
+        ["SGIS_CONSUMER_SECRET"]
+      ],
+      "timeout_seconds": 3600
+    },
+    {
       "name": "peer_candidates",
       "command": [
         "{python}",
@@ -22,11 +44,11 @@
       "name": "kakao_content",
       "command": [
         "{python}", "scripts/build_release_artifacts.py", "kakao-content",
-        "--boundaries", "data/raw/national_sigungu.geojson",
+        "--boundaries", "{release_root}/source-boundaries/national_sigungu.geojson",
         "--marker", "{release_root}/source-markers/kakao-content.json"
       ],
       "inputs": [
-        "data/raw/national_sigungu.geojson",
+        "{release_root}/source-boundaries/national_sigungu.geojson",
         "db/migrations/001_content_collection.sql",
         "config/kakao/tourism_content_taxonomy.json"
       ],
@@ -35,6 +57,7 @@
         ["KAKAO_REST_API_KEY"],
         ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
       ],
+      "requires_postgresql_database": true,
       "timeout_seconds": 21600
     },
     {
@@ -101,6 +124,7 @@
       "requires_any_env": [
         ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
       ],
+      "requires_postgresql_database": true,
       "timeout_seconds": 300
     },
     {
@@ -123,6 +147,7 @@
       "requires_any_env": [
         ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
       ],
+      "requires_postgresql_database": true,
       "timeout_seconds": 300
     },
     {
