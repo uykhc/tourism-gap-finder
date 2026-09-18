@@ -1,0 +1,176 @@
+{
+  "global_stages": [
+    {
+      "name": "sgis_boundaries",
+      "command": [
+        "{python}", "scripts/build_sgis_boundaries.py",
+        "--boundary-year", "2025",
+        "--cache-dir", "{cache_root}/sgis-boundaries",
+        "--override-boundaries", "data/raw/national_sigungu_overrides.geojson",
+        "--output", "{release_root}/source-boundaries/national_sigungu.geojson"
+      ],
+      "inputs": [
+        "apps/api/app/data/regions.csv",
+        "apps/api/app/data/region_code_map.csv",
+        "data/analysis/similarity/data/reference/sgis_region_map.csv",
+        "data/raw/national_sigungu_overrides.geojson"
+      ],
+      "outputs": ["source-boundaries/national_sigungu.geojson"],
+      "requires_any_env": [
+        ["SGIS_CONSUMER_KEY"],
+        ["SGIS_CONSUMER_SECRET"]
+      ],
+      "timeout_seconds": 3600
+    },
+    {
+      "name": "peer_candidates",
+      "command": [
+        "{python}",
+        "scripts/build_peer_artifacts.py",
+        "--features",
+        "apps/api/app/data/region_features.csv",
+        "--output-dir",
+        "{release_root}/peer_candidates"
+      ],
+      "inputs": [
+        "apps/api/app/data/region_features.csv"
+      ],
+      "outputs": [
+        "peer_candidates/{region_id}.json"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "name": "kakao_content",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "kakao-content",
+        "--boundaries", "{release_root}/source-boundaries/national_sigungu.geojson",
+        "--marker", "{release_root}/source-markers/kakao-content.json"
+      ],
+      "inputs": [
+        "{release_root}/source-boundaries/national_sigungu.geojson",
+        "db/migrations/001_content_collection.sql",
+        "config/kakao/tourism_content_taxonomy.json"
+      ],
+      "outputs": ["source-markers/kakao-content.json"],
+      "requires_any_env": [
+        ["KAKAO_REST_API_KEY"],
+        ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
+      ],
+      "requires_postgresql_database": true,
+      "timeout_seconds": 21600
+    },
+    {
+      "name": "performance",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "performance",
+        "--output-dir", "{release_root}/performance",
+        "--base-year-month", "{base_year_month}"
+      ],
+      "inputs": [
+        "apps/api/app/data/region_demand_codes.csv"
+      ],
+      "outputs": ["performance/{region_id}.json"],
+      "requires_any_env": [
+        ["VISITOR_API_SERVICE_KEY", "TOUR_API_SERVICE_KEY"]
+      ],
+      "requires_values": ["base_year_month"],
+      "timeout_seconds": 7200
+    }
+  ],
+  "region_stages": [
+    {
+      "name": "portfolio",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "portfolio",
+        "--region-id", "{region_id}",
+        "--output", "{release_root}/portfolios/{region_id}.json"
+      ],
+      "outputs": ["portfolios/{region_id}.json"],
+      "requires_raw_csv": false,
+      "requires_any_env": [
+        ["KOR_TOUR_API_SERVICE_KEY", "TOUR_API_SERVICE_KEY"]
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "name": "hubs",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "hubs",
+        "--region-id", "{region_id}",
+        "--base-year-month", "{base_year_month}",
+        "--output", "{release_root}/hubs/{region_id}.json"
+      ],
+      "outputs": ["hubs/{region_id}.json"],
+      "requires_raw_csv": false,
+      "requires_values": ["base_year_month"],
+      "requires_any_env": [
+        ["HUB_TOUR_API_SERVICE_KEY", "TOUR_API_SERVICE_KEY"]
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "name": "datalab_navigation",
+      "command": [
+        "{python}", "-m", "hankkeut_calculation.datalab_navigation.cli",
+        "--input", "{raw_csv}",
+        "--region-id", "{region_id}",
+        "--region-name", "{region_name}",
+        "--import-output", "{cache_root}/navigation-imports/{region_id}.json",
+        "--output", "{release_root}/datalab_navigation/{region_id}.json"
+      ],
+      "outputs": ["datalab_navigation/{region_id}.json"],
+      "inputs": ["{release_root}/source-markers/kakao-content.json"],
+      "requires_any_env": [
+        ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
+      ],
+      "requires_postgresql_database": true,
+      "timeout_seconds": 300
+    },
+    {
+      "name": "relative_supply",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "relative-supply",
+        "--region-id", "{region_id}",
+        "--peer-artifact", "{release_root}/peer_candidates/{region_id}.json",
+        "--performance-dir", "{release_root}/performance",
+        "--output", "{release_root}/relative_supply/{region_id}.json"
+      ],
+      "inputs": [
+        "{release_root}/peer_candidates/{region_id}.json",
+        "{release_root}/performance",
+        "{release_root}/datalab_navigation/{region_id}.json",
+        "{release_root}/source-markers/kakao-content.json"
+      ],
+      "outputs": ["relative_supply/{region_id}.json"],
+      "requires_raw_csv": false,
+      "requires_any_env": [
+        ["CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"]
+      ],
+      "requires_postgresql_database": true,
+      "timeout_seconds": 300
+    },
+    {
+      "name": "ai_report",
+      "command": [
+        "{python}", "scripts/build_release_artifacts.py", "ai-report",
+        "--region-id", "{region_id}",
+        "--supply-pressure-report", "{release_root}/datalab_navigation/{region_id}.json",
+        "--relative-supply-report", "{release_root}/relative_supply/{region_id}.json",
+        "--peer-artifact", "{release_root}/peer_candidates/{region_id}.json",
+        "--performance-dir", "{release_root}/performance",
+        "--output", "{release_root}/ai_reports/{region_id}.json"
+      ],
+      "inputs": [
+        "{release_root}/datalab_navigation/{region_id}.json",
+        "{release_root}/relative_supply/{region_id}.json",
+        "{release_root}/peer_candidates/{region_id}.json",
+        "{release_root}/performance"
+      ],
+      "outputs": ["ai_reports/{region_id}.json"],
+      "requires_raw_csv": false,
+      "requires_any_env": [["OPENAI_API_KEY"]],
+      "timeout_seconds": 600
+    }
+  ]
+}
