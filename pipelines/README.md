@@ -39,18 +39,19 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
   --preflight
 ```
 
-출력에는 키의 존재 여부만 표시되고 값은 포함되지 않습니다. `ready`는 데이터랩
-CSV와 7종 산출물이 전국 230개 지역에 모두 있을 때만 `true`입니다.
-또한 release 안의 전국 WGS84 경계, PostgreSQL 콘텐츠 DB, 기준월, TourAPI 미매핑
-지역도 별도로 보고합니다. `AUTH_DATABASE_URL`이 설정돼 있어도 SQLite이면 콘텐츠
-DB 준비 완료로 보지 않습니다.
+출력에는 키의 존재 여부만 표시되고 값은 포함되지 않습니다. `ready`는 전국
+Peer·성과·중심 관광지 230개와 제공 가능한 포트폴리오 226개가 검증되면
+`true`입니다. DataLab·상대 공급·AI 보고서는 지정 5개 지역의 고급 범위로
+별도 보고하며 기본 release 활성화를 막지 않습니다. WGS84 경계, PostgreSQL
+콘텐츠 DB, 기준월, TourAPI 미매핑 지역도 운영 상세로 별도 보고합니다.
 
-전체 실행에는 다음 입력이 추가로 필요합니다.
+지정 5개 지역의 고급 분석을 완성하려면 다음 입력이 추가로 필요합니다.
 
 - `data/raw/national_sigungu_overrides.geojson`: SGIS가 아직 제공하지 않는 인천
   신설 4개 구의 공식 WGS84 경계와 TourAPI `area_code`·`sigungu_code`
 - `CONTENT_DATABASE_URL`: `001_content_collection.sql`을 적용할 PostgreSQL
-- `<raw-root>/<region_id>/navigation.csv`: 전국 데이터랩 월별 CSV
+- `<raw-root>/<region_id>/navigation.csv`: 지정 5개 지역과 선정된 비교 지역의
+  `202509~202608` 유형별 검색건수 기간 합계 CSV
 - `--base-year-month YYYYMM`: 중심 관광지·방문자·관광 수요지수의 공통 기준월
 
 데이터랩 다운로드 대기 목록과 각 파일의 권장 경로는 다음 명령으로 확인합니다.
@@ -59,8 +60,10 @@ DB 준비 완료로 보지 않습니다.
 .\.venv\Scripts\python.exe scripts\datalab_intake_manifest.py
 ```
 
-파일이 있으면 필수 열, 데이터 행, `YYYYMM` 형식을 검사하며 값이 없다고 0으로
-간주하지 않습니다.
+파일이 있으면 `카테고리중분류명`·`유형별 검색건수`, 9개 관광 유형,
+중복, 음수 여부를 검사합니다. 비율과 이름 없는 순위 열은 무시하고, 전체
+검색건수는 공개된 9개 유형 건수의 합으로 산출합니다. 월별 값을 임의로
+배분하지 않으며 파일 밖 release 설정에 `202509~202608` 기간을 기록합니다.
 
 `sgis_boundaries` 단계는 SGIS EPSG:5179 경계를 WGS84로 변환하고 일반구를 모 시로
 합칩니다. 2026년 인천 신설 4개 구는 SGIS 2025 경계와 TourAPI 코드에 아직 없으므로

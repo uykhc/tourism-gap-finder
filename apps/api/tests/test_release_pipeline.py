@@ -9,6 +9,7 @@ from scripts.build_api_release import (
     _preflight,
     _run_global_pipeline,
     _run_pipeline,
+    _stages_for_region,
 )
 
 
@@ -54,6 +55,19 @@ def test_pipeline_checkpoints_and_invalidates_when_input_changes(tmp_path: Path)
     assert not errors
     assert third[0]["fingerprint"] != first[0]["fingerprint"]
     assert (release_root / "marker.txt").read_text() == "run\nrun\n"
+
+
+def test_advanced_region_stages_only_run_for_the_five_targets() -> None:
+    stages = [
+        {"name": "portfolio"},
+        {"name": "datalab_navigation"},
+        {"name": "relative_supply"},
+        {"name": "ai_report"},
+    ]
+    assert [item["name"] for item in _stages_for_region("47130", stages)] == [
+        "portfolio", "datalab_navigation", "relative_supply", "ai_report",
+    ]
+    assert [item["name"] for item in _stages_for_region("41110", stages)] == ["portfolio"]
 
 
 def test_global_stage_runs_once_and_validates_every_region_output(tmp_path: Path) -> None:

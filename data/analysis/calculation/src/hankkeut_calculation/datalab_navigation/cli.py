@@ -16,9 +16,14 @@ from .navigation_demand import (
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Import a monthly Data Lab navigation CSV and calculate single-region supply pressure.")
-    parser.add_argument("--input", required=True, type=Path, help="Data Lab CSV with 기준연월, 목적지 유형, 목적지 검색량 columns.")
+    parser = argparse.ArgumentParser(description="Import a Data Lab navigation CSV and calculate single-region supply pressure.")
+    parser.add_argument(
+        "--input", required=True, type=Path,
+        help="Data Lab period-total export or legacy monthly CSV.",
+    )
     parser.add_argument("--region-name", required=True)
+    parser.add_argument("--period-start-ym", help="Period-total CSV start month in YYYYMM.")
+    parser.add_argument("--period-end-ym", help="Period-total CSV end month in YYYYMM.")
     parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
     parser.add_argument("--region-id", required=True, help="Nationwide region identifier (for example 41:115).")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
@@ -32,7 +37,13 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         taxonomy = load_navigation_demand_taxonomy(args.taxonomy)
-        demand_import = import_navigation_demand_csv(args.input, region_name=args.region_name, taxonomy=taxonomy)
+        demand_import = import_navigation_demand_csv(
+            args.input,
+            region_name=args.region_name,
+            taxonomy=taxonomy,
+            period_start_ym=args.period_start_ym,
+            period_end_ym=args.period_end_ym,
+        )
         report = build_supply_pressure_report(
             demand_import,
             taxonomy=taxonomy,

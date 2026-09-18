@@ -24,10 +24,13 @@ from . import regions as region_table
 from .errors import report_not_ready
 
 APP_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
 
-#: 기본 산출물 루트는 앱 안이라 배포 이미지에 그대로 실린다. 실제 분석 결과는
-#: `ANALYSIS_ARTIFACT_ROOT`로 다른 경로를 가리켜 덮어쓴다.
-ARTIFACT_ROOT = Path(os.getenv("ANALYSIS_ARTIFACT_ROOT", APP_ROOT / "data" / "artifacts"))
+#: 공유 원천 데이터(`data/raw`)와 사전 생성 산출물을 분리한다. 운영은
+#: `ANALYSIS_ARTIFACT_ROOT`로 영구 볼륨을 지정하고, 로컬은 루트 `data/artifacts`를 쓴다.
+ARTIFACT_ROOT = Path(
+    os.getenv("ANALYSIS_ARTIFACT_ROOT", REPOSITORY_ROOT / "data" / "artifacts")
+)
 
 PEER_CANDIDATES_DIR = "peer_candidates"
 RELATIVE_SUPPLY_DIR = "relative_supply"
@@ -37,6 +40,7 @@ PERFORMANCE_DIR = "performance"
 PORTFOLIOS_DIR = "portfolios"
 HUBS_DIR = "hubs"
 RELEASE_MANIFEST = "release-manifest.json"
+PROVIDER_UNAVAILABLE_PORTFOLIOS = frozenset({"28125", "28155", "28275", "28290"})
 
 #: 유사도 패키지 `provenance.py`가 실제로 내보내는 뱃지 값.
 _SOURCE_TYPES = {
@@ -213,6 +217,15 @@ def portfolio_report(region_id: str) -> dict[str, Any]:
     require_region(region_id)
     payload = load_portfolio(region_id)
     if payload is None:
+        if region_id in PROVIDER_UNAVAILABLE_PORTFOLIOS:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "PROVIDER_UNAVAILABLE",
+                    "region_id": region_id,
+                    "message": "해당 지역의 관광자원 상세 정보를 준비하고 있습니다.",
+                },
+            )
         report_not_ready(region_id, [PORTFOLIOS_DIR])
     value = payload.get("portfolio")
     if not isinstance(value, dict):
@@ -220,7 +233,9 @@ def portfolio_report(region_id: str) -> dict[str, Any]:
     return value
 
 
-def hub_report(region_id: str, *, base_year_month: str, limit: int) -> dict[str, Any]:
+def hub_report(
+    region_id: str, *, base_year_month: str | None, limit: int
+) -> dict[str, Any]:
     require_region(region_id)
     payload = load_hubs(region_id)
     if payload is None:
@@ -228,7 +243,7 @@ def hub_report(region_id: str, *, base_year_month: str, limit: int) -> dict[str,
     value = payload.get("hubs")
     if not isinstance(value, dict):
         raise HTTPException(503, detail=f"중심 관광지 산출물 형식이 올바르지 않습니다: {region_id}")
-    if value.get("base_year_month") != base_year_month:
+    if base_year_month is not None and value.get("base_year_month") != base_year_month:
         report_not_ready(region_id, [f"{HUBS_DIR}:{base_year_month}"])
     spots = list(value.get("spots", []))[:limit]
     return {**value, "limit": limit, "extracted_count": len(spots), "spots": spots}

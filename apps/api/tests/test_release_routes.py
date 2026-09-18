@@ -63,6 +63,40 @@ def test_performance_and_compare_read_precomputed_artifacts() -> None:
     assert comparison.json()["columns"][1]["similarity_to_first"] == 0.72
 
 
+def test_portfolio_provider_unavailable_is_distinct_from_a_missing_artifact() -> None:
+    with TemporaryDirectory() as directory, mock.patch.object(
+        artifacts, "ARTIFACT_ROOT", Path(directory)
+    ):
+        response = TestClient(app).get("/regions/28125/portfolio")
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "PROVIDER_UNAVAILABLE",
+        "region_id": "28125",
+        "message": "해당 지역의 관광자원 상세 정보를 준비하고 있습니다.",
+    }
+
+
+def test_hubs_default_to_the_active_release_month() -> None:
+    with TemporaryDirectory() as directory:
+        root = Path(directory)
+        _write(root / "hubs" / "47130.json", {
+            "target": {"region_id": "47130", "region_name": "경주시"},
+            "hubs": {
+                "region_name": "경주시",
+                "base_year_month": "202608",
+                "area_code": "35",
+                "sigungu_code": "2",
+                "limit": 5,
+                "extracted_count": 0,
+                "spots": [],
+            },
+        })
+        with mock.patch.object(artifacts, "ARTIFACT_ROOT", root):
+            response = TestClient(app).get("/regions/47130/hubs")
+    assert response.status_code == 200
+    assert response.json()["base_year_month"] == "202608"
+
+
 def _performance(region_id: str, name: str, score: float) -> dict:
     return {
         "target": {"region_id": region_id, "region_name": name},

@@ -71,7 +71,7 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 | `/regions/{id}/performance` | 사전 계산 `performance` 산출물 | 없음 |
 | `/compare` | 사전 계산 `portfolios`·`performance`·Peer 산출물 | 없음 |
 
-산출물 엔드포인트는 `app/data/artifacts/`를 기본 루트로 씁니다. `/peers`는 전국
+산출물 엔드포인트는 로컬에서 `data/artifacts/`를 기본 루트로 씁니다. `/peers`는 전국
 230개 지역의 실제 구조 변수 스냅숏으로 생성한 산출물을 사용합니다. 다시 만들 때는
 아래 명령을 실행합니다.
 
@@ -79,15 +79,14 @@ API 키와 데이터베이스 URL은 Railway Variables에만 넣고 Git이나 Ve
 python scripts/build_peer_artifacts.py
 ```
 
-`/gaps`와 `/report`는 경주시(`47130`) 화면 개발용 샘플만 커밋돼 있습니다.
-이 샘플은 `scripts/build_sample_artifacts.py`가 실제 생산자 함수를 호출해 만들지만,
-수치는 실제 분석 결과가 아닙니다. 운영 분석 결과는 `ANALYSIS_ARTIFACT_ROOT`로
-다른 경로를 가리켜 씁니다. `/portfolio`·`/hubs`·`/performance`는 기본 산출물이
-없으므로 현재 저장소만 실행하면 `REPORT_NOT_READY`를 반환합니다.
+검증된 release는 `data/artifacts/current`로 활성화하고, 운영에서는
+`ANALYSIS_ARTIFACT_ROOT`로 영구 볼륨을 지정합니다. 앱 안의 경주시 샘플은
+계약 테스트에서만 명시적으로 사용합니다.
 
-`/report`·`/performance`·`/compare`는 Bearer 인증이 필요합니다. 알려진 지역이지만
-배포 가능한 산출물이 없으면 409와 `detail.code: REPORT_NOT_READY`를 반환하고,
-존재하지 않는 `region_id`만 404를 반환합니다.
+`/report`·`/performance`·`/compare`는 Bearer 인증이 필요합니다. 알려진 지역의
+`/report`는 상세 산출물이 없어도 `200` + `INSUFFICIENT_DATA`로 준비 중 화면을
+제공합니다. `/gaps`는 원시 분석이 없으면 `409 REPORT_NOT_READY`, 존재하지
+않는 `region_id`만 `404`를 반환합니다.
 
 ## 전국 release
 

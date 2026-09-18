@@ -9,10 +9,12 @@ from __future__ import annotations
 import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
+from apps.api.app.services import artifacts
 
 #: 프론트엔드에 건네는 예시 응답. 계약 문서 겸 낡음 감지용이다.
 FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "report_47130.json"
@@ -103,7 +105,9 @@ class ExampleResponseTest(unittest.TestCase):
 
     def test_the_committed_example_matches_the_live_response_structure(self):
         fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
-        live = TestClient(app).get("/regions/47130/report").json()
+        embedded = artifacts.APP_ROOT / "data" / "artifacts"
+        with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded):
+            live = TestClient(app).get("/regions/47130/report").json()
         self.assertEqual(_shape(fixture), _shape(live))
 
 

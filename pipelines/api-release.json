@@ -116,6 +116,8 @@
         "--input", "{raw_csv}",
         "--region-id", "{region_id}",
         "--region-name", "{region_name}",
+        "--period-start-ym", "202509",
+        "--period-end-ym", "202608",
         "--import-output", "{cache_root}/navigation-imports/{region_id}.json",
         "--output", "{release_root}/datalab_navigation/{region_id}.json"
       ],

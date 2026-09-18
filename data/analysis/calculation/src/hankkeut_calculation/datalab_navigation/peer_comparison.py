@@ -115,6 +115,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12)
+    parser.add_argument("--period-start-ym", help="Period-total CSV start month in YYYYMM.")
+    parser.add_argument("--period-end-ym", help="Period-total CSV end month in YYYYMM.")
     parser.add_argument("--output", required=True, type=Path)
     return parser
 
@@ -130,7 +132,13 @@ def main(argv: list[str] | None = None) -> int:
         names, reports = [], []
         for raw_peer in args.peer:
             region_id, name, path = _parse_peer(raw_peer)
-            demand_import = import_navigation_demand_csv(path, region_name=name, taxonomy=taxonomy)
+            demand_import = import_navigation_demand_csv(
+                path,
+                region_name=name,
+                taxonomy=taxonomy,
+                period_start_ym=args.period_start_ym,
+                period_end_ym=args.period_end_ym,
+            )
             reports.append(build_supply_pressure_report(
                 demand_import, taxonomy=taxonomy, content_database_url=database_url,
                 region_id=region_id, month_count=args.months,

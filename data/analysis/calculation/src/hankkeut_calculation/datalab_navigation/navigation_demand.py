@@ -12,7 +12,8 @@ from typing import Any
 from ..kakao_places.content_store import psycopg_connection_url
 
 DEFAULT_TAXONOMY_PATH = Path("config/datalab/navigation_destination_type_taxonomy.json")
-REQUIRED_COLUMNS = ("기준연월", "목적지 유형", "목적지 검색량")
+MONTHLY_REQUIRED_COLUMNS = ("기준연월", "목적지 유형", "목적지 검색량")
+AGGREGATE_REQUIRED_COLUMNS = ("카테고리중분류명", "유형별 검색건수")
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +56,10 @@ class NavigationDemandImport:
     source_file: str
     taxonomy_version: str
     records: tuple[NavigationDemandRecord, ...]
+    input_granularity: str = "monthly"
+    period_start_ym: str | None = None
+    period_end_ym: str | None = None
+    period_month_count: int | None = None
 
     @property
     def available_months(self) -> tuple[str, ...]:
@@ -63,6 +68,13 @@ class NavigationDemandImport:
     def select_latest_months(self, month_count: int) -> tuple[NavigationDemandRecord, ...]:
         if month_count < 1:
             raise ValueError("month_count는 1 이상이어야 합니다.")
+        if self.input_granularity == "period_total":
+            if month_count != self.period_month_count:
+                raise ValueError(
+                    f"기간 합계 파일은 {self.period_month_count}개월 기준입니다: "
+                    f"requested={month_count}"
+                )
+            return self.records
         months = self.available_months
         if len(months) < month_count:
             raise ValueError(f"요청한 {month_count}개월보다 CSV의 월 수({len(months)})가 적습니다.")
@@ -74,6 +86,12 @@ class NavigationDemandImport:
             "region_name": self.region_name,
             "source_file": self.source_file,
             "taxonomy_version": self.taxonomy_version,
+            "input_granularity": self.input_granularity,
+            "analysis_period": {
+                "start_ym": self.period_start_ym,
+                "end_ym": self.period_end_ym,
+                "month_count": self.period_month_count,
+            },
             "available_months": list(self.available_months),
             "records": [record.to_dict() for record in self.records],
         }
@@ -115,6 +133,8 @@ def import_navigation_demand_csv(
     *,
     region_name: str,
     taxonomy: NavigationDemandTaxonomy,
+    period_start_ym: str | None = None,
+    period_end_ym: str | None = None,
 ) -> NavigationDemandImport:
     if not region_name.strip():
         raise ValueError("region_name은 비어 있을 수 없습니다.")
@@ -124,37 +144,142 @@ def import_navigation_demand_csv(
         raise ValueError(f"Navigation-demand CSV file does not exist: {path}") from exc
     with csv_file:
         reader = csv.DictReader(csv_file)
-        if reader.fieldnames is None or tuple(reader.fieldnames) != REQUIRED_COLUMNS:
-            raise ValueError("CSV 헤더는 기준연월, 목적지 유형, 목적지 검색량이어야 합니다.")
-        records: list[NavigationDemandRecord] = []
-        seen: set[tuple[str, str]] = set()
-        for row_number, row in enumerate(reader, start=2):
-            base_ym = str(row.get("기준연월", "")).strip()
-            source_type = str(row.get("목적지 유형", "")).strip()
-            search_count = _parse_non_negative_int(row.get("목적지 검색량"), row_number)
-            if len(base_ym) != 6 or not base_ym.isdigit() or not 1 <= int(base_ym[4:]) <= 12:
-                raise ValueError(f"{row_number}행 기준연월은 YYYYMM 형식이어야 합니다.")
-            if not source_type:
-                raise ValueError(f"{row_number}행 목적지 유형이 비어 있습니다.")
-            key = (base_ym, source_type)
-            if key in seen:
-                raise ValueError(f"중복된 기준연월/목적지 유형 행이 있습니다: {base_ym}/{source_type}")
-            seen.add(key)
-            rule = None if source_type == taxonomy.total_source_type else taxonomy.source_type_rules.get(source_type)
-            if rule is None and source_type != taxonomy.total_source_type:
-                raise ValueError(f"{row_number}행 목적지 유형이 taxonomy에 없습니다: {source_type}")
-            records.append(NavigationDemandRecord(
-                base_ym=base_ym,
-                source_type=source_type,
-                search_count=search_count,
-                content_type=None if rule is None else rule.content_type,
-                included=False if rule is None else rule.include,
-            ))
+        columns = tuple(str(name or "").strip() for name in (reader.fieldnames or ()))
+        if columns == MONTHLY_REQUIRED_COLUMNS:
+            return _import_monthly_rows(
+                reader, path=path, region_name=region_name, taxonomy=taxonomy
+            )
+        if set(AGGREGATE_REQUIRED_COLUMNS).issubset(columns):
+            return _import_aggregate_rows(
+                reader,
+                path=path,
+                region_name=region_name,
+                taxonomy=taxonomy,
+                period_start_ym=period_start_ym,
+                period_end_ym=period_end_ym,
+            )
+        raise ValueError(
+            "CSV 헤더는 월별 형식(기준연월, 목적지 유형, 목적지 검색량) 또는 "
+            "기간 합계 형식(카테고리중분류명, 유형별 검색건수)이어야 합니다."
+        )
+
+
+def _import_monthly_rows(
+    reader: csv.DictReader,
+    *,
+    path: Path,
+    region_name: str,
+    taxonomy: NavigationDemandTaxonomy,
+) -> NavigationDemandImport:
+    records: list[NavigationDemandRecord] = []
+    seen: set[tuple[str, str]] = set()
+    for row_number, row in enumerate(reader, start=2):
+        base_ym = str(row.get("기준연월", "")).strip()
+        source_type = str(row.get("목적지 유형", "")).strip()
+        search_count = _parse_non_negative_int(row.get("목적지 검색량"), row_number)
+        if len(base_ym) != 6 or not base_ym.isdigit() or not 1 <= int(base_ym[4:]) <= 12:
+            raise ValueError(f"{row_number}행 기준연월은 YYYYMM 형식이어야 합니다.")
+        if not source_type:
+            raise ValueError(f"{row_number}행 목적지 유형이 비어 있습니다.")
+        key = (base_ym, source_type)
+        if key in seen:
+            raise ValueError(f"중복된 기준연월/목적지 유형 행이 있습니다: {base_ym}/{source_type}")
+        seen.add(key)
+        rule = None if source_type == taxonomy.total_source_type else taxonomy.source_type_rules.get(source_type)
+        if rule is None and source_type != taxonomy.total_source_type:
+            raise ValueError(f"{row_number}행 목적지 유형이 taxonomy에 없습니다: {source_type}")
+        records.append(NavigationDemandRecord(
+            base_ym=base_ym,
+            source_type=source_type,
+            search_count=search_count,
+            content_type=None if rule is None else rule.content_type,
+            included=False if rule is None else rule.include,
+        ))
     if not records:
         raise ValueError("CSV에 데이터 행이 없습니다.")
     _fill_omitted_zero_source_types(records, taxonomy)
     _validate_monthly_totals(records, taxonomy)
-    return NavigationDemandImport(region_name.strip(), str(path), taxonomy.version, tuple(records))
+    months = sorted({record.base_ym for record in records})
+    return NavigationDemandImport(
+        region_name.strip(),
+        str(path),
+        taxonomy.version,
+        tuple(records),
+        input_granularity="monthly",
+        period_start_ym=months[0],
+        period_end_ym=months[-1],
+        period_month_count=len(months),
+    )
+
+
+def _import_aggregate_rows(
+    reader: csv.DictReader,
+    *,
+    path: Path,
+    region_name: str,
+    taxonomy: NavigationDemandTaxonomy,
+    period_start_ym: str | None,
+    period_end_ym: str | None,
+) -> NavigationDemandImport:
+    if not period_start_ym or not period_end_ym:
+        raise ValueError("기간 합계 CSV에는 period_start_ym과 period_end_ym이 필요합니다.")
+    period_months = _month_range(period_start_ym, period_end_ym)
+    records: list[NavigationDemandRecord] = []
+    seen: set[str] = set()
+    for row_number, row in enumerate(reader, start=2):
+        source_type = str(row.get("카테고리중분류명") or "").strip()
+        if not source_type:
+            continue
+        if source_type in seen:
+            raise ValueError(f"중복된 카테고리중분류명이 있습니다: {source_type}")
+        rule = taxonomy.source_type_rules.get(source_type)
+        if rule is None:
+            raise ValueError(f"{row_number}행 카테고리중분류명이 taxonomy에 없습니다: {source_type}")
+        seen.add(source_type)
+        records.append(NavigationDemandRecord(
+            base_ym=period_end_ym,
+            source_type=source_type,
+            search_count=_parse_non_negative_int(row.get("유형별 검색건수"), row_number),
+            content_type=rule.content_type,
+            included=rule.include,
+        ))
+    missing = set(taxonomy.source_type_rules) - seen
+    if missing:
+        raise ValueError("기간 합계 CSV에 필요한 관광 유형이 없습니다: " + ", ".join(sorted(missing)))
+    if not records:
+        raise ValueError("CSV에 데이터 행이 없습니다.")
+    records.append(NavigationDemandRecord(
+        base_ym=period_end_ym,
+        source_type=taxonomy.total_source_type,
+        search_count=sum(record.search_count for record in records),
+        content_type=None,
+        included=False,
+        source_value_inferred=True,
+    ))
+    return NavigationDemandImport(
+        region_name.strip(),
+        str(path),
+        taxonomy.version,
+        tuple(records),
+        input_granularity="period_total",
+        period_start_ym=period_start_ym,
+        period_end_ym=period_end_ym,
+        period_month_count=len(period_months),
+    )
+
+
+def _month_range(start_ym: str, end_ym: str) -> tuple[str, ...]:
+    for value, label in ((start_ym, "period_start_ym"), (end_ym, "period_end_ym")):
+        if len(value) != 6 or not value.isdigit() or not 1 <= int(value[4:]) <= 12:
+            raise ValueError(f"{label}은 YYYYMM 형식이어야 합니다.")
+    start_index = int(start_ym[:4]) * 12 + int(start_ym[4:]) - 1
+    end_index = int(end_ym[:4]) * 12 + int(end_ym[4:]) - 1
+    if end_index < start_index:
+        raise ValueError("period_end_ym은 period_start_ym보다 빠를 수 없습니다.")
+    return tuple(
+        f"{index // 12:04d}{index % 12 + 1:02d}"
+        for index in range(start_index, end_index + 1)
+    )
 
 
 def build_supply_pressure_report(
@@ -188,6 +313,18 @@ def build_supply_pressure_report(
         })
     metrics.sort(key=lambda item: (-item["searches_per_place"], item["content_type"]))
     selected_months = sorted({record.base_ym for record in selected_records})
+    if demand_import.input_granularity == "period_total":
+        start_ym = str(demand_import.period_start_ym)
+        end_ym = str(demand_import.period_end_ym)
+        selection = "fixed_period_total"
+        available_start_ym = start_ym
+        available_end_ym = end_ym
+    else:
+        start_ym = selected_months[0]
+        end_ym = selected_months[-1]
+        selection = "latest_available_months"
+        available_start_ym = demand_import.available_months[0]
+        available_end_ym = demand_import.available_months[-1]
     warnings = []
     if not supply_region["is_complete"]:
         warnings.append("카카오 장소 수집에 잘린 타일이 있어 공급압력은 잠정값입니다.")
@@ -197,16 +334,17 @@ def build_supply_pressure_report(
         "report_version": "2026-09-05",
         "region_name": demand_import.region_name,
         "analysis_period": {
-            "selection": "latest_available_months",
+            "selection": selection,
             "month_count": month_count,
-            "start_ym": selected_months[0],
-            "end_ym": selected_months[-1],
-            "available_source_start_ym": demand_import.available_months[0],
-            "available_source_end_ym": demand_import.available_months[-1],
+            "start_ym": start_ym,
+            "end_ym": end_ym,
+            "available_source_start_ym": available_start_ym,
+            "available_source_end_ym": available_end_ym,
         },
         "provenance": {
             "demand_source": "한국관광 데이터랩",
             "demand_source_file": demand_import.source_file,
+            "demand_input_granularity": demand_import.input_granularity,
             "demand_taxonomy_version": taxonomy.version,
             "kakao_supply_source": supply_region["source"],
             "kakao_taxonomy_version": supply_region["taxonomy_version"],
@@ -225,7 +363,7 @@ def build_supply_pressure_report(
         "content_type_metrics": metrics,
         "ai_report_context": {
             "region_name": demand_import.region_name,
-            "analysis_period": f"{selected_months[0]}~{selected_months[-1]}",
+            "analysis_period": f"{start_ym}~{end_ym}",
             "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
             "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
             "priority_order_by_supply_pressure": [metric["content_type"] for metric in metrics],

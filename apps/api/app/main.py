@@ -43,8 +43,8 @@ DESCRIPTION = """
 
 조인 키는 법정동 시군구 코드 5자리(`region_id`)입니다.
 
-Peer·공백·종합 리포트는 사전 생성된 분석 산출물을 반환합니다. 배포 가능한
-리포트가 없는 지역은 `REPORT_NOT_READY` 오류를 반환합니다.
+Peer·공백·종합 리포트는 사전 생성된 분석 산출물을 반환합니다. 상세 분석이
+준비 중인 지역도 화면을 열 수 있는 임시 보고서를 반환합니다.
 """.strip()
 
 
@@ -141,7 +141,7 @@ def health() -> dict[str, str]:
 
 
 @app.get("/ready", tags=["system"], summary="운영 의존성 준비 상태")
-def ready() -> dict[str, str]:
+def ready() -> dict[str, object]:
     try:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
@@ -155,7 +155,18 @@ def ready() -> dict[str, str]:
         or manifest.get("failed_count") != 0
     ):
         raise HTTPException(503, detail={"code": "ARTIFACT_RELEASE_NOT_READY"})
+    core_complete = bool(
+        manifest
+        and manifest.get("status") == "complete"
+        and manifest.get("complete_count") == 230
+        and manifest.get("failed_count") == 0
+    )
     return {
         "status": "ready",
         "release_id": str((manifest or {}).get("release_id") or "legacy-development"),
+        "core_complete": core_complete,
+        "advanced_report_ready_count": int(
+            (manifest or {}).get("advanced_report_ready_count") or 0
+        ),
+        "advanced_report_target_count": 5,
     }

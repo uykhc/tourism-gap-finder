@@ -14,27 +14,36 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterator
 
-from apps.api.app.schemas.analysis import PerformanceScore, PortfolioReport
+from apps.api.app.schemas.analysis import HubReport, PerformanceScore, PortfolioReport
 from apps.api.app.schemas.reports import RegionReport
 from apps.api.app.services import artifacts, regions, report
 from hankkeut_calculation.ai_reports.report_schema import validate_report_payload
 
 REQUIRED_CSV_COLUMNS = {"기준연월", "목적지 유형", "목적지 검색량"}
-ARTIFACT_DIRECTORIES = (
+AGGREGATE_CSV_COLUMNS = {"카테고리중분류명", "유형별 검색건수"}
+CORE_ARTIFACT_DIRECTORIES = (
     artifacts.PEER_CANDIDATES_DIR,
-    artifacts.RELATIVE_SUPPLY_DIR,
-    artifacts.DATALAB_NAVIGATION_DIR,
-    artifacts.AI_REPORTS_DIR,
     artifacts.PERFORMANCE_DIR,
     artifacts.PORTFOLIOS_DIR,
     artifacts.HUBS_DIR,
 )
+ADVANCED_ARTIFACT_DIRECTORIES = (
+    artifacts.RELATIVE_SUPPLY_DIR,
+    artifacts.DATALAB_NAVIGATION_DIR,
+    artifacts.AI_REPORTS_DIR,
+)
+ARTIFACT_DIRECTORIES = CORE_ARTIFACT_DIRECTORIES + ADVANCED_ARTIFACT_DIRECTORIES
+
+ADVANCED_REPORT_TARGETS = ("26350", "41590", "51150", "47130", "12130")
+PROVIDER_UNAVAILABLE_PORTFOLIOS = artifacts.PROVIDER_UNAVAILABLE_PORTFOLIOS
+ADVANCED_STAGE_NAMES = frozenset({"datalab_navigation", "relative_supply", "ai_report"})
+CORE_STAGE_NAMES = frozenset({"peer_candidates", "performance", "portfolio", "hubs"})
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-id", required=True)
-    parser.add_argument("--artifact-root", type=Path, default=Path("data/releases"))
+    parser.add_argument("--artifact-root", type=Path, default=Path("data/artifacts"))
     parser.add_argument("--raw-root", type=Path, default=Path("data/raw/datalab_navigation"))
     parser.add_argument("--activate", action="store_true")
     parser.add_argument("--retry-failed", action="store_true")
@@ -110,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
             for region_id in regions.all_region_ids():
                 records, errors = _run_pipeline(
                     region_id=region_id,
-                    stages=region_stages,
+                    stages=_stages_for_region(region_id, region_stages),
                     raw_root=args.raw_root,
                     release_root=release_root,
                     cache_root=args.cache_root,
@@ -147,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         stage_records, stage_errors = _run_pipeline(
             region_id=region_id,
-            stages=region_stages,
+            stages=_stages_for_region(region_id, region_stages),
             raw_root=args.raw_root,
             release_root=release_root,
             cache_root=args.cache_root,
@@ -161,8 +170,19 @@ def main(argv: list[str] | None = None) -> int:
             initial_errors=global_errors + stage_errors,
         ))
     status = "complete" if rows and all(item["status"] == "complete" for item in rows) else "failed"
+    advanced_ready_count = sum(
+        item.get("advanced_status") == "complete" for item in rows
+    )
+    portfolio_available_count = sum(
+        item.get("portfolio_status") == "available" for item in rows
+    )
+    portfolio_unavailable = [
+        item["region_id"]
+        for item in rows
+        if item.get("portfolio_status") == "provider_unavailable"
+    ]
     manifest = {
-        "manifest_version": "1.0",
+        "manifest_version": "2.0",
         "release_id": args.release_id,
         "status": status,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -172,13 +192,35 @@ def main(argv: list[str] | None = None) -> int:
         "source_version": args.release_id,
         "analysis_code_version": os.getenv("ANALYSIS_CODE_VERSION", "working-tree"),
         "base_year_month": args.base_year_month or None,
+        "coverage": {
+            "region_count": len(rows),
+            "peer_candidates": sum(
+                (release_root / artifacts.PEER_CANDIDATES_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "performance": sum(
+                (release_root / artifacts.PERFORMANCE_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "hubs": sum(
+                (release_root / artifacts.HUBS_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "portfolios": {
+                "available_count": portfolio_available_count,
+                "provider_unavailable_region_ids": portfolio_unavailable,
+            },
+            "advanced_report_target_region_ids": list(ADVANCED_REPORT_TARGETS),
+        },
+        "advanced_report_ready_count": advanced_ready_count,
+        "advanced_report_target_count": len(ADVANCED_REPORT_TARGETS),
         "global_stages": global_records,
         "regions": rows,
     }
     _write_json(release_root / artifacts.RELEASE_MANIFEST, manifest)
     if args.activate:
         if status != "complete" or len(rows) != 230:
-            print("release activation refused: all 230 regions must be complete")
+            print("release activation refused: all 230 core region profiles must be complete")
             return 2
         _activate(args.artifact_root, release_root)
     print(json.dumps({key: manifest[key] for key in ("release_id", "status", "complete_count", "failed_count")}, ensure_ascii=False))
@@ -193,44 +235,99 @@ def _validate_region(
     stage_records: list[dict[str, Any]] | None = None,
     initial_errors: list[str] | None = None,
 ) -> dict[str, Any]:
-    errors = list(initial_errors or [])
+    core_errors = [
+        error
+        for error in (initial_errors or [])
+        if any(f"stage {name}:" in error for name in CORE_STAGE_NAMES)
+    ]
+    pipeline_errors = list(initial_errors or [])
     csv_path = raw_root / region_id / "navigation.csv"
     input_sha256: str | None = None
-    try:
-        input_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
-        with csv_path.open(encoding="utf-8-sig", newline="") as handle:
-            columns = set(next(csv.reader(handle)))
-        if not REQUIRED_CSV_COLUMNS.issubset(columns):
-            errors.append("raw_csv: required columns missing")
-    except (OSError, StopIteration):
-        errors.append("raw_csv: missing or empty")
+    advanced_errors: list[str] = []
+    if region_id in ADVANCED_REPORT_TARGETS:
+        try:
+            input_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
+            with csv_path.open(encoding="utf-8-sig", newline="") as handle:
+                columns = set(next(csv.reader(handle)))
+            if not _supported_navigation_columns(columns):
+                advanced_errors.append("raw_csv: required columns missing")
+        except (OSError, StopIteration):
+            advanced_errors.append("raw_csv: missing or empty")
 
-    for directory in ARTIFACT_DIRECTORIES:
+    for directory in CORE_ARTIFACT_DIRECTORIES:
         path = release_root / directory / f"{region_id}.json"
-        if not path.is_file():
-            errors.append(f"{directory}: missing")
+        if path.is_file():
+            continue
+        if directory == artifacts.PORTFOLIOS_DIR and region_id in PROVIDER_UNAVAILABLE_PORTFOLIOS:
+            continue
+        core_errors.append(f"{directory}: missing")
 
-    if not errors:
+    if region_id in ADVANCED_REPORT_TARGETS:
+        for directory in ADVANCED_ARTIFACT_DIRECTORIES:
+            if not (release_root / directory / f"{region_id}.json").is_file():
+                advanced_errors.append(f"{directory}: missing")
+
+    if not core_errors:
         try:
             with _artifact_root(release_root):
-                ai_payload = _load_json(release_root / artifacts.AI_REPORTS_DIR / f"{region_id}.json")
+                if region_id not in PROVIDER_UNAVAILABLE_PORTFOLIOS:
+                    PortfolioReport.model_validate(artifacts.portfolio_report(region_id))
+                PerformanceScore.model_validate(artifacts.performance_score(region_id))
+                if artifacts.load_peer_candidates(region_id) is None:
+                    raise ValueError("peer candidate envelope is invalid")
+                hubs = artifacts.load_hubs(region_id)
+                hub_payload = hubs.get("hubs") if isinstance(hubs, dict) else None
+                if not isinstance(hub_payload, dict):
+                    raise ValueError("hub envelope is invalid")
+                HubReport.model_validate(hub_payload)
+        except Exception as exc:  # validation boundary: record every producer/schema failure
+            core_errors.append(f"validation: {type(exc).__name__}: {exc}")
+
+    if region_id in ADVANCED_REPORT_TARGETS and not advanced_errors:
+        try:
+            with _artifact_root(release_root):
+                ai_payload = _load_json(
+                    release_root / artifacts.AI_REPORTS_DIR / f"{region_id}.json"
+                )
                 if not isinstance(ai_payload, dict) or not isinstance(ai_payload.get("report"), dict):
                     raise ValueError("AI report envelope is invalid")
                 validate_report_payload(ai_payload["report"])
-                PortfolioReport.model_validate(artifacts.portfolio_report(region_id))
-                PerformanceScore.model_validate(artifacts.performance_score(region_id))
                 compiled = RegionReport.model_validate(report.build_region_report(region_id))
                 if not compiled.benchmark_cases or not compiled.recommended_actions or not compiled.sources:
                     raise ValueError("report cases, recommendations, and sources must be non-empty")
         except Exception as exc:  # validation boundary: record every producer/schema failure
-            errors.append(f"validation: {type(exc).__name__}: {exc}")
+            advanced_errors.append(f"validation: {type(exc).__name__}: {exc}")
+
+    portfolio_path = release_root / artifacts.PORTFOLIOS_DIR / f"{region_id}.json"
     return {
         "region_id": region_id,
-        "status": "failed" if errors else "complete",
-        "errors": errors,
+        "status": "failed" if core_errors else "complete",
+        "errors": core_errors,
+        "pipeline_errors": pipeline_errors,
+        "advanced_status": (
+            "not_targeted"
+            if region_id not in ADVANCED_REPORT_TARGETS
+            else "preparing" if advanced_errors else "complete"
+        ),
+        "advanced_errors": advanced_errors,
+        "portfolio_status": (
+            "available"
+            if portfolio_path.is_file()
+            else "provider_unavailable"
+            if region_id in PROVIDER_UNAVAILABLE_PORTFOLIOS
+            else "missing"
+        ),
         "input": {"path": str(csv_path), "sha256": input_sha256},
         "stages": stage_records or [],
     }
+
+
+def _stages_for_region(
+    region_id: str, stages: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if region_id in ADVANCED_REPORT_TARGETS:
+        return stages
+    return [stage for stage in stages if stage["name"] not in ADVANCED_STAGE_NAMES]
 
 
 def _load_pipeline_config(path: Path | None) -> dict[str, list[dict[str, Any]]]:
@@ -529,6 +626,13 @@ def _hash_inputs(paths: list[Path]) -> dict[str, str | None]:
     return result
 
 
+def _supported_navigation_columns(columns: set[str]) -> bool:
+    return (
+        REQUIRED_CSV_COLUMNS.issubset(columns)
+        or AGGREGATE_CSV_COLUMNS.issubset(columns)
+    )
+
+
 def _preflight(
     *,
     raw_root: Path,
@@ -553,14 +657,17 @@ def _preflight(
     }
     postgresql_database = _postgresql_database_url()
     region_ids = regions.all_region_ids()
+    advanced_region_ids = tuple(
+        region_id for region_id in ADVANCED_REPORT_TARGETS if region_id in region_ids
+    ) or tuple(region_ids)
     raw_valid = 0
     raw_invalid: list[str] = []
-    for region_id in region_ids:
+    for region_id in advanced_region_ids:
         path = raw_root / region_id / "navigation.csv"
         try:
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 columns = set(next(csv.reader(handle)))
-            if REQUIRED_CSV_COLUMNS.issubset(columns):
+            if _supported_navigation_columns(columns):
                 raw_valid += 1
             else:
                 raw_invalid.append(region_id)
@@ -605,10 +712,15 @@ def _preflight(
             ]
             missing_inputs: list[str] = []
             blocked_region_ids: set[str] = set()
+            stage_region_ids = (
+                advanced_region_ids
+                if stage["name"] in {"datalab_navigation", "relative_supply", "ai_report"}
+                else region_ids
+            )
             for template in stage.get("inputs", []):
                 if "{region_id}" in template or "{raw_csv}" in template:
                     if scope == "region_stages":
-                        for region_id in region_ids:
+                        for region_id in stage_region_ids:
                             region = regions.find_region(region_id)
                             values = {
                                 **base_values,
@@ -649,8 +761,16 @@ def _preflight(
                 "blocked_region_ids": sorted(blocked_region_ids),
             })
 
-    release_ready = raw_valid == len(region_ids) and all(
-        count == len(region_ids) for count in artifact_counts.values()
+    missing_portfolios = {
+        region_id
+        for region_id in region_ids
+        if not (release_root / artifacts.PORTFOLIOS_DIR / f"{region_id}.json").is_file()
+    }
+    release_ready = (
+        artifact_counts[artifacts.PEER_CANDIDATES_DIR] == len(region_ids)
+        and artifact_counts[artifacts.PERFORMANCE_DIR] == len(region_ids)
+        and artifact_counts[artifacts.HUBS_DIR] == len(region_ids)
+        and missing_portfolios.issubset(PROVIDER_UNAVAILABLE_PORTFOLIOS)
     )
     return {
         "ready": release_ready,
@@ -671,11 +791,20 @@ def _preflight(
         "national_boundaries": boundary_status,
         "raw_navigation": {
             "valid_count": raw_valid,
-            "required_count": len(region_ids),
+            "required_count": len(advanced_region_ids),
             "missing_or_invalid_region_ids": raw_invalid,
         },
         "artifacts": {
-            name: {"count": count, "required_count": len(region_ids)}
+            name: {
+                "count": count,
+                "required_count": (
+                    len(region_ids) - len(PROVIDER_UNAVAILABLE_PORTFOLIOS)
+                    if name == artifacts.PORTFOLIOS_DIR
+                    else len(advanced_region_ids)
+                    if name in ADVANCED_ARTIFACT_DIRECTORIES
+                    else len(region_ids)
+                ),
+            }
             for name, count in artifact_counts.items()
         },
         "embedded_development_artifacts": embedded_counts,

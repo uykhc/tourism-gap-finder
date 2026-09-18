@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest import mock
+
 from apps.api.app.schemas.peers import PeerResult
 from apps.api.app.services import artifacts, regions
 from scripts.build_peer_artifacts import DEFAULT_FEATURES_PATH, build_payload, load_features
@@ -42,15 +44,17 @@ def test_peer_generation_is_deterministic() -> None:
 
 def test_committed_peer_artifacts_cover_every_region() -> None:
     expected_ids = set(regions.all_region_ids())
+    embedded_root = artifacts.APP_ROOT / "data" / "artifacts"
     artifact_ids = {
         path.stem
-        for path in (artifacts.ARTIFACT_ROOT / artifacts.PEER_CANDIDATES_DIR).glob("*.json")
+        for path in (embedded_root / artifacts.PEER_CANDIDATES_DIR).glob("*.json")
     }
 
     assert artifact_ids == expected_ids
-    for region_id in expected_ids:
-        result = PeerResult.model_validate(
-            artifacts.peers(region_id, k=50, min_similarity=0.0)
-        )
-        assert len(result.peers) == 50
-        assert all(peer.region_id != region_id for peer in result.peers)
+    with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded_root):
+        for region_id in expected_ids:
+            result = PeerResult.model_validate(
+                artifacts.peers(region_id, k=50, min_similarity=0.0)
+            )
+            assert len(result.peers) == 50
+            assert all(peer.region_id != region_id for peer in result.peers)

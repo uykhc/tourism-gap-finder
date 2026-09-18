@@ -25,8 +25,10 @@ def get_portfolio(region_id: RegionIdPath, _: CurrentUser) -> PortfolioReport:
 def get_hubs(
     region_id: RegionIdPath,
     _: CurrentUser,
-    base_year_month: str = Query(
-        default="202606", pattern=r"^\d{6}$", description="기준연월 YYYYMM"
+    base_year_month: str | None = Query(
+        default=None,
+        pattern=r"^\d{6}$",
+        description="기준연월 YYYYMM. 생략하면 활성 릴리스의 기준월",
     ),
     limit: int = Query(default=5, ge=1, le=20),
 ) -> HubReport:

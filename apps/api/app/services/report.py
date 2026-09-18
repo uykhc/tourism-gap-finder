@@ -33,7 +33,6 @@ from ..schemas.reports import (
 )
 from . import artifacts
 from .benchmarks import BenchmarkSelection, resolve_benchmarks
-from .errors import report_not_ready
 
 #: 조립 규칙이 바뀌면 올린다. 같은 산출물이라도 응답 구조가 달라지기 때문이다.
 ASSEMBLER_VERSION = "1.0.0"
@@ -51,6 +50,12 @@ _PROVISIONAL_NOTICE = (
     "검증 우선순위이며 신규 시설·사업의 성공 근거가 아닙니다."
 )
 
+_PREPARING_REVIEW = "현재 이 지역의 상세 관광 분석을 준비하고 있습니다."
+_PREPARING_LIMITATION = (
+    "분석에 필요한 데이터가 보강되면 상세 진단과 추천 내용을 제공할 예정입니다."
+)
+_PLANNED_ANALYSIS_PERIOD = {"start_ym": "202509", "end_ym": "202608", "month_count": 12}
+
 _FACILITY_KEYWORDS = re.compile(r"시설|센터|타워|공원|워크|박물관|미술관|전망|둘레길|전시관")
 
 
@@ -58,23 +63,14 @@ _FACILITY_KEYWORDS = re.compile(r"시설|센터|타워|공원|워크|박물관|�
 # 조립 입력
 # ---------------------------------------------------------------------------
 def build_region_report(region_id: str) -> dict[str, Any]:
-    """존재하지 않는 지역은 404, 배포 가능 산출물이 없으면 REPORT_NOT_READY다."""
+    """존재하지 않는 지역만 404, 산출물이 부족하면 준비 중 보고서다."""
     region = artifacts.require_region(region_id)
+    peers = artifacts.load_peer_candidates(region_id)
     relative = artifacts.load_relative_supply(region_id)
     pressure = artifacts.load_supply_pressure(region_id)
     ai_report = artifacts.load_ai_report(region_id)
-    missing = [
-        name
-        for name, value in (
-            (artifacts.PEER_CANDIDATES_DIR, artifacts.load_peer_candidates(region_id)),
-            (artifacts.RELATIVE_SUPPLY_DIR, relative),
-            (artifacts.DATALAB_NAVIGATION_DIR, pressure),
-            (artifacts.AI_REPORTS_DIR, ai_report),
-        )
-        if value is None
-    ]
-    if missing:
-        report_not_ready(region_id, missing)
+    if any(value is None for value in (peers, relative, pressure, ai_report)):
+        return _preparing_report(region)
     benchmarks = resolve_benchmarks(region_id, relative)
 
     target_report: dict[str, Any] | None = None
@@ -108,6 +104,56 @@ def build_region_report(region_id: str) -> dict[str, Any]:
         "benchmark_cases": cases,
         "methodology": _methodology(relative, target_report, benchmarks, limitations),
         "sources": _sources(ai_report),
+    }
+
+
+def _preparing_report(region: dict[str, Any]) -> dict[str, Any]:
+    """현재 프론트 계약을 만족하는 사용자용 준비 중 보고서."""
+    return {
+        "report_version": ASSEMBLER_VERSION,
+        "report_status": ReportStatus.PROVISIONAL.value,
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "target": region,
+        "analysis_period": dict(_PLANNED_ANALYSIS_PERIOD),
+        "summary": {
+            "diagnosis_status": DiagnosisStatus.INSUFFICIENT_DATA.value,
+            "primary_gap_type": None,
+            "one_line_review": {
+                "text": _PREPARING_REVIEW,
+                "source": OneLineReviewSource.TEMPLATE.value,
+                "generated_at": None,
+            },
+            "key_metrics": [],
+        },
+        "evidence": {
+            "supply_density": {
+                "content_type": "UNKNOWN",
+                "target": {
+                    "region_id": region["region_id"],
+                    "region_name": region["region_name"],
+                    "value": 0,
+                    "target_to_benchmark_ratio": None,
+                },
+                "benchmarks": [],
+            },
+            "searches_per_place": {
+                "metric_definition": "상세 분석 준비 중",
+                "items": [],
+            },
+        },
+        "category_overview": [],
+        "detailed_diagnoses": [],
+        "recommended_actions": [],
+        "benchmark_cases": [],
+        "methodology": {
+            "benchmark_selection_rule": "분석 준비가 완료된 후 비교 기준 지역을 선정합니다.",
+            "benchmark_selection_note": "현재는 상세 비교 결과를 제공하지 않습니다.",
+            "supply_comparison_rule": "비교 기준 지역과 관광 콘텐츠 현황을 비교합니다.",
+            "search_pressure_definition": "관광 검색 수요와 관련 콘텐츠 현황을 함께 살펴봅니다.",
+            "provisional_notice": _PREPARING_LIMITATION,
+            "limitations": [_PREPARING_LIMITATION],
+        },
+        "sources": [],
     }
 
 
