@@ -1,0 +1,872 @@
+{
+  "report_version": "2026-09-05",
+  "region_name": "경주시",
+  "analysis_period": {
+    "selection": "latest_available_months",
+    "month_count": 12,
+    "start_ym": "202508",
+    "end_ym": "202607",
+    "available_source_start_ym": "202508",
+    "available_source_end_ym": "202607"
+  },
+  "selection_type": "structural_similarity_candidates",
+  "peer_regions": [
+    "포항시",
+    "서산시"
+  ],
+  "target_report": {
+    "report_version": "2026-09-05",
+    "region_name": "경주시",
+    "analysis_period": {
+      "selection": "latest_available_months",
+      "month_count": 12,
+      "start_ym": "202508",
+      "end_ym": "202607",
+      "available_source_start_ym": "202508",
+      "available_source_end_ym": "202607"
+    },
+    "provenance": {
+      "demand_source": "한국관광 데이터랩",
+      "demand_source_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/경주시_navigation.csv",
+      "demand_taxonomy_version": "2026-09-13",
+      "kakao_collection_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/경주시_kakao.json",
+      "kakao_taxonomy_version": "2026-09-13"
+    },
+    "data_quality": {
+      "kakao_supply_is_complete": true,
+      "kakao_truncated_tile_count": 0,
+      "warnings": [
+        "기타관광은 분석에서 제외했으며 원본 검색량 합계에는 포함됩니다."
+      ]
+    },
+    "demand_summary": {
+      "all_source_type_search_count": 1503460,
+      "included_six_type_search_count": 1451150,
+      "excluded_source_type_search_count": 52310,
+      "excluded_source_type_counts": {
+        "기타관광": 52310
+      }
+    },
+    "content_type_metrics": [
+      {
+        "content_type": "EXPERIENCE_TOURISM",
+        "navigation_search_count": 184230,
+        "kakao_supply_place_count": 87,
+        "searches_per_place": 2117.5862
+      },
+      {
+        "content_type": "ACCOMMODATION",
+        "navigation_search_count": 402118,
+        "kakao_supply_place_count": 264,
+        "searches_per_place": 1523.1742
+      },
+      {
+        "content_type": "SHOPPING",
+        "navigation_search_count": 178440,
+        "kakao_supply_place_count": 143,
+        "searches_per_place": 1247.8322
+      },
+      {
+        "content_type": "LEISURE_SPORTS",
+        "navigation_search_count": 96204,
+        "kakao_supply_place_count": 96,
+        "searches_per_place": 1002.125
+      },
+      {
+        "content_type": "CULTURE_TOURISM",
+        "navigation_search_count": 108932,
+        "kakao_supply_place_count": 118,
+        "searches_per_place": 923.1525
+      },
+      {
+        "content_type": "FOOD",
+        "navigation_search_count": 481226,
+        "kakao_supply_place_count": 553,
+        "searches_per_place": 870.2098
+      }
+    ],
+    "ai_report_context": {
+      "region_name": "경주시",
+      "analysis_period": "202508~202607",
+      "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+      "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
+      "priority_order_by_supply_pressure": [
+        "EXPERIENCE_TOURISM",
+        "ACCOMMODATION",
+        "SHOPPING",
+        "LEISURE_SPORTS",
+        "CULTURE_TOURISM",
+        "FOOD"
+      ],
+      "content_type_metrics": [
+        {
+          "content_type": "EXPERIENCE_TOURISM",
+          "navigation_search_count": 184230,
+          "kakao_supply_place_count": 87,
+          "searches_per_place": 2117.5862
+        },
+        {
+          "content_type": "ACCOMMODATION",
+          "navigation_search_count": 402118,
+          "kakao_supply_place_count": 264,
+          "searches_per_place": 1523.1742
+        },
+        {
+          "content_type": "SHOPPING",
+          "navigation_search_count": 178440,
+          "kakao_supply_place_count": 143,
+          "searches_per_place": 1247.8322
+        },
+        {
+          "content_type": "LEISURE_SPORTS",
+          "navigation_search_count": 96204,
+          "kakao_supply_place_count": 96,
+          "searches_per_place": 1002.125
+        },
+        {
+          "content_type": "CULTURE_TOURISM",
+          "navigation_search_count": 108932,
+          "kakao_supply_place_count": 118,
+          "searches_per_place": 923.1525
+        },
+        {
+          "content_type": "FOOD",
+          "navigation_search_count": 481226,
+          "kakao_supply_place_count": 553,
+          "searches_per_place": 870.2098
+        }
+      ],
+      "evidence": [
+        {
+          "content_type": "EXPERIENCE_TOURISM",
+          "navigation_search_count": 184230,
+          "kakao_supply_place_count": 87,
+          "searches_per_place": 2117.5862
+        },
+        {
+          "content_type": "ACCOMMODATION",
+          "navigation_search_count": 402118,
+          "kakao_supply_place_count": 264,
+          "searches_per_place": 1523.1742
+        },
+        {
+          "content_type": "SHOPPING",
+          "navigation_search_count": 178440,
+          "kakao_supply_place_count": 143,
+          "searches_per_place": 1247.8322
+        },
+        {
+          "content_type": "LEISURE_SPORTS",
+          "navigation_search_count": 96204,
+          "kakao_supply_place_count": 96,
+          "searches_per_place": 1002.125
+        },
+        {
+          "content_type": "CULTURE_TOURISM",
+          "navigation_search_count": 108932,
+          "kakao_supply_place_count": 118,
+          "searches_per_place": 923.1525
+        },
+        {
+          "content_type": "FOOD",
+          "navigation_search_count": 481226,
+          "kakao_supply_place_count": 553,
+          "searches_per_place": 870.2098
+        }
+      ]
+    }
+  },
+  "peer_reports": [
+    {
+      "report_version": "2026-09-05",
+      "region_name": "포항시",
+      "analysis_period": {
+        "selection": "latest_available_months",
+        "month_count": 12,
+        "start_ym": "202508",
+        "end_ym": "202607",
+        "available_source_start_ym": "202508",
+        "available_source_end_ym": "202607"
+      },
+      "provenance": {
+        "demand_source": "한국관광 데이터랩",
+        "demand_source_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/포항시_navigation.csv",
+        "demand_taxonomy_version": "2026-09-13",
+        "kakao_collection_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/포항시_kakao.json",
+        "kakao_taxonomy_version": "2026-09-13"
+      },
+      "data_quality": {
+        "kakao_supply_is_complete": true,
+        "kakao_truncated_tile_count": 0,
+        "warnings": [
+          "기타관광은 분석에서 제외했으며 원본 검색량 합계에는 포함됩니다."
+        ]
+      },
+      "demand_summary": {
+        "all_source_type_search_count": 1443311,
+        "included_six_type_search_count": 1398592,
+        "excluded_source_type_search_count": 44719,
+        "excluded_source_type_counts": {
+          "기타관광": 44719
+        }
+      },
+      "content_type_metrics": [
+        {
+          "content_type": "ACCOMMODATION",
+          "navigation_search_count": 343761,
+          "kakao_supply_place_count": 157,
+          "searches_per_place": 2189.5605
+        },
+        {
+          "content_type": "EXPERIENCE_TOURISM",
+          "navigation_search_count": 157494,
+          "kakao_supply_place_count": 107,
+          "searches_per_place": 1471.9065
+        },
+        {
+          "content_type": "SHOPPING",
+          "navigation_search_count": 183053,
+          "kakao_supply_place_count": 138,
+          "searches_per_place": 1326.471
+        },
+        {
+          "content_type": "CULTURE_TOURISM",
+          "navigation_search_count": 93123,
+          "kakao_supply_place_count": 73,
+          "searches_per_place": 1275.6575
+        },
+        {
+          "content_type": "LEISURE_SPORTS",
+          "navigation_search_count": 86355,
+          "kakao_supply_place_count": 81,
+          "searches_per_place": 1066.1111
+        },
+        {
+          "content_type": "FOOD",
+          "navigation_search_count": 534806,
+          "kakao_supply_place_count": 522,
+          "searches_per_place": 1024.5326
+        }
+      ],
+      "ai_report_context": {
+        "region_name": "포항시",
+        "analysis_period": "202508~202607",
+        "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+        "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
+        "priority_order_by_supply_pressure": [
+          "ACCOMMODATION",
+          "EXPERIENCE_TOURISM",
+          "SHOPPING",
+          "CULTURE_TOURISM",
+          "LEISURE_SPORTS",
+          "FOOD"
+        ],
+        "content_type_metrics": [
+          {
+            "content_type": "ACCOMMODATION",
+            "navigation_search_count": 343761,
+            "kakao_supply_place_count": 157,
+            "searches_per_place": 2189.5605
+          },
+          {
+            "content_type": "EXPERIENCE_TOURISM",
+            "navigation_search_count": 157494,
+            "kakao_supply_place_count": 107,
+            "searches_per_place": 1471.9065
+          },
+          {
+            "content_type": "SHOPPING",
+            "navigation_search_count": 183053,
+            "kakao_supply_place_count": 138,
+            "searches_per_place": 1326.471
+          },
+          {
+            "content_type": "CULTURE_TOURISM",
+            "navigation_search_count": 93123,
+            "kakao_supply_place_count": 73,
+            "searches_per_place": 1275.6575
+          },
+          {
+            "content_type": "LEISURE_SPORTS",
+            "navigation_search_count": 86355,
+            "kakao_supply_place_count": 81,
+            "searches_per_place": 1066.1111
+          },
+          {
+            "content_type": "FOOD",
+            "navigation_search_count": 534806,
+            "kakao_supply_place_count": 522,
+            "searches_per_place": 1024.5326
+          }
+        ],
+        "evidence": [
+          {
+            "content_type": "ACCOMMODATION",
+            "navigation_search_count": 343761,
+            "kakao_supply_place_count": 157,
+            "searches_per_place": 2189.5605
+          },
+          {
+            "content_type": "EXPERIENCE_TOURISM",
+            "navigation_search_count": 157494,
+            "kakao_supply_place_count": 107,
+            "searches_per_place": 1471.9065
+          },
+          {
+            "content_type": "SHOPPING",
+            "navigation_search_count": 183053,
+            "kakao_supply_place_count": 138,
+            "searches_per_place": 1326.471
+          },
+          {
+            "content_type": "CULTURE_TOURISM",
+            "navigation_search_count": 93123,
+            "kakao_supply_place_count": 73,
+            "searches_per_place": 1275.6575
+          },
+          {
+            "content_type": "LEISURE_SPORTS",
+            "navigation_search_count": 86355,
+            "kakao_supply_place_count": 81,
+            "searches_per_place": 1066.1111
+          },
+          {
+            "content_type": "FOOD",
+            "navigation_search_count": 534806,
+            "kakao_supply_place_count": 522,
+            "searches_per_place": 1024.5326
+          }
+        ]
+      }
+    },
+    {
+      "report_version": "2026-09-05",
+      "region_name": "서산시",
+      "analysis_period": {
+        "selection": "latest_available_months",
+        "month_count": 12,
+        "start_ym": "202508",
+        "end_ym": "202607",
+        "available_source_start_ym": "202508",
+        "available_source_end_ym": "202607"
+      },
+      "provenance": {
+        "demand_source": "한국관광 데이터랩",
+        "demand_source_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/서산시_navigation.csv",
+        "demand_taxonomy_version": "2026-09-13",
+        "kakao_collection_file": "/var/folders/rd/hchtdv7x5g54f691hgn917g40000gn/T/tmpnxszc3jo/서산시_kakao.json",
+        "kakao_taxonomy_version": "2026-09-13"
+      },
+      "data_quality": {
+        "kakao_supply_is_complete": true,
+        "kakao_truncated_tile_count": 0,
+        "warnings": [
+          "기타관광은 분석에서 제외했으며 원본 검색량 합계에는 포함됩니다."
+        ]
+      },
+      "demand_summary": {
+        "all_source_type_search_count": 863279,
+        "included_six_type_search_count": 836191,
+        "excluded_source_type_search_count": 27088,
+        "excluded_source_type_counts": {
+          "기타관광": 27088
+        }
+      },
+      "content_type_metrics": [
+        {
+          "content_type": "ACCOMMODATION",
+          "navigation_search_count": 208234,
+          "kakao_supply_place_count": 116,
+          "searches_per_place": 1795.1207
+        },
+        {
+          "content_type": "EXPERIENCE_TOURISM",
+          "navigation_search_count": 95402,
+          "kakao_supply_place_count": 60,
+          "searches_per_place": 1590.0333
+        },
+        {
+          "content_type": "SHOPPING",
+          "navigation_search_count": 92404,
+          "kakao_supply_place_count": 71,
+          "searches_per_place": 1301.4648
+        },
+        {
+          "content_type": "CULTURE_TOURISM",
+          "navigation_search_count": 56410,
+          "kakao_supply_place_count": 44,
+          "searches_per_place": 1282.0455
+        },
+        {
+          "content_type": "LEISURE_SPORTS",
+          "navigation_search_count": 59782,
+          "kakao_supply_place_count": 56,
+          "searches_per_place": 1067.5357
+        },
+        {
+          "content_type": "FOOD",
+          "navigation_search_count": 323959,
+          "kakao_supply_place_count": 306,
+          "searches_per_place": 1058.6895
+        }
+      ],
+      "ai_report_context": {
+        "region_name": "서산시",
+        "analysis_period": "202508~202607",
+        "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+        "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
+        "priority_order_by_supply_pressure": [
+          "ACCOMMODATION",
+          "EXPERIENCE_TOURISM",
+          "SHOPPING",
+          "CULTURE_TOURISM",
+          "LEISURE_SPORTS",
+          "FOOD"
+        ],
+        "content_type_metrics": [
+          {
+            "content_type": "ACCOMMODATION",
+            "navigation_search_count": 208234,
+            "kakao_supply_place_count": 116,
+            "searches_per_place": 1795.1207
+          },
+          {
+            "content_type": "EXPERIENCE_TOURISM",
+            "navigation_search_count": 95402,
+            "kakao_supply_place_count": 60,
+            "searches_per_place": 1590.0333
+          },
+          {
+            "content_type": "SHOPPING",
+            "navigation_search_count": 92404,
+            "kakao_supply_place_count": 71,
+            "searches_per_place": 1301.4648
+          },
+          {
+            "content_type": "CULTURE_TOURISM",
+            "navigation_search_count": 56410,
+            "kakao_supply_place_count": 44,
+            "searches_per_place": 1282.0455
+          },
+          {
+            "content_type": "LEISURE_SPORTS",
+            "navigation_search_count": 59782,
+            "kakao_supply_place_count": 56,
+            "searches_per_place": 1067.5357
+          },
+          {
+            "content_type": "FOOD",
+            "navigation_search_count": 323959,
+            "kakao_supply_place_count": 306,
+            "searches_per_place": 1058.6895
+          }
+        ],
+        "evidence": [
+          {
+            "content_type": "ACCOMMODATION",
+            "navigation_search_count": 208234,
+            "kakao_supply_place_count": 116,
+            "searches_per_place": 1795.1207
+          },
+          {
+            "content_type": "EXPERIENCE_TOURISM",
+            "navigation_search_count": 95402,
+            "kakao_supply_place_count": 60,
+            "searches_per_place": 1590.0333
+          },
+          {
+            "content_type": "SHOPPING",
+            "navigation_search_count": 92404,
+            "kakao_supply_place_count": 71,
+            "searches_per_place": 1301.4648
+          },
+          {
+            "content_type": "CULTURE_TOURISM",
+            "navigation_search_count": 56410,
+            "kakao_supply_place_count": 44,
+            "searches_per_place": 1282.0455
+          },
+          {
+            "content_type": "LEISURE_SPORTS",
+            "navigation_search_count": 59782,
+            "kakao_supply_place_count": 56,
+            "searches_per_place": 1067.5357
+          },
+          {
+            "content_type": "FOOD",
+            "navigation_search_count": 323959,
+            "kakao_supply_place_count": 306,
+            "searches_per_place": 1058.6895
+          }
+        ]
+      }
+    }
+  ],
+  "peer_supply_pressure_comparison": [
+    {
+      "content_type": "EXPERIENCE_TOURISM",
+      "target_searches_per_place": 2117.5862,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 1471.9065,
+          "target_to_peer_ratio": 1.4387,
+          "is_target_pressure_at_least_peer": true
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1590.0333,
+          "target_to_peer_ratio": 1.3318,
+          "is_target_pressure_at_least_peer": true
+        }
+      ],
+      "candidate_peer_regions": [
+        "포항시",
+        "서산시"
+      ],
+      "candidate_peer_count": 2,
+      "max_target_to_peer_ratio": 1.4387
+    },
+    {
+      "content_type": "ACCOMMODATION",
+      "target_searches_per_place": 1523.1742,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 2189.5605,
+          "target_to_peer_ratio": 0.6957,
+          "is_target_pressure_at_least_peer": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1795.1207,
+          "target_to_peer_ratio": 0.8485,
+          "is_target_pressure_at_least_peer": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "max_target_to_peer_ratio": null
+    },
+    {
+      "content_type": "CULTURE_TOURISM",
+      "target_searches_per_place": 923.1525,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 1275.6575,
+          "target_to_peer_ratio": 0.7237,
+          "is_target_pressure_at_least_peer": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1282.0455,
+          "target_to_peer_ratio": 0.7201,
+          "is_target_pressure_at_least_peer": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "max_target_to_peer_ratio": null
+    },
+    {
+      "content_type": "FOOD",
+      "target_searches_per_place": 870.2098,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 1024.5326,
+          "target_to_peer_ratio": 0.8494,
+          "is_target_pressure_at_least_peer": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1058.6895,
+          "target_to_peer_ratio": 0.822,
+          "is_target_pressure_at_least_peer": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "max_target_to_peer_ratio": null
+    },
+    {
+      "content_type": "LEISURE_SPORTS",
+      "target_searches_per_place": 1002.125,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 1066.1111,
+          "target_to_peer_ratio": 0.94,
+          "is_target_pressure_at_least_peer": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1067.5357,
+          "target_to_peer_ratio": 0.9387,
+          "is_target_pressure_at_least_peer": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "max_target_to_peer_ratio": null
+    },
+    {
+      "content_type": "SHOPPING",
+      "target_searches_per_place": 1247.8322,
+      "individual_peer_comparisons": [
+        {
+          "peer_region": "포항시",
+          "peer_searches_per_place": 1326.471,
+          "target_to_peer_ratio": 0.9407,
+          "is_target_pressure_at_least_peer": false
+        },
+        {
+          "peer_region": "서산시",
+          "peer_searches_per_place": 1301.4648,
+          "target_to_peer_ratio": 0.9588,
+          "is_target_pressure_at_least_peer": false
+        }
+      ],
+      "candidate_peer_regions": [],
+      "candidate_peer_count": 0,
+      "max_target_to_peer_ratio": null
+    }
+  ],
+  "ai_report_context": {
+    "region_name": "경주시",
+    "analysis_period": "202508~202607",
+    "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
+    "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다. Peer는 구조적 유사 후보이며 관광 성과 검증 전입니다. 전국 percentile도 아직 산출하지 않았습니다.",
+    "priority_order_by_supply_pressure": [
+      "EXPERIENCE_TOURISM",
+      "ACCOMMODATION",
+      "SHOPPING",
+      "LEISURE_SPORTS",
+      "CULTURE_TOURISM",
+      "FOOD"
+    ],
+    "content_type_metrics": [
+      {
+        "content_type": "EXPERIENCE_TOURISM",
+        "navigation_search_count": 184230,
+        "kakao_supply_place_count": 87,
+        "searches_per_place": 2117.5862
+      },
+      {
+        "content_type": "ACCOMMODATION",
+        "navigation_search_count": 402118,
+        "kakao_supply_place_count": 264,
+        "searches_per_place": 1523.1742
+      },
+      {
+        "content_type": "SHOPPING",
+        "navigation_search_count": 178440,
+        "kakao_supply_place_count": 143,
+        "searches_per_place": 1247.8322
+      },
+      {
+        "content_type": "LEISURE_SPORTS",
+        "navigation_search_count": 96204,
+        "kakao_supply_place_count": 96,
+        "searches_per_place": 1002.125
+      },
+      {
+        "content_type": "CULTURE_TOURISM",
+        "navigation_search_count": 108932,
+        "kakao_supply_place_count": 118,
+        "searches_per_place": 923.1525
+      },
+      {
+        "content_type": "FOOD",
+        "navigation_search_count": 481226,
+        "kakao_supply_place_count": 553,
+        "searches_per_place": 870.2098
+      }
+    ],
+    "evidence": [
+      {
+        "content_type": "EXPERIENCE_TOURISM",
+        "navigation_search_count": 184230,
+        "kakao_supply_place_count": 87,
+        "searches_per_place": 2117.5862
+      },
+      {
+        "content_type": "ACCOMMODATION",
+        "navigation_search_count": 402118,
+        "kakao_supply_place_count": 264,
+        "searches_per_place": 1523.1742
+      },
+      {
+        "content_type": "SHOPPING",
+        "navigation_search_count": 178440,
+        "kakao_supply_place_count": 143,
+        "searches_per_place": 1247.8322
+      },
+      {
+        "content_type": "LEISURE_SPORTS",
+        "navigation_search_count": 96204,
+        "kakao_supply_place_count": 96,
+        "searches_per_place": 1002.125
+      },
+      {
+        "content_type": "CULTURE_TOURISM",
+        "navigation_search_count": 108932,
+        "kakao_supply_place_count": 118,
+        "searches_per_place": 923.1525
+      },
+      {
+        "content_type": "FOOD",
+        "navigation_search_count": 481226,
+        "kakao_supply_place_count": 553,
+        "searches_per_place": 870.2098
+      }
+    ],
+    "peer_regions": [
+      "포항시",
+      "서산시"
+    ],
+    "peer_count": 2,
+    "peer_supply_pressure_comparison": [
+      {
+        "content_type": "EXPERIENCE_TOURISM",
+        "target_searches_per_place": 2117.5862,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 1471.9065,
+            "target_to_peer_ratio": 1.4387,
+            "is_target_pressure_at_least_peer": true
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1590.0333,
+            "target_to_peer_ratio": 1.3318,
+            "is_target_pressure_at_least_peer": true
+          }
+        ],
+        "candidate_peer_regions": [
+          "포항시",
+          "서산시"
+        ],
+        "candidate_peer_count": 2,
+        "max_target_to_peer_ratio": 1.4387
+      },
+      {
+        "content_type": "ACCOMMODATION",
+        "target_searches_per_place": 1523.1742,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 2189.5605,
+            "target_to_peer_ratio": 0.6957,
+            "is_target_pressure_at_least_peer": false
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1795.1207,
+            "target_to_peer_ratio": 0.8485,
+            "is_target_pressure_at_least_peer": false
+          }
+        ],
+        "candidate_peer_regions": [],
+        "candidate_peer_count": 0,
+        "max_target_to_peer_ratio": null
+      },
+      {
+        "content_type": "CULTURE_TOURISM",
+        "target_searches_per_place": 923.1525,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 1275.6575,
+            "target_to_peer_ratio": 0.7237,
+            "is_target_pressure_at_least_peer": false
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1282.0455,
+            "target_to_peer_ratio": 0.7201,
+            "is_target_pressure_at_least_peer": false
+          }
+        ],
+        "candidate_peer_regions": [],
+        "candidate_peer_count": 0,
+        "max_target_to_peer_ratio": null
+      },
+      {
+        "content_type": "FOOD",
+        "target_searches_per_place": 870.2098,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 1024.5326,
+            "target_to_peer_ratio": 0.8494,
+            "is_target_pressure_at_least_peer": false
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1058.6895,
+            "target_to_peer_ratio": 0.822,
+            "is_target_pressure_at_least_peer": false
+          }
+        ],
+        "candidate_peer_regions": [],
+        "candidate_peer_count": 0,
+        "max_target_to_peer_ratio": null
+      },
+      {
+        "content_type": "LEISURE_SPORTS",
+        "target_searches_per_place": 1002.125,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 1066.1111,
+            "target_to_peer_ratio": 0.94,
+            "is_target_pressure_at_least_peer": false
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1067.5357,
+            "target_to_peer_ratio": 0.9387,
+            "is_target_pressure_at_least_peer": false
+          }
+        ],
+        "candidate_peer_regions": [],
+        "candidate_peer_count": 0,
+        "max_target_to_peer_ratio": null
+      },
+      {
+        "content_type": "SHOPPING",
+        "target_searches_per_place": 1247.8322,
+        "individual_peer_comparisons": [
+          {
+            "peer_region": "포항시",
+            "peer_searches_per_place": 1326.471,
+            "target_to_peer_ratio": 0.9407,
+            "is_target_pressure_at_least_peer": false
+          },
+          {
+            "peer_region": "서산시",
+            "peer_searches_per_place": 1301.4648,
+            "target_to_peer_ratio": 0.9588,
+            "is_target_pressure_at_least_peer": false
+          }
+        ],
+        "candidate_peer_regions": [],
+        "candidate_peer_count": 0,
+        "max_target_to_peer_ratio": null
+      }
+    ],
+    "priority_order_by_individual_peer_pressure": [
+      "EXPERIENCE_TOURISM"
+    ]
+  },
+  "data_quality": {
+    "warnings": [
+      "Peer는 구조적 유사 후보이며 관광 성과 검증 전입니다. 전국 percentile도 아직 산출하지 않았습니다.",
+      "비교 지역의 검색량은 장소 수 비율로 규모를 맞추고 유형별 수요 구성 차이를 가정한 표본값입니다.",
+      "화면 개발용 샘플 산출물입니다. 실제 분석 결과가 아니며 정책 판단에 쓰지 않습니다."
+    ]
+  }
+}

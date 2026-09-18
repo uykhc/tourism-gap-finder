@@ -1,0 +1,55 @@
+name: API CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'data/analysis/**'
+      - 'config/**'
+      - 'pyproject.toml'
+      - 'alembic.ini'
+      - 'migrations/**'
+      - 'scripts/build_api_release.py'
+      - '.github/workflows/api-ci.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      # evaluation imports hankkeut_calculation, a local package that cannot be
+      # declared as a resolvable dependency, so the order here matters.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e '.[api,dev]'
+          python -m pip install -e data/analysis/calculation
+          python -m pip install -e data/analysis/evaluation
+          python -m pip install -e data/analysis/similarity
+
+      # No secrets. Every test runs against the committed region tables and
+      # sample artifacts; anything needing a key must fail with 503, not a mock.
+      - name: API tests
+        run: python -m pytest apps/api/tests -q
+
+      - name: Migration smoke test
+        env:
+          AUTH_DATABASE_URL: sqlite:////tmp/hankkeut-ci.db
+        run: alembic upgrade head
+
+      - name: Analysis package tests
+        run: |
+          for package in calculation evaluation similarity; do
+            echo "== $package =="
+            python -m unittest discover -s "data/analysis/$package/tests" -t "data/analysis/$package/tests"
+          done

@@ -9,7 +9,14 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 
-CONTENT_TYPES = ("음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑")
+CONTENT_TYPES = (
+    "FOOD",
+    "ACCOMMODATION",
+    "CULTURE_TOURISM",
+    "EXPERIENCE_TOURISM",
+    "LEISURE_SPORTS",
+    "SHOPPING",
+)
 EARTH_RADIUS_M = 6_371_008.8
 
 

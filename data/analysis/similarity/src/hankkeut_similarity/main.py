@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 from .config import get_config, load_project_environment, set_config
 from .pipeline import analyze, load_dataset
+from .similarity import available_features
 from .regions import RegionMaster
 
 
@@ -32,12 +33,34 @@ def _apply_overrides(args: argparse.Namespace) -> None:
     set_config(replace(current, similarity=similarity))
 
 
+def _write_features(features: pd.DataFrame, path: Path) -> None:
+    """`find_peers`가 쓰는 컬럼만 남겨 CSV로 저장한다.
+
+    중간 병합 컬럼(`coastal_dummy_x` 등)까지 내보내면 어느 컬럼이 계약인지
+    알 수 없게 된다. 지역 식별 4개와 유사도에 실제로 쓰이는 변수만 남긴다.
+    """
+    columns = ["region_id", "province_name", "region_name", "admin_type"]
+    columns += [name for name in available_features(features) if name not in columns]
+    trimmed = features[columns]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    trimmed.to_csv(path, index=False, encoding="utf-8")
+    rows, column_count = trimmed.shape
+    print(f"저장: {path} ({rows}개 지역 × {column_count}개 컬럼)")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="구조적 여건 기반 유사 지역 탐색")
     parser.add_argument(
         "--region",
-        required=True,
         help="시군구명, '시도 시군구', 또는 KTO lDong 5자리 코드 (예: 경주시 / 47130)",
+    )
+    parser.add_argument(
+        "--dump-features",
+        type=Path,
+        help=(
+            "전국 구조 feature 표를 CSV로 저장하고 끝낸다. find_peers는 이 표만 "
+            "있으면 되므로, API가 SGIS 호출 없이 유사 지역을 계산할 수 있다"
+        ),
     )
     parser.add_argument("--peer-k", type=int, help="유사 지역 수")
     parser.add_argument(
@@ -53,11 +76,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--explain", action="store_true", help="feature 비교표를 함께 출력")
     parser.add_argument("--output", type=Path, help="Peer 결과 JSON 저장 경로")
     args = parser.parse_args(argv)
+    if not args.region and not args.dump_features:
+        parser.error("--region 또는 --dump-features 중 하나는 있어야 합니다")
 
     load_project_environment()
     _apply_overrides(args)
 
     dataset = load_dataset()
+
+    if args.dump_features:
+        _write_features(dataset.features, args.dump_features)
+        if not args.region:
+            return 0
+
     master = RegionMaster(dataset.regions)
     try:
         target = master.resolve(args.region)

@@ -7,6 +7,8 @@ from enum import StrEnum
 from typing import Protocol
 from urllib.parse import urlparse
 
+from .report_schema import CONTENT_TYPE_LABELS
+
 
 class SourceKind(StrEnum):
     PUBLIC_INSTITUTION = "public_institution"
@@ -74,11 +76,15 @@ def build_case_search_queries(*, content_type: str, peer_regions: list[str]) -> 
     unique_regions = list(dict.fromkeys(region.strip() for region in peer_regions if region.strip()))
     if not unique_regions:
         raise ValueError("최소 한 개의 Peer 지역이 필요합니다.")
+    code = content_type.strip()
+    # The content type is carried as a code, but the search text has to read the
+    # way a Korean source would write it.
+    label = CONTENT_TYPE_LABELS.get(code, code)
     return [
         CaseSearchQuery(
             peer_region=region,
-            content_type=content_type.strip(),
-            query=f"{region} {content_type.strip()} 관광사업 콘텐츠 운영 성과",
+            content_type=code,
+            query=f"{region} {label} 관광사업 콘텐츠 운영 성과",
         )
         for region in unique_regions
     ]
@@ -91,7 +97,14 @@ def screen_case_documents(documents: list[CaseSearchDocument], *, source_id_pref
     for document in documents:
         if document.source_kind not in PREFERRED_SOURCE_KINDS:
             continue
-        if not _is_https_url(document.url) or not document.title.strip() or not document.publisher.strip() or not document.snippet.strip():
+        if (
+            not _is_https_url(document.url)
+            or not document.title.strip()
+            or not document.publisher.strip()
+            or not document.snippet.strip()
+            or not document.published_at
+            or not document.published_at.strip()
+        ):
             continue
         normalized_url = document.url.strip()
         if normalized_url in seen_urls:
@@ -102,7 +115,7 @@ def screen_case_documents(documents: list[CaseSearchDocument], *, source_id_pref
             title=document.title.strip(),
             publisher=document.publisher.strip(),
             url=normalized_url,
-            published_at=document.published_at.strip() if document.published_at else None,
+            published_at=document.published_at.strip(),
             source_kind=document.source_kind,
             evidence_snippet=document.snippet.strip(),
         ))

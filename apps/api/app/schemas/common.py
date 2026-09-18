@@ -23,17 +23,23 @@ class AdministrativeType(str, Enum):
     SI = "시"
     GUN = "군"
     GU = "자치구"
+    #: 세종특별자치시 한 곳. 지역 표에 있는 값이므로 enum에도 있어야 한다.
+    SPECIAL_SELF_GOVERNING_CITY = "특별자치시"
 
 
 class ContentType(str, Enum):
-    """관광 콘텐츠 6유형."""
+    """관광 콘텐츠 6유형.
 
-    FOOD = "음식"
-    LODGING = "숙박"
-    CULTURE = "문화관광"
-    EXPERIENCE = "체험관광"
-    LEISURE = "레저스포츠"
-    SHOPPING = "쇼핑"
+    값은 분석 파이프라인·LLM 스키마와 같은 영문 코드다. 화면에 쓰는 한국어
+    라벨은 프론트엔드가 매핑한다.
+    """
+
+    FOOD = "FOOD"
+    ACCOMMODATION = "ACCOMMODATION"
+    CULTURE_TOURISM = "CULTURE_TOURISM"
+    EXPERIENCE_TOURISM = "EXPERIENCE_TOURISM"
+    LEISURE_SPORTS = "LEISURE_SPORTS"
+    SHOPPING = "SHOPPING"
 
 
 class RegionRef(BaseModel):

@@ -6,7 +6,16 @@ import jwt
 from fastapi import HTTPException, status
 from pwdlib import PasswordHash
 PASSWORD_HASH = PasswordHash.recommended()
-JWT_SECRET = os.getenv("AUTH_JWT_SECRET", "development-only-change-me")
+DEFAULT_JWT_SECRET = "development-only-change-me-32-bytes"
+JWT_SECRET = os.getenv("AUTH_JWT_SECRET", DEFAULT_JWT_SECRET)
+
+
+def validate_security_config() -> None:
+    environment = os.getenv("API_ENV", "development").strip().lower()
+    if environment == "production" and (
+        JWT_SECRET == DEFAULT_JWT_SECRET or len(JWT_SECRET) < 32
+    ):
+        raise RuntimeError("production에서는 32자 이상의 AUTH_JWT_SECRET이 필요합니다.")
 def hash_password(password: str) -> str: return PASSWORD_HASH.hash(password)
 def verify_password(password: str, password_hash: str) -> bool: return PASSWORD_HASH.verify(password, password_hash)
 def access_token_minutes(remember_me: bool = False) -> int:

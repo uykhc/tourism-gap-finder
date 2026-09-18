@@ -1,5 +1,4 @@
 import csv
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,12 +31,15 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             demand_import = import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
             self.assertEqual(demand_import.available_months, ("202501", "202502"))
             culture = next(record for record in demand_import.records if record.base_ym == "202501" and record.source_type == "역사관광")
-            self.assertEqual(culture.content_type, "문화관광")
+            self.assertEqual(culture.content_type, "CULTURE_TOURISM")
             excluded = next(record for record in demand_import.records if record.base_ym == "202501" and record.source_type == "기타관광")
             self.assertFalse(excluded.included)
 
             supply = {
-                "content_type_counts": {"음식": 2, "숙박": 2, "문화관광": 3, "체험관광": 2, "레저스포츠": 2, "쇼핑": 4},
+                "content_type_counts": {
+                    "FOOD": 2, "ACCOMMODATION": 2, "CULTURE_TOURISM": 3,
+                    "EXPERIENCE_TOURISM": 2, "LEISURE_SPORTS": 2, "SHOPPING": 4,
+                },
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
@@ -51,10 +53,10 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 )
 
         metrics = {metric["content_type"]: metric for metric in report["content_type_metrics"]}
-        self.assertEqual(metrics["문화관광"]["navigation_search_count"], 90)
-        self.assertEqual(metrics["문화관광"]["searches_per_place"], 30.0)
+        self.assertEqual(metrics["CULTURE_TOURISM"]["navigation_search_count"], 90)
+        self.assertEqual(metrics["CULTURE_TOURISM"]["searches_per_place"], 30.0)
         self.assertEqual(report["demand_summary"]["excluded_source_type_counts"], {"기타관광": 30})
-        self.assertEqual(report["ai_report_context"]["priority_order_by_supply_pressure"][0], "문화관광")
+        self.assertEqual(report["ai_report_context"]["priority_order_by_supply_pressure"][0], "CULTURE_TOURISM")
 
     def test_rejects_month_when_total_does_not_equal_type_sum(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -79,7 +81,10 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             taxonomy = load_navigation_demand_taxonomy(Path("config/datalab/navigation_destination_type_taxonomy.json"))
             demand_import = import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
             supply = {
-                "content_type_counts": {"음식": 2, "숙박": 2, "문화관광": 2, "체험관광": 2, "레저스포츠": 2, "쇼핑": 2},
+                "content_type_counts": {
+                    "FOOD": 2, "ACCOMMODATION": 2, "CULTURE_TOURISM": 2,
+                    "EXPERIENCE_TOURISM": 2, "LEISURE_SPORTS": 2, "SHOPPING": 2,
+                },
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
@@ -122,16 +127,16 @@ class PeerDemandManifestTest(unittest.TestCase):
 
 class PeerSupplyPressureComparisonTest(unittest.TestCase):
     def test_prioritizes_maximum_individual_peer_pressure_ratio(self):
-        target = _pressure_report("수원시", {"문화관광": 100.0, "쇼핑": 10.0})
-        peer_a = _pressure_report("성남시", {"문화관광": 20.0, "쇼핑": 20.0})
-        peer_b = _pressure_report("용인시", {"문화관광": 30.0, "쇼핑": 10.0})
+        target = _pressure_report("수원시", {"CULTURE_TOURISM": 100.0, "SHOPPING": 10.0})
+        peer_a = _pressure_report("성남시", {"CULTURE_TOURISM": 20.0, "SHOPPING": 20.0})
+        peer_b = _pressure_report("용인시", {"CULTURE_TOURISM": 30.0, "SHOPPING": 10.0})
         result = build_peer_supply_pressure_comparison(target, peer_reports=[peer_a, peer_b], peer_regions=["성남시", "용인시"])
-        self.assertEqual(result["ai_report_context"]["priority_order_by_individual_peer_pressure"][0], "문화관광")
+        self.assertEqual(result["ai_report_context"]["priority_order_by_individual_peer_pressure"][0], "CULTURE_TOURISM")
         self.assertEqual(result["peer_supply_pressure_comparison"][0]["max_target_to_peer_ratio"], 5.0)
 
     def test_limits_comparison_to_the_first_three_ranked_peers_by_default(self):
-        target = _pressure_report("수원시", {"문화관광": 100.0})
-        peers = [_pressure_report(name, {"문화관광": value}) for name, value in [
+        target = _pressure_report("수원시", {"CULTURE_TOURISM": 100.0})
+        peers = [_pressure_report(name, {"CULTURE_TOURISM": value}) for name, value in [
             ("성남시", 20.0), ("용인시", 30.0), ("고양시", 40.0), ("안양시", 50.0),
         ]]
         result = build_peer_supply_pressure_comparison(
@@ -143,16 +148,16 @@ class PeerSupplyPressureComparisonTest(unittest.TestCase):
 
 class RelativeSupplyComparisonTest(unittest.TestCase):
     def test_marks_a_type_when_composition_or_density_is_lower_than_an_individual_peer(self):
-        target = _kakao_region("수원시", {"문화관광": 10, "음식": 90})
-        peer_a = _kakao_region("성남시", {"문화관광": 30, "음식": 70})
-        peer_b = _kakao_region("용인시", {"문화관광": 5, "음식": 95})
+        target = _kakao_region("수원시", {"CULTURE_TOURISM": 10, "FOOD": 90})
+        peer_a = _kakao_region("성남시", {"CULTURE_TOURISM": 30, "FOOD": 70})
+        peer_b = _kakao_region("용인시", {"CULTURE_TOURISM": 5, "FOOD": 95})
         result = build_relative_supply_report(
             target_region=target, peer_regions=[peer_a, peer_b],
             area_km2_by_region={"수원시": 100.0, "성남시": 100.0, "용인시": 200.0},
         )
-        culture = next(item for item in result["content_type_comparisons"] if item["content_type"] == "문화관광")
+        culture = next(item for item in result["content_type_comparisons"] if item["content_type"] == "CULTURE_TOURISM")
         self.assertEqual(culture["candidate_peer_regions"], ["성남시"])
-        self.assertEqual(result["priority_order_by_relative_supply_gap"][0], "문화관광")
+        self.assertEqual(result["priority_order_by_relative_supply_gap"][0], "CULTURE_TOURISM")
 
 
 def _write_csv(path, rows):
@@ -163,7 +168,8 @@ def _write_csv(path, rows):
 
 
 def _pressure_report(region_name, overrides):
-    content_types = ["음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"]
+    content_types = ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM",
+                     "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"]
     metrics = [{"content_type": name, "searches_per_place": overrides.get(name, 1.0)} for name in content_types]
     return {
         "region_name": region_name,
@@ -180,7 +186,8 @@ def _pressure_report(region_name, overrides):
 
 
 def _kakao_region(region_name, overrides):
-    counts = {"음식": 0, "숙박": 0, "문화관광": 0, "체험관광": 0, "레저스포츠": 0, "쇼핑": 0}
+    counts = {"FOOD": 0, "ACCOMMODATION": 0, "CULTURE_TOURISM": 0,
+              "EXPERIENCE_TOURISM": 0, "LEISURE_SPORTS": 0, "SHOPPING": 0}
     counts.update(overrides)
     return {"region_name": region_name, "content_type_counts": counts, "is_complete": True}
 

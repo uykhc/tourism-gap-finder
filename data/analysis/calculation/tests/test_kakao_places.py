@@ -177,9 +177,10 @@ class TourismContentCollectorTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             taxonomy_path = Path(directory) / "taxonomy.json"
             taxonomy_path.write_text(json.dumps({
-                "version": "test", "content_types": ["음식", "숙박", "문화관광", "체험관광", "레저스포츠", "쇼핑"],
-                "category_rules": {"FD6": "음식", "AD5": "숙박", "CT1": "문화관광"},
-                "keyword_rules": {"체험관광": ["공방"], "레저스포츠": ["캠핑"], "쇼핑": ["시장"]},
+                "version": "test", "content_types": ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM",
+                                   "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"],
+                "category_rules": {"FD6": "FOOD", "AD5": "ACCOMMODATION", "CT1": "CULTURE_TOURISM"},
+                "keyword_rules": {"EXPERIENCE_TOURISM": ["공방"], "LEISURE_SPORTS": ["캠핑"], "SHOPPING": ["시장"]},
             }), encoding="utf-8")
             geometry = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]}
             result = KakaoTourismContentCollector(Client(), load_tourism_content_taxonomy(taxonomy_path)).collect_region(
@@ -187,7 +188,7 @@ class TourismContentCollectorTest(unittest.TestCase):
             )
 
         self.assertEqual(result.collected_count, 1)
-        self.assertEqual(result.content_type_counts["체험관광"], 1)
+        self.assertEqual(result.content_type_counts["EXPERIENCE_TOURISM"], 1)
         self.assertEqual(result.places[0].classification_source, "keyword")
 
 

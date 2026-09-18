@@ -44,11 +44,7 @@ barrel export를 위한 `index.ts`는 만들지 않고 실제 파일에서 직�
 
 ## API 구성
 
-API 파일 경로는 백엔드 URL의 도메인 구조와 동일하게 구성한다.
-
-```text
-/api/<domain>/<resource> → apps/web/src/api/<domain>/<resource>.ts
-```
+API 파일은 백엔드 도메인별로 구성하되, 공통 요청 설정은 `apps/web/src/api/client.ts`에서 관리한다.
 
 - 프론트엔드는 외부 관광·공공 데이터 API를 직접 호출하지 않고 `apps/api`가 제공하는 API만 사용한다.
 - Axios 인스턴스와 interceptor는 공통 설정으로 관리한다.

@@ -28,13 +28,16 @@
 제공한 행정동 GeoJSON을 경기도 31개 시·군 경계로 먼저 변환한다.
 
 ```powershell
-$env:PYTHONPATH = 'packages/analysis'
-python -m hankkeut_analysis.kakao_places.boundary_builder --source data/reference/Local_HangJeongDong/hangjeongdong_경기도.geojson
+hankkeut-build-gyeonggi-boundaries `
+  --source data/reference/Local_HangJeongDong/hangjeongdong_경기도.geojson `
+  --output data/raw/gyeonggi_sigungu.geojson
 ```
 
 ```powershell
-$env:PYTHONPATH = 'packages/analysis'
-python -m hankkeut_analysis.kakao_places.region_cli --boundaries data/raw/gyeonggi_sigungu.geojson --region-name 수원시 --category CT1
+hankkeut-kakao-regions `
+  --boundaries data/raw/gyeonggi_sigungu.geojson `
+  --region-name 수원시 `
+  --category CT1
 ```
 
 기본값은 모든 입력 시군구와 지원 카테고리(`CT1`, `AT4`, `AD5`, `FD6`, `CE7`, `PK6`, `SW8`, `PO3`)를 수집한다. 이 명령은 원본 장소 목록을 운영 DB에 적재하지 않는다.

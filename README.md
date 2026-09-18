@@ -74,9 +74,12 @@ hankkeut-portfolio-benchmark \\
 hankkeut-visitor-portfolio \\
   --config config/gyeonggi/performance_evaluator.json
 
-# 구조 특성 기반 유사 지역 그룹
-hankkeut-similarity-groups \\
-  --config config/gyeonggi/similarity_groups.json
+# 최초 한 번: 전국 지역 마스터와 관광자원 원본 캐시
+hankkeut-similarity-collect --all
+
+# 구조 특성 기반 유사 지역 후보 선정
+hankkeut-similarity --region 수원시 --peer-k 5 \\
+  --output data/analysis/peer_candidates/suwon_structural_peer_candidates.json
 ```
 
 데이터랩 월별 내비게이션 검색량은 다음처럼 카카오 공급 장소 수와 결합합니다.
@@ -117,10 +120,10 @@ hankkeut-ai-tourism-report \
 python3 -m pip install -e data/analysis/similarity
 
 # 최초 한 번: 전국 지역 마스터용 원본을 캐시한다.
-tourgap-collect --all
+hankkeut-similarity-collect --all
 
 # SGIS 실데이터로 구조적 후보 5개를 생성한다.
-tourgap --region 수원시 --peer-k 5 \
+hankkeut-similarity --region 수원시 --peer-k 5 \
   --output data/analysis/peer_candidates/suwon_structural_peer_candidates.json
 
 # 각 후보에 내려받아야 할 데이터랩 월별 CSV 목록을 생성한다.

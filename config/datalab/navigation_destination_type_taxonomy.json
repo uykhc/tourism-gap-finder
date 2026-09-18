@@ -1,22 +1,22 @@
 {
-  "version": "2026-09-05",
+  "version": "2026-09-13",
   "content_types": [
-    "음식",
-    "숙박",
-    "문화관광",
-    "체험관광",
-    "레저스포츠",
-    "쇼핑"
+    "FOOD",
+    "ACCOMMODATION",
+    "CULTURE_TOURISM",
+    "EXPERIENCE_TOURISM",
+    "LEISURE_SPORTS",
+    "SHOPPING"
   ],
   "source_type_rules": {
-    "음식": {"content_type": "음식", "include": true},
-    "숙박": {"content_type": "숙박", "include": true},
-    "문화관광": {"content_type": "문화관광", "include": true},
-    "자연관광": {"content_type": "문화관광", "include": true},
-    "역사관광": {"content_type": "문화관광", "include": true},
-    "체험관광": {"content_type": "체험관광", "include": true},
-    "레저스포츠": {"content_type": "레저스포츠", "include": true},
-    "쇼핑": {"content_type": "쇼핑", "include": true},
+    "음식": {"content_type": "FOOD", "include": true},
+    "숙박": {"content_type": "ACCOMMODATION", "include": true},
+    "문화관광": {"content_type": "CULTURE_TOURISM", "include": true},
+    "자연관광": {"content_type": "CULTURE_TOURISM", "include": true},
+    "역사관광": {"content_type": "CULTURE_TOURISM", "include": true},
+    "체험관광": {"content_type": "EXPERIENCE_TOURISM", "include": true},
+    "레저스포츠": {"content_type": "LEISURE_SPORTS", "include": true},
+    "쇼핑": {"content_type": "SHOPPING", "include": true},
     "기타관광": {"content_type": null, "include": false}
   },
   "total_source_type": "전체"

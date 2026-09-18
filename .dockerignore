@@ -12,9 +12,18 @@ __pycache__
 .DS_Store
 *.zip
 apps/web
-data
 packages
 results
 docs
 pipelines
 config
+
+# 분석 패키지의 소스는 이미지에 필요하지만, 원자료와 실행 결과는 아니다.
+data/raw
+data/interim
+data/reference
+data/analysis/*/data
+data/analysis/*/results
+data/analysis/*/tests
+data/analysis/*/docs
+data/analysis/*/*.md

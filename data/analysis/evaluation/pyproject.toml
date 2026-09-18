@@ -7,6 +7,10 @@ name = "hankkeut-tourism-evaluation"
 version = "0.1.0"
 description = "Tourism benchmark and excellent-region evaluation"
 requires-python = ">=3.11"
+# 이 패키지는 hankkeut_calculation(tourism_data 클라이언트)을 import한다. PyPI에
+# 없는 로컬 패키지라 의존성으로 선언하면 설치가 깨지므로, 설치 순서로 보장한다.
+#   pip install -e data/analysis/calculation -e data/analysis/evaluation
+dependencies = []
 
 [project.scripts]
 hankkeut-benchmark = "hankkeut_evaluation.benchmark_cli:main"
