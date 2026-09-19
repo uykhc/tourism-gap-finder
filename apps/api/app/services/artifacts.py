@@ -171,23 +171,71 @@ def require_region(region_id: str) -> dict[str, Any]:
 # 산출물 로더 — 없으면 None을 돌려주고, 404로 만들지는 호출측이 정한다.
 # ---------------------------------------------------------------------------
 def load_peer_candidates(region_id: str) -> dict[str, Any] | None:
+    database_payload = _load_analysis_artifact_from_database(region_id, PEER_CANDIDATES_DIR)
+    if database_payload is not None:
+        return database_payload
     return _find_artifact(region_id, PEER_CANDIDATES_DIR)
 
 
 def load_relative_supply(region_id: str) -> dict[str, Any] | None:
+    database_payload = _load_analysis_artifact_from_database(region_id, RELATIVE_SUPPLY_DIR)
+    if database_payload is not None:
+        return database_payload
     return _find_artifact(region_id, RELATIVE_SUPPLY_DIR)
 
 
 def load_supply_pressure(region_id: str) -> dict[str, Any] | None:
+    database_payload = _load_analysis_artifact_from_database(region_id, DATALAB_NAVIGATION_DIR)
+    if database_payload is not None:
+        return database_payload
     return _find_artifact(region_id, DATALAB_NAVIGATION_DIR)
 
 
 def load_ai_report(region_id: str) -> dict[str, Any] | None:
+    database_report = _load_ai_report_from_database(region_id)
+    if database_report is not None:
+        return database_report
     payload = _find_artifact(region_id, AI_REPORTS_DIR)
     if payload is None:
         return None
     report = payload.get("report")
     return report if isinstance(report, dict) else None
+
+
+def _load_ai_report_from_database(region_id: str) -> dict[str, Any] | None:
+    """Use Supabase as the production source of generated AI reports.
+
+    The JSON-file fallback keeps existing local fixtures usable until a report
+    has been generated and persisted for that municipality.
+    """
+    database_url = os.getenv("CONTENT_DATABASE_URL", "").strip()
+    if not database_url or database_url.startswith("sqlite"):
+        return None
+    try:
+        from hankkeut_calculation.ai_reports.report_store import AIReportStore
+
+        return AIReportStore(database_url).load(region_id)
+    except ValueError as exc:
+        raise HTTPException(503, detail="AI report database is unavailable") from exc
+
+
+def _load_analysis_artifact_from_database(
+    region_id: str, artifact_type: str
+) -> dict[str, Any] | None:
+    database_url = os.getenv("CONTENT_DATABASE_URL", "").strip()
+    if not database_url or database_url.startswith("sqlite"):
+        return None
+    try:
+        from hankkeut_calculation.ai_reports.analysis_artifact_store import (
+            RegionAnalysisArtifactStore,
+        )
+
+        return RegionAnalysisArtifactStore(database_url).load(
+            region_id=region_id,
+            artifact_type=artifact_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(503, detail="Analysis artifact database is unavailable") from exc
 
 
 def load_performance(region_id: str) -> dict[str, Any] | None:

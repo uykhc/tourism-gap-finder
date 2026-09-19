@@ -3,8 +3,7 @@
     {
       "name": "peer_candidates",
       "command": [
-        "{python}",
-        "scripts/build_peer_artifacts.py",
+        "{python}", "-m", "scripts.build_peer_artifacts",
         "--features",
         "apps/api/app/data/region_features.csv",
         "--output-dir",
@@ -21,7 +20,7 @@
     {
       "name": "performance",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "performance",
+        "{python}", "-m", "scripts.build_release_artifacts", "performance",
         "--output-dir", "{release_root}/performance",
         "--base-year-month", "{base_year_month}"
       ],
@@ -38,8 +37,7 @@
     {
       "name": "kakao_database",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "kakao-db",
-        "--kakao-run-id", "{kakao_run_id}",
+        "{python}", "-m", "scripts.build_release_artifacts", "kakao-db",
         "--peer-artifact-dir", "{release_root}/peer_candidates",
         "--performance-dir", "{release_root}/performance",
         "--marker", "{release_root}/source-markers/kakao-content.json"
@@ -51,7 +49,6 @@
       ],
       "outputs": ["source-markers/kakao-content.json"],
       "requires_any_env": [["CONTENT_DATABASE_URL"]],
-      "requires_values": ["kakao_run_id"],
       "timeout_seconds": 300
     }
   ],
@@ -59,7 +56,7 @@
     {
       "name": "portfolio",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "portfolio",
+        "{python}", "-m", "scripts.build_release_artifacts", "portfolio",
         "--region-id", "{region_id}",
         "--output", "{release_root}/portfolios/{region_id}.json"
       ],
@@ -73,7 +70,7 @@
     {
       "name": "hubs",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "hubs",
+        "{python}", "-m", "scripts.build_release_artifacts", "hubs",
         "--region-id", "{region_id}",
         "--base-year-month", "{base_year_month}",
         "--output", "{release_root}/hubs/{region_id}.json"
@@ -89,14 +86,13 @@
     {
       "name": "datalab_navigation",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "datalab-pressure",
+        "{python}", "-m", "scripts.build_release_artifacts", "datalab-pressure",
         "--region-id", "{region_id}",
         "--raw-root", "{raw_root}",
-        "--kakao-run-id", "{kakao_run_id}",
         "--peer-artifact", "{release_root}/peer_candidates/{region_id}.json",
         "--performance-dir", "{release_root}/performance",
-        "--period-start-ym", "202509",
-        "--period-end-ym", "202608",
+        "--period-start-ym", "202507",
+        "--period-end-ym", "202606",
         "--output", "{release_root}/datalab_navigation/{region_id}.json"
       ],
       "outputs": ["datalab_navigation/{region_id}.json"],
@@ -107,18 +103,16 @@
         "{release_root}/performance"
       ],
       "requires_any_env": [["CONTENT_DATABASE_URL"]],
-      "requires_values": ["kakao_run_id"],
       "requires_raw_csv": false,
       "timeout_seconds": 300
     },
     {
       "name": "relative_supply",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "relative-supply",
+        "{python}", "-m", "scripts.build_release_artifacts", "relative-supply",
         "--region-id", "{region_id}",
         "--peer-artifact", "{release_root}/peer_candidates/{region_id}.json",
         "--performance-dir", "{release_root}/performance",
-        "--kakao-run-id", "{kakao_run_id}",
         "--output", "{release_root}/relative_supply/{region_id}.json"
       ],
       "inputs": [
@@ -130,13 +124,12 @@
       "outputs": ["relative_supply/{region_id}.json"],
       "requires_raw_csv": false,
       "requires_any_env": [["CONTENT_DATABASE_URL"]],
-      "requires_values": ["kakao_run_id"],
       "timeout_seconds": 300
     },
     {
       "name": "ai_report",
       "command": [
-        "{python}", "scripts/build_release_artifacts.py", "ai-report",
+        "{python}", "-m", "scripts.build_release_artifacts", "ai-report",
         "--region-id", "{region_id}",
         "--supply-pressure-report", "{release_root}/datalab_navigation/{region_id}.json",
         "--relative-supply-report", "{release_root}/relative_supply/{region_id}.json",

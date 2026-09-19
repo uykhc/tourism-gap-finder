@@ -148,11 +148,16 @@ def ready() -> dict[str, object]:
     except Exception as exc:
         raise HTTPException(503, detail={"code": "DATABASE_NOT_READY"}) from exc
     manifest = artifacts.release_manifest()
-    if os.getenv("API_ENV", "development").strip().lower() == "production" and (
+    pilot_mode = os.getenv("PILOT_MODE", "false").strip().lower() == "true"
+    if (
+        os.getenv("API_ENV", "development").strip().lower() == "production"
+        and not pilot_mode
+        and (
         manifest is None
         or manifest.get("status") != "complete"
         or manifest.get("complete_count") != 230
         or manifest.get("failed_count") != 0
+        )
     ):
         raise HTTPException(503, detail={"code": "ARTIFACT_RELEASE_NOT_READY"})
     core_complete = bool(
@@ -168,7 +173,7 @@ def ready() -> dict[str, object]:
         (manifest or {}).get("advanced_report_target_count") or 5
     )
     required_advanced = _required_advanced_report_count()
-    if advanced_ready_count < required_advanced:
+    if not pilot_mode and advanced_ready_count < required_advanced:
         raise HTTPException(503, detail={
             "code": "ADVANCED_REPORTS_NOT_READY",
             "ready_count": advanced_ready_count,
@@ -180,6 +185,7 @@ def ready() -> dict[str, object]:
         "core_complete": core_complete,
         "advanced_report_ready_count": advanced_ready_count,
         "advanced_report_target_count": advanced_target_count,
+        "pilot_mode": pilot_mode,
     }
 
 

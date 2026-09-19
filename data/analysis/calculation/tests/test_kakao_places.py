@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 
@@ -11,6 +12,7 @@ from hankkeut_calculation.kakao_places.boundary_builder import build_gyeonggi_si
 from hankkeut_calculation.kakao_places.region_collector import KakaoRegionCollector, point_in_multipolygon
 from hankkeut_calculation.kakao_places.region_cli import _checkpoint_name, _load_checkpoint, _write_json
 from hankkeut_calculation.kakao_places.tourism_content import KakaoTourismContentCollector, load_tourism_content_taxonomy
+from hankkeut_calculation.kakao_places.tourism_cli import resolve_content_database_url
 from hankkeut_calculation.tourism_data.config import resolve_kakao_rest_api_key
 
 
@@ -107,6 +109,14 @@ class KakaoLocalClientTest(unittest.TestCase):
 class KakaoKeyConfigTest(unittest.TestCase):
     def test_resolves_kakao_key(self):
         self.assertEqual(resolve_kakao_rest_api_key(environ={"KAKAO_REST_API_KEY": "kakao-key"}), "kakao-key")
+
+    def test_resolves_content_database_url_from_dotenv(self):
+        with patch(
+            "hankkeut_calculation.kakao_places.tourism_cli.resolve_service_key",
+            return_value="postgresql://collection-db",
+        ) as resolver:
+            self.assertEqual(resolve_content_database_url(), "postgresql://collection-db")
+        resolver.assert_called_once_with(env_names=("CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"))
 
 
 class KakaoRegionCollectorTest(unittest.TestCase):

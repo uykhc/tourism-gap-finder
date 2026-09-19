@@ -19,7 +19,8 @@ export const formatCount = (value: number) => countFormatter.format(value);
 
 export const formatDecimal = (value: number) => decimalFormatter.format(value);
 
-export const formatRatio = (value: number) => `${value.toFixed(2)}배`;
+export const formatRatio = (value: number | null) =>
+  value === null ? '-' : `${value.toFixed(2)}배`;
 
 export const formatTwoDigitOrder = (value: number) =>
   String(value).padStart(2, '0');

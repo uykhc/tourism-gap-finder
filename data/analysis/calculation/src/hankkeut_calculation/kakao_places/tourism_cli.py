@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -16,7 +15,7 @@ from .tourism_content import (
     load_tourism_content_taxonomy,
 )
 from .client import KakaoLocalClient
-from ..tourism_data.config import resolve_kakao_rest_api_key
+from ..tourism_data.config import resolve_kakao_rest_api_key, resolve_service_key
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     if not key:
         print("Error: provide --rest-api-key or KAKAO_REST_API_KEY.", file=sys.stderr)
         return 2
-    database_url = args.content_database_url or os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL")
+    database_url = args.content_database_url or resolve_content_database_url()
     if not database_url:
         print("Error: provide --content-database-url or CONTENT_DATABASE_URL.", file=sys.stderr)
         return 2
@@ -90,6 +89,17 @@ def main(argv: list[str] | None = None) -> int:
     store.finish_run(run_id=run_id, status="completed", region_count=completed)
     print(f"Completed collection run {run_id}: {completed} regions")
     return 0
+
+
+def resolve_content_database_url() -> str | None:
+    """Read the collection database URL from the environment or local .env.
+
+    ``CONTENT_DATABASE_URL`` remains the preferred, separate collection DB.
+    ``AUTH_DATABASE_URL`` is retained only as a backwards-compatible fallback.
+    """
+    return resolve_service_key(
+        env_names=("CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"),
+    )
 
 
 def _region_metadata(feature: dict[str, object]) -> dict[str, str]:

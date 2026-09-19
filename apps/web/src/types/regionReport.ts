@@ -132,7 +132,7 @@ export interface RegionMetricDto {
   region_id: string;
   region_name: string;
   value: number;
-  target_to_benchmark_ratio: number | null;
+  target_to_benchmark_ratio?: number | null;
 }
 
 export interface ContentTypeSearchMetricDto {

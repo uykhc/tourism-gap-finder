@@ -105,7 +105,9 @@ const regionMetricSchema = z.object({
   region_id: z.string(),
   region_name: z.string(),
   value: z.number().finite(),
-  target_to_benchmark_ratio: z.number().finite().nullable(),
+  // The target itself has no comparison baseline, so the API represents its
+  // ratio as null. Benchmark rows contain a numeric ratio.
+  target_to_benchmark_ratio: z.number().finite().nullable().optional(),
 });
 
 const searchMetricSchema = z.object({

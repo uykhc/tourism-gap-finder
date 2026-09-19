@@ -24,7 +24,7 @@ from .case_search import (
 from .report_schema import CONTENT_TYPE_LABELS, validate_report_payload
 
 DEFAULT_MODEL = "gpt-5.6-luna"
-DEFAULT_MAX_OUTPUT_TOKENS = 1_800
+DEFAULT_MAX_OUTPUT_TOKENS = 4_000
 DEFAULT_MAX_GAP_TYPES = 2
 MAX_CASE_EVIDENCE_CHARS = 240
 # Three structural peers provide enough comparison context for the pilot while
@@ -162,7 +162,7 @@ class OpenAITourismReportGenerator:
             store=False,
         )
         try:
-            payload = json.loads(_response_output_text(response))
+            payload = _response_json_object(response)
         except json.JSONDecodeError as exc:
             raise ValueError("OpenAI 응답이 JSON 리포트가 아닙니다.") from exc
         if not isinstance(payload, dict):
@@ -327,6 +327,26 @@ def _response_output_text(response: Any) -> str:
     if isinstance(response, Mapping) and isinstance(response.get("output_text"), str):
         return response["output_text"]
     raise ValueError("OpenAI 응답에 출력 텍스트가 없습니다.")
+
+
+def _response_json_object(response: Any) -> dict[str, Any]:
+    """Parse JSON output and retain the Responses API incomplete reason."""
+    text = _response_output_text(response).strip()
+    if text.startswith("```") and text.endswith("```"):
+        text = text.split("\n", 1)[1].rsplit("\n", 1)[0].strip()
+    try:
+        value = json.loads(text)
+    except json.JSONDecodeError as exc:
+        status = getattr(response, "status", None)
+        incomplete = getattr(response, "incomplete_details", None)
+        reason = getattr(incomplete, "reason", None) if incomplete is not None else None
+        detail = f" status={status}" if status else ""
+        if reason:
+            detail += f" reason={reason}"
+        raise ValueError("OpenAI response did not contain a complete JSON report." + detail) from exc
+    if not isinstance(value, dict):
+        raise ValueError("OpenAI response JSON report must be an object.")
+    return value
 
 
 def _brief_case_evidence(value: str, *, limit: int = MAX_CASE_EVIDENCE_CHARS) -> str:
