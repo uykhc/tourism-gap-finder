@@ -1,3 +1,5 @@
+import type { AdministrativeType } from './regions';
+
 export type ReportStatus = 'FINAL' | 'PROVISIONAL' | 'UNKNOWN';
 
 export type DiagnosisStatus =
@@ -52,7 +54,7 @@ export interface RegionDto {
   region_id: string;
   province_name: string;
   region_name: string;
-  administrative_type: '시' | '군' | '구' | 'UNKNOWN';
+  administrative_type: AdministrativeType | 'UNKNOWN';
 }
 
 export interface AnalysisPeriodDto {
@@ -172,8 +174,8 @@ export interface QuantitativeEvidenceDto {
     benchmark_value: number;
     target_to_benchmark_ratio: number | null;
   }>;
-  rank?: number;
-  total_count?: number;
+  rank: number | null;
+  total_count: number | null;
 }
 
 export interface RecommendedActionDto {

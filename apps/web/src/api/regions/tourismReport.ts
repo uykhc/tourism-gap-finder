@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { ApiError } from '../../types/api';
 import type { RegionReportResponseDto } from '../../types/regionReport';
+import { ADMINISTRATIVE_TYPES } from '../../types/regions';
 import { apiClient } from '../client';
 
 const unknownEnumValue = (enumName: string) =>
@@ -141,8 +142,8 @@ const quantitativeEvidenceSchema = z.object({
       target_to_benchmark_ratio: z.number().finite().nullable(),
     })
   ),
-  rank: z.number().int().positive().optional(),
-  total_count: z.number().int().positive().optional(),
+  rank: z.number().int().positive().nullable(),
+  total_count: z.number().int().positive().nullable(),
 });
 
 const regionReportSchema = z.object({
@@ -154,7 +155,7 @@ const regionReportSchema = z.object({
     province_name: z.string(),
     region_name: z.string(),
     administrative_type: z
-      .enum(['시', '군', '구'])
+      .enum(ADMINISTRATIVE_TYPES)
       .or(unknownEnumValue('administrative_type')),
   }),
   analysis_period: z.object({
@@ -263,9 +264,7 @@ const regionReportSchema = z.object({
 export const fetchRegionReport = async (
   regionId: string
 ): Promise<RegionReportResponseDto> => {
-  const response = await apiClient.get<unknown>(
-    `/api/v1/regions/${regionId}/tourism-report`
-  );
+  const response = await apiClient.get<unknown>(`/regions/${regionId}/report`);
   const result = regionReportSchema.safeParse(response.data);
   if (!result.success) {
     console.error('[region-report] 응답 계약 검증 실패', result.error.issues);

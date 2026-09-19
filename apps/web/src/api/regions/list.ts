@@ -1,7 +1,10 @@
 import { z } from 'zod';
 import { ApiError } from '../../types/api';
 import type { RegionRef } from '../../types/auth';
-import type { ProvinceSummary } from '../../types/regions';
+import {
+  ADMINISTRATIVE_TYPES,
+  type ProvinceSummary,
+} from '../../types/regions';
 import { apiClient } from '../client';
 
 const provincesSchema = z.object({
@@ -20,7 +23,7 @@ const regionsSchema = z.object({
       region_id: z.string().regex(/^\d{5}$/),
       province_name: z.string(),
       region_name: z.string(),
-      administrative_type: z.enum(['시', '군', '자치구']),
+      administrative_type: z.enum(ADMINISTRATIVE_TYPES),
     })
   ),
   total: z.number().int(),
