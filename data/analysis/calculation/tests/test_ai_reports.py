@@ -71,7 +71,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
         ])[0]
         result = generator.generate(
             ai_report_context={
-                "region_name": "수원시", "analysis_period": "202508~202607",
+                "region_name": "수원시", "analysis_period": "202509~202608",
                 "metric_definition": "검색량 ÷ 장소 수", "limitation": "단일 지역 파일럿",
                 "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
                 "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
@@ -103,7 +103,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "승인된 출처"):
             generator.generate(
                 ai_report_context={
-                    "region_name": "수원시", "analysis_period": "202508~202607",
+                    "region_name": "수원시", "analysis_period": "202509~202608",
                     "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
                     "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
                 }, peer_regions=["강릉시"], approved_sources=[source],
@@ -120,7 +120,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "허용되지 않은 Peer"):
             generator.generate(
                 ai_report_context={
-                    "region_name": "수원시", "analysis_period": "202508~202607",
+                    "region_name": "수원시", "analysis_period": "202509~202608",
                     "priority_order_by_supply_pressure": ["CULTURE_TOURISM"],
                     "content_type_metrics": [{"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021}],
                 },
@@ -130,7 +130,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
 
     def test_individual_peer_ratio_at_or_above_one_is_a_gap_candidate(self):
         context = _prepare_context({
-            "region_name": "수원시", "analysis_period": "202508~202607",
+            "region_name": "수원시", "analysis_period": "202509~202608",
             "priority_order_by_individual_peer_pressure": ["CULTURE_TOURISM", "EXPERIENCE_TOURISM"],
             "content_type_metrics": [
                 {"content_type": "CULTURE_TOURISM", "searches_per_place": 8516.021},
@@ -145,7 +145,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
 
     def test_keeps_relative_supply_evidence_only_for_selected_gap_types(self):
         context = _prepare_context({
-            "region_name": "수원시", "analysis_period": "202508~202607",
+            "region_name": "수원시", "analysis_period": "202509~202608",
             "priority_order_by_individual_peer_pressure": ["EXPERIENCE_TOURISM"],
             "content_type_metrics": [{"content_type": "EXPERIENCE_TOURISM", "searches_per_place": 5000.0}],
             "peer_supply_pressure_comparison": [{"content_type": "EXPERIENCE_TOURISM", "candidate_peer_count": 1}],
@@ -209,7 +209,7 @@ class _RecordingCaseProvider:
 def _payload():
     return {
         "region_name": "수원시",
-        "analysis_period": "202508~202607",
+        "analysis_period": "202509~202608",
         "status": "provisional",
         "gap_types": [{
             "content_type": "CULTURE_TOURISM",

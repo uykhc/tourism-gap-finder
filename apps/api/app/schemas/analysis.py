@@ -138,8 +138,8 @@ class SupplyPressureMetric(BaseModel):
 class AnalysisPeriod(BaseModel):
     selection: str = Field(examples=["latest_available_months"])
     month_count: int = Field(examples=[12])
-    start_ym: str = Field(pattern=r"^\d{6}$", examples=["202508"])
-    end_ym: str = Field(pattern=r"^\d{6}$", examples=["202607"])
+    start_ym: str = Field(pattern=r"^\d{6}$", examples=["202509"])
+    end_ym: str = Field(pattern=r"^\d{6}$", examples=["202608"])
 
 
 class SupplyPressureReport(BaseModel):

@@ -24,6 +24,8 @@ from hankkeut_calculation.tourism_data.config import (
     resolve_portfolio_service_key,
 )
 
+ADVANCED_REPORT_TARGETS = ("26350", "41590", "51150", "47130", "12130")
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -61,12 +63,38 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("db/migrations/001_content_collection.sql"),
     )
 
+    handoff = subparsers.add_parser(
+        "kakao-db", help="Validate one completed Kakao database collection run."
+    )
+    handoff.add_argument("--content-database-url")
+    handoff.add_argument("--kakao-run-id")
+    handoff.add_argument("--peer-artifact-dir", required=True, type=Path)
+    handoff.add_argument("--performance-dir", required=True, type=Path)
+    handoff.add_argument("--marker", required=True, type=Path)
+    handoff.add_argument("--max-peers", type=int, default=3)
+
+    pressure = subparsers.add_parser(
+        "datalab-pressure", help="Build target and performance-backed Peer search pressure."
+    )
+    pressure.add_argument("--region-id", required=True)
+    pressure.add_argument("--raw-root", required=True, type=Path)
+    pressure.add_argument("--content-database-url")
+    pressure.add_argument("--kakao-run-id")
+    pressure.add_argument("--peer-artifact", required=True, type=Path)
+    pressure.add_argument("--performance-dir", required=True, type=Path)
+    pressure.add_argument("--period-start-ym", required=True)
+    pressure.add_argument("--period-end-ym", required=True)
+    pressure.add_argument("--output", required=True, type=Path)
+    pressure.add_argument("--max-peers", type=int, default=3)
+
     relative = subparsers.add_parser(
-        "relative-supply", help="Build one DB-backed relative-supply artifact."
+        "relative-supply", help="Build one fixed-run database-backed relative-supply artifact."
     )
     relative.add_argument("--region-id", required=True)
     relative.add_argument("--peer-artifact", required=True, type=Path)
     relative.add_argument("--performance-dir", required=True, type=Path)
+    relative.add_argument("--content-database-url")
+    relative.add_argument("--kakao-run-id")
     relative.add_argument("--output", required=True, type=Path)
     relative.add_argument("--max-peers", type=int, default=3)
 
@@ -102,8 +130,33 @@ def main(argv: list[str] | None = None) -> int:
                 args.region_id,
                 peer_artifact=args.peer_artifact,
                 performance_dir=args.performance_dir,
+                database_url=args.content_database_url or os.getenv("CONTENT_DATABASE_URL", ""),
+                kakao_run_id=args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
                 max_peers=args.max_peers,
             ))
+            return 0
+        if args.command == "datalab-pressure":
+            _write_json(args.output, build_datalab_pressure(
+                args.region_id,
+                raw_root=args.raw_root,
+                database_url=args.content_database_url or os.getenv("CONTENT_DATABASE_URL", ""),
+                kakao_run_id=args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
+                peer_artifact=args.peer_artifact,
+                performance_dir=args.performance_dir,
+                period_start_ym=args.period_start_ym,
+                period_end_ym=args.period_end_ym,
+                max_peers=args.max_peers,
+            ))
+            return 0
+        if args.command == "kakao-db":
+            validate_kakao_database(
+                args.content_database_url or os.getenv("CONTENT_DATABASE_URL", ""),
+                args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
+                peer_artifact_dir=args.peer_artifact_dir,
+                performance_dir=args.performance_dir,
+                marker=args.marker,
+                max_peers=args.max_peers,
+            )
             return 0
         if args.command == "ai-report":
             return build_ai_report(
@@ -387,19 +440,18 @@ def build_relative_supply(
     *,
     peer_artifact: Path,
     performance_dir: Path,
+    database_url: str,
+    kakao_run_id: str,
     max_peers: int,
 ) -> dict[str, Any]:
-    from hankkeut_calculation.datalab_navigation.navigation_demand import (
-        _load_kakao_supply_from_database,
-    )
     from hankkeut_calculation.datalab_navigation.relative_supply import (
         CONTENT_TYPES,
         build_relative_supply_report,
     )
+    from hankkeut_calculation.datalab_navigation.kakao_supply import (
+        PostgresKakaoSupplyProvider,
+    )
 
-    database_url = os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL")
-    if not database_url:
-        raise ValueError("CONTENT_DATABASE_URL or AUTH_DATABASE_URL is required")
     peer_ids = select_performance_peers(
         region_id,
         peer_artifact=peer_artifact,
@@ -408,14 +460,18 @@ def build_relative_supply(
     )
     if not peer_ids:
         raise ValueError(f"no performance-backed peer is available: {region_id}")
+    provider = PostgresKakaoSupplyProvider(
+        database_url,
+        kakao_run_id,
+        required_region_ids=(region_id, *peer_ids),
+        require_complete=True,
+    )
 
     def collection(selected_id: str) -> dict[str, Any]:
         region = regions.find_region(selected_id)
         if region is None:
             raise ValueError(f"unknown region_id: {selected_id}")
-        supply = _load_kakao_supply_from_database(
-            database_url, selected_id, tuple(CONTENT_TYPES)
-        )
+        supply = provider.get_region(selected_id, tuple(CONTENT_TYPES))
         return {
             "region_id": selected_id,
             "region_name": region["region_name"],
@@ -438,6 +494,135 @@ def build_relative_supply(
     result["target_region"]["region_id"] = region_id
     for row, peer_id in zip(result["peer_regions"], peer_ids, strict=True):
         row["region_id"] = peer_id
+    return result
+
+
+def required_advanced_region_ids(
+    *,
+    peer_artifact_dir: Path,
+    performance_dir: Path,
+    max_peers: int = 3,
+) -> list[str]:
+    selected: list[str] = []
+    for target_id in ADVANCED_REPORT_TARGETS:
+        selected.append(target_id)
+        selected.extend(select_performance_peers(
+            target_id,
+            peer_artifact=peer_artifact_dir / f"{target_id}.json",
+            performance_dir=performance_dir,
+            max_peers=max_peers,
+        ))
+    return list(dict.fromkeys(selected))
+
+
+def validate_kakao_database(
+    database_url: str,
+    kakao_run_id: str,
+    *,
+    peer_artifact_dir: Path,
+    performance_dir: Path,
+    marker: Path,
+    max_peers: int = 3,
+) -> dict[str, Any]:
+    from hankkeut_calculation.datalab_navigation.kakao_supply import (
+        PostgresKakaoSupplyProvider,
+    )
+
+    required_ids = required_advanced_region_ids(
+        peer_artifact_dir=peer_artifact_dir,
+        performance_dir=performance_dir,
+        max_peers=max_peers,
+    )
+    provider = PostgresKakaoSupplyProvider(
+        database_url,
+        kakao_run_id,
+        required_region_ids=required_ids,
+        require_complete=True,
+    )
+    result = {
+        "status": "complete",
+        "run_id": provider.run.run_id,
+        "taxonomy_version": provider.run.taxonomy_version,
+        "collected_at": provider.run.collected_at,
+        "required_region_ids": required_ids,
+        "required_region_count": len(required_ids),
+        "normalized_sha256": provider.run.normalized_sha256,
+    }
+    _write_json(marker, result)
+    return result
+
+
+def build_datalab_pressure(
+    region_id: str,
+    *,
+    raw_root: Path,
+    database_url: str,
+    kakao_run_id: str,
+    peer_artifact: Path,
+    performance_dir: Path,
+    period_start_ym: str,
+    period_end_ym: str,
+    max_peers: int = 3,
+) -> dict[str, Any]:
+    from hankkeut_calculation.datalab_navigation.kakao_supply import (
+        PostgresKakaoSupplyProvider,
+    )
+    from hankkeut_calculation.datalab_navigation.navigation_demand import (
+        build_supply_pressure_report,
+        import_navigation_demand_csv,
+        load_navigation_demand_taxonomy,
+    )
+    from hankkeut_calculation.datalab_navigation.peer_comparison import (
+        build_peer_supply_pressure_comparison,
+    )
+
+    peer_ids = select_performance_peers(
+        region_id,
+        peer_artifact=peer_artifact,
+        performance_dir=performance_dir,
+        max_peers=max_peers,
+    )
+    if not peer_ids:
+        raise ValueError(f"no performance-backed peer is available: {region_id}")
+    selected_ids = [region_id, *peer_ids]
+    provider = PostgresKakaoSupplyProvider(
+        database_url,
+        kakao_run_id,
+        required_region_ids=selected_ids,
+        require_complete=True,
+    )
+    taxonomy = load_navigation_demand_taxonomy()
+
+    def pressure(selected_id: str) -> dict[str, Any]:
+        region = regions.find_region(selected_id)
+        if region is None:
+            raise ValueError(f"unknown region_id: {selected_id}")
+        demand = import_navigation_demand_csv(
+            raw_root / selected_id / "navigation.csv",
+            region_name=region["region_name"],
+            taxonomy=taxonomy,
+            period_start_ym=period_start_ym,
+            period_end_ym=period_end_ym,
+        )
+        return build_supply_pressure_report(
+            demand,
+            taxonomy=taxonomy,
+            region_id=selected_id,
+            supply_provider=provider,
+            month_count=12,
+        )
+
+    target_report = pressure(region_id)
+    peer_reports = [pressure(peer_id) for peer_id in peer_ids]
+    peer_names = [regions.find_region(peer_id)["region_name"] for peer_id in peer_ids]
+    result = build_peer_supply_pressure_comparison(
+        target_report,
+        peer_reports=peer_reports,
+        peer_regions=peer_names,
+        max_peers=max_peers,
+    )
+    result["target_region_id"] = region_id
+    result["peer_region_ids"] = peer_ids
     return result
 
 

@@ -57,8 +57,8 @@ class KeyMetricCode(str, Enum):
 
 
 class AnalysisPeriod(BaseModel):
-    start_ym: str = Field(pattern=r"^\d{6}$", examples=["202508"])
-    end_ym: str = Field(pattern=r"^\d{6}$", examples=["202607"])
+    start_ym: str = Field(pattern=r"^\d{6}$", examples=["202509"])
+    end_ym: str = Field(pattern=r"^\d{6}$", examples=["202608"])
     month_count: int = Field(ge=1, examples=[12])
 
 
@@ -161,7 +161,9 @@ class RegionMetric(BaseModel):
 
 
 class SupplyDensityEvidence(BaseModel):
-    content_type: ContentType
+    # 심화 산출물을 준비하는 동안 프론트 계약을 유지하는 보고서 전용 표시다.
+    # 공용 ContentType에 넣으면 실제 분석 반복에 UNKNOWN이 섞이므로 여기에서만 허용한다.
+    content_type: ContentType | Literal["UNKNOWN"]
     target: RegionMetric
     benchmarks: list[RegionMetric] = Field(default_factory=list)
 

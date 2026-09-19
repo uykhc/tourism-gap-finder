@@ -32,7 +32,10 @@ class FakeScorer:
 
 class ResolveBenchmarksTest(unittest.TestCase):
     def _resolve(self, scorer):
-        with mock.patch.object(performance, "default_scorer", lambda: scorer):
+        with (
+            mock.patch.object(performance, "default_scorer", lambda: scorer),
+            mock.patch.object(benchmarks.artifacts, "load_performance", return_value=None),
+        ):
             return benchmarks.resolve_benchmarks(TARGET, RELATIVE_SUPPLY)
 
     def test_peers_that_outscore_the_target_become_performance_backed(self):

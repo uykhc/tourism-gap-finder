@@ -1,4 +1,4 @@
-"""Create reproducible Data Lab CSV intake tasks from structural peers."""
+"""Create reproducible Data Lab period-total CSV intake tasks from structural peers."""
 
 from __future__ import annotations
 
@@ -34,9 +34,9 @@ def build_peer_demand_manifest(peer_result: dict[str, Any]) -> dict[str, Any]:
             "region_id": region_id,
             "region_name": region_name,
             "similarity": peer.get("similarity"),
-            "required_csv_columns": ["기준연월", "목적지 유형", "목적지 검색량"],
+            "required_csv_columns": ["카테고리중분류명", "유형별 검색건수"],
             "recommended_raw_directory": f"data/raw/datalab_navigation/peers/{region_id}_{region_name}",
-            "required_months": "target과 동일한 최근 12개월(현재 202508~202607)",
+            "required_period": "target과 동일한 202509~202608 기간 합계",
             "intake_status": "pending_manual_download",
         })
     if not items:
@@ -50,8 +50,8 @@ def build_peer_demand_manifest(peer_result: dict[str, Any]) -> dict[str, Any]:
             "검증을 마친 뒤에만 우수 Peer로 승격합니다."
         ),
         "download_instructions": (
-            "한국관광 데이터랩에서 각 지역의 '내비게이션 목적지 유형별 검색량'을 "
-            "월별 CSV로 내려받아 recommended_raw_directory에 보관하세요."
+            "한국관광 데이터랩에서 202509~202608을 선택한 뒤 각 지역의 "
+            "'유형별 검색건수' CSV를 내려받아 recommended_raw_directory에 보관하세요."
         ),
         "peer_inputs": sorted(items, key=lambda item: item["rank"]),
     }

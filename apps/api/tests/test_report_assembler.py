@@ -17,7 +17,8 @@ from unittest import mock
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
-from apps.api.app.services import artifacts
+from apps.api.app.schemas.reports import RegionReport
+from apps.api.app.services import artifacts, regions, report as report_service
 
 SAMPLE_ROOT = Path(artifacts.APP_ROOT) / "data" / "artifacts"
 GYEONGJU = "47130"
@@ -49,11 +50,18 @@ class SampleReportTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        cls.artifact_root_patcher = mock.patch.object(artifacts, "ARTIFACT_ROOT", SAMPLE_ROOT)
+        cls.artifact_root_patcher.start()
         cls.client = TestClient(app)
         response = cls.client.get(f"/regions/{GYEONGJU}/report")
         assert response.status_code == 200, response.text
         cls.report = response.json()
         cls.overview = {item["content_type"]: item for item in cls.report["category_overview"]}
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.artifact_root_patcher.stop()
+        artifacts._read_cached.cache_clear()
 
     def test_signal_level_follows_the_two_candidacy_flags(self):
         # 두 신호가 모두 가리키면 STRONG, 한쪽만이면 NEEDS_REVIEW.
@@ -185,8 +193,39 @@ class SampleReportTest(unittest.TestCase):
 
 
 class DataPoorRegionTest(unittest.TestCase):
-    def test_a_region_without_artifacts_returns_report_not_ready(self):
-        response = TestClient(app).get("/regions/41110/report")
+    def test_a_region_without_artifacts_returns_a_preparing_report(self):
+        with TemporaryDirectory() as directory, mock.patch.object(
+            artifacts, "ARTIFACT_ROOT", Path(directory)
+        ):
+            response = TestClient(app).get("/regions/41110/report")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["report_status"], "PROVISIONAL")
+        self.assertEqual(payload["summary"]["diagnosis_status"], "INSUFFICIENT_DATA")
+        self.assertEqual(payload["summary"]["key_metrics"], [])
+        self.assertEqual(payload["evidence"]["supply_density"]["content_type"], "UNKNOWN")
+        rendered = json.dumps(payload, ensure_ascii=False)
+        for internal_term in ("Kakao", "DataLab", "PostgreSQL", "artifact"):
+            self.assertNotIn(internal_term, rendered)
+
+    def test_every_known_region_has_a_schema_valid_preparing_report(self):
+        with TemporaryDirectory() as directory, mock.patch.object(
+            artifacts, "ARTIFACT_ROOT", Path(directory)
+        ):
+            reports = [
+                RegionReport.model_validate(report_service.build_region_report(region_id))
+                for region_id in regions.all_region_ids()
+            ]
+        self.assertEqual(len(reports), 230)
+        self.assertTrue(all(
+            item.summary.diagnosis_status.value == "INSUFFICIENT_DATA" for item in reports
+        ))
+
+    def test_gap_endpoint_still_reports_missing_raw_analysis(self):
+        with TemporaryDirectory() as directory, mock.patch.object(
+            artifacts, "ARTIFACT_ROOT", Path(directory)
+        ):
+            response = TestClient(app).get("/regions/41110/gaps")
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["detail"]["code"], "REPORT_NOT_READY")
 

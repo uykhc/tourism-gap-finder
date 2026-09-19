@@ -2,7 +2,8 @@ import csv
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+
+from hankkeut_calculation.datalab_navigation.kakao_supply import MemorySupplyProvider
 
 from hankkeut_calculation.datalab_navigation.navigation_demand import (
     build_supply_pressure_report,
@@ -15,6 +16,51 @@ from hankkeut_calculation.datalab_navigation.relative_supply import build_relati
 
 
 class DataLabNavigationDemandTest(unittest.TestCase):
+    def test_imports_period_total_export_without_inventing_monthly_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "aggregate.csv"
+            _write_aggregate_csv(csv_path)
+            taxonomy = load_navigation_demand_taxonomy(
+                Path("config/datalab/navigation_destination_type_taxonomy.json")
+            )
+            demand_import = import_navigation_demand_csv(
+                csv_path,
+                region_name="수원시",
+                taxonomy=taxonomy,
+                period_start_ym="202509",
+                period_end_ym="202608",
+            )
+
+            self.assertEqual(demand_import.input_granularity, "period_total")
+            self.assertEqual(demand_import.period_month_count, 12)
+            self.assertEqual(demand_import.available_months, ("202608",))
+            total = next(record for record in demand_import.records if record.source_type == "전체")
+            self.assertEqual(total.search_count, 12_154_768)
+            self.assertTrue(total.source_value_inferred)
+
+            supply = {
+                "content_type_counts": {
+                    "FOOD": 2, "ACCOMMODATION": 2, "CULTURE_TOURISM": 2,
+                    "EXPERIENCE_TOURISM": 2, "LEISURE_SPORTS": 2, "SHOPPING": 2,
+                },
+                "taxonomy_version": "test", "is_complete": True,
+                "truncated_tile_count": 0, "source": "test",
+            }
+            report = build_supply_pressure_report(
+                demand_import,
+                taxonomy=taxonomy,
+                supply_provider=_provider("41110", supply),
+                region_id="41110",
+                month_count=12,
+            )
+
+        self.assertEqual(report["analysis_period"]["start_ym"], "202509")
+        self.assertEqual(report["analysis_period"]["end_ym"], "202608")
+        self.assertEqual(report["analysis_period"]["selection"], "fixed_period_total")
+        self.assertEqual(report["provenance"]["demand_input_granularity"], "period_total")
+        metrics = {item["content_type"]: item for item in report["content_type_metrics"]}
+        self.assertEqual(metrics["CULTURE_TOURISM"]["navigation_search_count"], 2_006_702)
+
     def test_imports_monthly_csv_maps_types_and_builds_pressure_report(self):
         with tempfile.TemporaryDirectory() as directory:
             directory_path = Path(directory)
@@ -43,14 +89,11 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
-            with patch(
-                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
-                return_value=supply,
-            ):
-                report = build_supply_pressure_report(
-                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
-                    region_id="41:115", month_count=2,
-                )
+            report = build_supply_pressure_report(
+                demand_import, taxonomy=taxonomy,
+                supply_provider=_provider("41:115", supply),
+                region_id="41:115", month_count=2,
+            )
 
         metrics = {metric["content_type"]: metric for metric in report["content_type_metrics"]}
         self.assertEqual(metrics["CULTURE_TOURISM"]["navigation_search_count"], 90)
@@ -70,7 +113,7 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "전체 검색량"):
                 import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
 
-    def test_can_use_postgres_counts_with_a_nationwide_region_id(self):
+    def test_can_use_provider_counts_with_a_nationwide_region_id(self):
         with tempfile.TemporaryDirectory() as directory:
             csv_path = Path(directory) / "navigation.csv"
             _write_csv(csv_path, [
@@ -88,17 +131,13 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
-            with patch(
-                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
-                return_value=supply,
-            ) as load_database:
-                report = build_supply_pressure_report(
-                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
-                    region_id="41:115", month_count=1,
-                )
+            report = build_supply_pressure_report(
+                demand_import, taxonomy=taxonomy,
+                supply_provider=_provider("41:115", supply),
+                region_id="41:115", month_count=1,
+            )
 
-        load_database.assert_called_once_with("postgresql://example", "41:115", taxonomy.content_types)
-        self.assertEqual(report["provenance"]["kakao_supply_source"], "postgres:region_content_counts/41:115")
+        self.assertIn("41:115", report["provenance"]["kakao_supply_source"])
 
     def test_restores_an_omitted_zero_destination_type_when_total_proves_it(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -116,12 +155,16 @@ class DataLabNavigationDemandTest(unittest.TestCase):
 
 
 class PeerDemandManifestTest(unittest.TestCase):
-    def test_creates_monthly_input_tasks_without_calling_candidates_benchmarks(self):
+    def test_creates_period_total_input_tasks_without_calling_candidates_benchmarks(self):
         manifest = build_peer_demand_manifest({
             "target": {"region_id": "41110", "region_name": "수원시"},
             "peers": [{"rank": 1, "region_id": "41130", "region_name": "성남시", "similarity": 0.577}],
         })
         self.assertEqual(manifest["selection_type"], "structural_similarity_candidates")
+        self.assertEqual(
+            manifest["peer_inputs"][0]["required_csv_columns"],
+            ["카테고리중분류명", "유형별 검색건수"],
+        )
         self.assertEqual(manifest["peer_inputs"][0]["recommended_raw_directory"], "data/raw/datalab_navigation/peers/41130_성남시")
 
 
@@ -167,6 +210,20 @@ def _write_csv(path, rows):
         writer.writerows(rows)
 
 
+def _write_aggregate_csv(path: Path) -> None:
+    rows = [
+        ("자연관광", 74493, 0.6, 2), ("역사관광", 292718, 2.4, 3),
+        ("체험관광", 174105, 1.4, 4), ("문화관광", 1639491, 13.5, 5),
+        ("레저스포츠", 249638, 2.1, 6), ("쇼핑", 3168093, 26.1, 7),
+        ("음식", 5575024, 45.9, 8), ("숙박", 599190, 4.9, 9),
+        ("기타관광", 382016, 3.1, 99),
+    ]
+    with path.open("w", encoding="utf-8-sig", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(["카테고리중분류명", "유형별 검색건수", "유형별 검색건수 비율", ""])
+        writer.writerows(rows)
+
+
 def _pressure_report(region_name, overrides):
     content_types = ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM",
                      "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"]
@@ -176,7 +233,7 @@ def _pressure_report(region_name, overrides):
         "content_type_metrics": metrics,
         "ai_report_context": {
             "region_name": region_name,
-            "analysis_period": "202508~202607",
+            "analysis_period": "202509~202608",
             "metric_definition": "검색량 ÷ 장소 수",
             "limitation": "파일럿",
             "priority_order_by_supply_pressure": content_types,
@@ -190,6 +247,13 @@ def _kakao_region(region_name, overrides):
               "EXPERIENCE_TOURISM": 0, "LEISURE_SPORTS": 0, "SHOPPING": 0}
     counts.update(overrides)
     return {"region_name": region_name, "content_type_counts": counts, "is_complete": True}
+
+
+def _provider(region_id, supply):
+    return MemorySupplyProvider(
+        {region_id: supply},
+        taxonomy_version=str(supply["taxonomy_version"]),
+    )
 
 
 if __name__ == "__main__":

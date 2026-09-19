@@ -14,29 +14,51 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterator
 
-from apps.api.app.schemas.analysis import PerformanceScore, PortfolioReport
+from apps.api.app.schemas.analysis import HubReport, PerformanceScore, PortfolioReport
 from apps.api.app.schemas.reports import RegionReport
 from apps.api.app.services import artifacts, regions, report
 from hankkeut_calculation.ai_reports.report_schema import validate_report_payload
+from scripts.build_release_artifacts import (
+    ADVANCED_REPORT_TARGETS,
+    required_advanced_region_ids,
+)
 
 REQUIRED_CSV_COLUMNS = {"기준연월", "목적지 유형", "목적지 검색량"}
-ARTIFACT_DIRECTORIES = (
+AGGREGATE_CSV_COLUMNS = {"카테고리중분류명", "유형별 검색건수"}
+CORE_ARTIFACT_DIRECTORIES = (
     artifacts.PEER_CANDIDATES_DIR,
-    artifacts.RELATIVE_SUPPLY_DIR,
-    artifacts.DATALAB_NAVIGATION_DIR,
-    artifacts.AI_REPORTS_DIR,
     artifacts.PERFORMANCE_DIR,
     artifacts.PORTFOLIOS_DIR,
     artifacts.HUBS_DIR,
 )
+ADVANCED_ARTIFACT_DIRECTORIES = (
+    artifacts.RELATIVE_SUPPLY_DIR,
+    artifacts.DATALAB_NAVIGATION_DIR,
+    artifacts.AI_REPORTS_DIR,
+)
+ARTIFACT_DIRECTORIES = CORE_ARTIFACT_DIRECTORIES + ADVANCED_ARTIFACT_DIRECTORIES
+
+PROVIDER_UNAVAILABLE_PORTFOLIOS = artifacts.PROVIDER_UNAVAILABLE_PORTFOLIOS
+ADVANCED_STAGE_NAMES = frozenset({"datalab_navigation", "relative_supply", "ai_report"})
+CORE_STAGE_NAMES = frozenset({"peer_candidates", "performance", "portfolio", "hubs"})
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--release-id", required=True)
-    parser.add_argument("--artifact-root", type=Path, default=Path("data/releases"))
+    parser.add_argument("--artifact-root", type=Path, default=Path("data/artifacts"))
     parser.add_argument("--raw-root", type=Path, default=Path("data/raw/datalab_navigation"))
+    parser.add_argument(
+        "--kakao-run-id",
+        default=os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
+        help="Immutable completed Kakao collection run UUID.",
+    )
     parser.add_argument("--activate", action="store_true")
+    parser.add_argument(
+        "--require-advanced",
+        action="store_true",
+        help="Require all five advanced reports for preflight and activation.",
+    )
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument(
         "--pipeline-config",
@@ -73,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
             release_root=release_root,
             pipeline=pipeline,
             base_year_month=args.base_year_month,
+            kakao_run_id=args.kakao_run_id,
+            require_advanced=args.require_advanced,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0 if result["ready"] else 1
@@ -102,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         release_root=release_root,
         cache_root=args.cache_root,
         base_year_month=args.base_year_month,
+        raw_root=args.raw_root,
+        kakao_run_id=args.kakao_run_id,
     )
     if selected:
         region_records: dict[str, list[dict[str, Any]]] = {}
@@ -110,11 +136,12 @@ def main(argv: list[str] | None = None) -> int:
             for region_id in regions.all_region_ids():
                 records, errors = _run_pipeline(
                     region_id=region_id,
-                    stages=region_stages,
+                    stages=_stages_for_region(region_id, region_stages),
                     raw_root=args.raw_root,
                     release_root=release_root,
                     cache_root=args.cache_root,
                     base_year_month=args.base_year_month,
+                    kakao_run_id=args.kakao_run_id,
                 )
                 if records:
                     region_records[region_id] = records
@@ -147,11 +174,12 @@ def main(argv: list[str] | None = None) -> int:
             continue
         stage_records, stage_errors = _run_pipeline(
             region_id=region_id,
-            stages=region_stages,
+            stages=_stages_for_region(region_id, region_stages),
             raw_root=args.raw_root,
             release_root=release_root,
             cache_root=args.cache_root,
             base_year_month=args.base_year_month,
+            kakao_run_id=args.kakao_run_id,
         )
         rows.append(_validate_region(
             region_id,
@@ -161,8 +189,19 @@ def main(argv: list[str] | None = None) -> int:
             initial_errors=global_errors + stage_errors,
         ))
     status = "complete" if rows and all(item["status"] == "complete" for item in rows) else "failed"
+    advanced_ready_count = sum(
+        item.get("advanced_status") == "complete" for item in rows
+    )
+    portfolio_available_count = sum(
+        item.get("portfolio_status") == "available" for item in rows
+    )
+    portfolio_unavailable = [
+        item["region_id"]
+        for item in rows
+        if item.get("portfolio_status") == "provider_unavailable"
+    ]
     manifest = {
-        "manifest_version": "1.0",
+        "manifest_version": "2.0",
         "release_id": args.release_id,
         "status": status,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -172,17 +211,59 @@ def main(argv: list[str] | None = None) -> int:
         "source_version": args.release_id,
         "analysis_code_version": os.getenv("ANALYSIS_CODE_VERSION", "working-tree"),
         "base_year_month": args.base_year_month or None,
+        "coverage": {
+            "region_count": len(rows),
+            "peer_candidates": sum(
+                (release_root / artifacts.PEER_CANDIDATES_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "performance": sum(
+                (release_root / artifacts.PERFORMANCE_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "hubs": sum(
+                (release_root / artifacts.HUBS_DIR / f"{item['region_id']}.json").is_file()
+                for item in rows
+            ),
+            "portfolios": {
+                "available_count": portfolio_available_count,
+                "provider_unavailable_region_ids": portfolio_unavailable,
+            },
+            "advanced_report_target_region_ids": list(ADVANCED_REPORT_TARGETS),
+        },
+        "advanced_report_ready_count": advanced_ready_count,
+        "advanced_report_target_count": len(ADVANCED_REPORT_TARGETS),
         "global_stages": global_records,
         "regions": rows,
     }
     _write_json(release_root / artifacts.RELEASE_MANIFEST, manifest)
     if args.activate:
-        if status != "complete" or len(rows) != 230:
-            print("release activation refused: all 230 regions must be complete")
+        activation_error = _activation_error(
+            status=status,
+            region_count=len(rows),
+            advanced_ready_count=advanced_ready_count,
+            require_advanced=args.require_advanced,
+        )
+        if activation_error:
+            print(f"release activation refused: {activation_error}")
             return 2
         _activate(args.artifact_root, release_root)
     print(json.dumps({key: manifest[key] for key in ("release_id", "status", "complete_count", "failed_count")}, ensure_ascii=False))
     return 0 if status == "complete" else 1
+
+
+def _activation_error(
+    *,
+    status: str,
+    region_count: int,
+    advanced_ready_count: int,
+    require_advanced: bool,
+) -> str | None:
+    if status != "complete" or region_count != 230:
+        return "all 230 core region profiles must be complete"
+    if require_advanced and advanced_ready_count != len(ADVANCED_REPORT_TARGETS):
+        return "all five advanced reports must be complete"
+    return None
 
 
 def _validate_region(
@@ -193,44 +274,101 @@ def _validate_region(
     stage_records: list[dict[str, Any]] | None = None,
     initial_errors: list[str] | None = None,
 ) -> dict[str, Any]:
-    errors = list(initial_errors or [])
+    core_errors = [
+        error
+        for error in (initial_errors or [])
+        if any(f"stage {name}:" in error for name in CORE_STAGE_NAMES)
+    ]
+    pipeline_errors = list(initial_errors or [])
     csv_path = raw_root / region_id / "navigation.csv"
     input_sha256: str | None = None
-    try:
-        input_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
-        with csv_path.open(encoding="utf-8-sig", newline="") as handle:
-            columns = set(next(csv.reader(handle)))
-        if not REQUIRED_CSV_COLUMNS.issubset(columns):
-            errors.append("raw_csv: required columns missing")
-    except (OSError, StopIteration):
-        errors.append("raw_csv: missing or empty")
+    advanced_errors: list[str] = []
+    if region_id in ADVANCED_REPORT_TARGETS:
+        try:
+            input_sha256 = hashlib.sha256(csv_path.read_bytes()).hexdigest()
+            with csv_path.open(encoding="utf-8-sig", newline="") as handle:
+                columns = set(next(csv.reader(handle)))
+            if not _supported_navigation_columns(columns):
+                advanced_errors.append("raw_csv: required columns missing")
+        except (OSError, StopIteration):
+            advanced_errors.append("raw_csv: missing or empty")
 
-    for directory in ARTIFACT_DIRECTORIES:
+    for directory in CORE_ARTIFACT_DIRECTORIES:
         path = release_root / directory / f"{region_id}.json"
-        if not path.is_file():
-            errors.append(f"{directory}: missing")
+        if path.is_file():
+            continue
+        if directory == artifacts.PORTFOLIOS_DIR and region_id in PROVIDER_UNAVAILABLE_PORTFOLIOS:
+            continue
+        core_errors.append(f"{directory}: missing")
 
-    if not errors:
+    if region_id in ADVANCED_REPORT_TARGETS:
+        for directory in ADVANCED_ARTIFACT_DIRECTORIES:
+            if not (release_root / directory / f"{region_id}.json").is_file():
+                advanced_errors.append(f"{directory}: missing")
+
+    if not core_errors:
         try:
             with _artifact_root(release_root):
-                ai_payload = _load_json(release_root / artifacts.AI_REPORTS_DIR / f"{region_id}.json")
+                if region_id not in PROVIDER_UNAVAILABLE_PORTFOLIOS:
+                    PortfolioReport.model_validate(artifacts.portfolio_report(region_id))
+                PerformanceScore.model_validate(artifacts.performance_score(region_id))
+                if artifacts.load_peer_candidates(region_id) is None:
+                    raise ValueError("peer candidate envelope is invalid")
+                hubs = artifacts.load_hubs(region_id)
+                hub_payload = hubs.get("hubs") if isinstance(hubs, dict) else None
+                if not isinstance(hub_payload, dict):
+                    raise ValueError("hub envelope is invalid")
+                HubReport.model_validate(hub_payload)
+        except Exception as exc:  # validation boundary: record every producer/schema failure
+            core_errors.append(f"validation: {type(exc).__name__}: {exc}")
+
+    if region_id in ADVANCED_REPORT_TARGETS and not advanced_errors:
+        try:
+            with _artifact_root(release_root):
+                ai_payload = _load_json(
+                    release_root / artifacts.AI_REPORTS_DIR / f"{region_id}.json"
+                )
                 if not isinstance(ai_payload, dict) or not isinstance(ai_payload.get("report"), dict):
                     raise ValueError("AI report envelope is invalid")
                 validate_report_payload(ai_payload["report"])
-                PortfolioReport.model_validate(artifacts.portfolio_report(region_id))
-                PerformanceScore.model_validate(artifacts.performance_score(region_id))
                 compiled = RegionReport.model_validate(report.build_region_report(region_id))
-                if not compiled.benchmark_cases or not compiled.recommended_actions or not compiled.sources:
-                    raise ValueError("report cases, recommendations, and sources must be non-empty")
+                # 근거가 검증된 사례나 출처가 없으면 AI 계약상 빈 배열이 정답일 수 있다.
+                # 다만 실제 심화 리포트에는 최소 한 개의 실행 제안이 있어야 한다.
+                if not compiled.recommended_actions:
+                    raise ValueError("report recommendations must be non-empty")
         except Exception as exc:  # validation boundary: record every producer/schema failure
-            errors.append(f"validation: {type(exc).__name__}: {exc}")
+            advanced_errors.append(f"validation: {type(exc).__name__}: {exc}")
+
+    portfolio_path = release_root / artifacts.PORTFOLIOS_DIR / f"{region_id}.json"
     return {
         "region_id": region_id,
-        "status": "failed" if errors else "complete",
-        "errors": errors,
+        "status": "failed" if core_errors else "complete",
+        "errors": core_errors,
+        "pipeline_errors": pipeline_errors,
+        "advanced_status": (
+            "not_targeted"
+            if region_id not in ADVANCED_REPORT_TARGETS
+            else "preparing" if advanced_errors else "complete"
+        ),
+        "advanced_errors": advanced_errors,
+        "portfolio_status": (
+            "available"
+            if portfolio_path.is_file()
+            else "provider_unavailable"
+            if region_id in PROVIDER_UNAVAILABLE_PORTFOLIOS
+            else "missing"
+        ),
         "input": {"path": str(csv_path), "sha256": input_sha256},
         "stages": stage_records or [],
     }
+
+
+def _stages_for_region(
+    region_id: str, stages: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if region_id in ADVANCED_REPORT_TARGETS:
+        return stages
+    return [stage for stage in stages if stage["name"] not in ADVANCED_STAGE_NAMES]
 
 
 def _load_pipeline_config(path: Path | None) -> dict[str, list[dict[str, Any]]]:
@@ -311,6 +449,7 @@ def _run_pipeline(
     release_root: Path,
     cache_root: Path,
     base_year_month: str = "",
+    kakao_run_id: str = "",
 ) -> tuple[list[dict[str, Any]], list[str]]:
     if not stages:
         return [], []
@@ -320,6 +459,8 @@ def _run_pipeline(
         "region_id": region_id,
         "region_name": region["region_name"] if region else region_id,
         "raw_csv": str(raw_root / region_id / "navigation.csv"),
+        "raw_root": str(raw_root),
+        "kakao_run_id": kakao_run_id,
         "release_root": str(release_root),
         "cache_root": str(cache_root),
         "repository_root": str(Path.cwd()),
@@ -346,6 +487,8 @@ def _run_global_pipeline(
     release_root: Path,
     cache_root: Path,
     base_year_month: str = "",
+    raw_root: Path = Path("data/raw/datalab_navigation"),
+    kakao_run_id: str = "",
 ) -> tuple[list[dict[str, Any]], list[str]]:
     if not stages:
         return [], []
@@ -355,6 +498,8 @@ def _run_global_pipeline(
         "repository_root": str(Path.cwd()),
         "python": sys.executable,
         "base_year_month": base_year_month,
+        "raw_root": str(raw_root),
+        "kakao_run_id": kakao_run_id,
     }
     return _run_stage_sequence(
         stages=stages,
@@ -442,6 +587,13 @@ def _run_stage_sequence(
         started_at = datetime.now(UTC).isoformat(timespec="seconds")
         env = os.environ.copy()
         env["HANKKEUT_CACHE_ROOT"] = str(cache_root)
+        repository_root = str(Path.cwd())
+        existing_pythonpath = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = (
+            repository_root
+            if not existing_pythonpath
+            else repository_root + os.pathsep + existing_pythonpath
+        )
         dotenv_values = _dotenv_values()
         required_env_names = {
             env_name
@@ -529,12 +681,21 @@ def _hash_inputs(paths: list[Path]) -> dict[str, str | None]:
     return result
 
 
+def _supported_navigation_columns(columns: set[str]) -> bool:
+    return (
+        REQUIRED_CSV_COLUMNS.issubset(columns)
+        or AGGREGATE_CSV_COLUMNS.issubset(columns)
+    )
+
+
 def _preflight(
     *,
     raw_root: Path,
     release_root: Path,
     pipeline: dict[str, list[dict[str, Any]]],
     base_year_month: str = "",
+    kakao_run_id: str = "",
+    require_advanced: bool = False,
 ) -> dict[str, Any]:
     env_names = _configured_env_names()
     credential_groups = {
@@ -545,22 +706,40 @@ def _preflight(
         "sgis_key": ("SGIS_CONSUMER_KEY",),
         "sgis_secret": ("SGIS_CONSUMER_SECRET",),
         "openai": ("OPENAI_API_KEY",),
-        "content_database": ("CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"),
+        "content_database": ("CONTENT_DATABASE_URL",),
     }
     credentials = {
         label: any(name in env_names for name in alternatives)
         for label, alternatives in credential_groups.items()
     }
-    postgresql_database = _postgresql_database_url()
+    database_url = _content_database_url()
+    postgresql_database = database_url.startswith(
+        ("postgresql://", "postgresql+psycopg://")
+    )
     region_ids = regions.all_region_ids()
+    advanced_region_ids = tuple(
+        region_id for region_id in ADVANCED_REPORT_TARGETS if region_id in region_ids
+    ) or tuple(region_ids)
+    advanced_scope_error: str | None = None
+    if set(advanced_region_ids) == set(ADVANCED_REPORT_TARGETS):
+        try:
+            advanced_input_region_ids = tuple(required_advanced_region_ids(
+                peer_artifact_dir=release_root / artifacts.PEER_CANDIDATES_DIR,
+                performance_dir=release_root / artifacts.PERFORMANCE_DIR,
+            ))
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            advanced_input_region_ids = advanced_region_ids
+            advanced_scope_error = f"{type(exc).__name__}: {exc}"
+    else:
+        advanced_input_region_ids = advanced_region_ids
     raw_valid = 0
     raw_invalid: list[str] = []
-    for region_id in region_ids:
+    for region_id in advanced_input_region_ids:
         path = raw_root / region_id / "navigation.csv"
         try:
             with path.open(encoding="utf-8-sig", newline="") as handle:
                 columns = set(next(csv.reader(handle)))
-            if REQUIRED_CSV_COLUMNS.issubset(columns):
+            if _supported_navigation_columns(columns):
                 raw_valid += 1
             else:
                 raw_invalid.append(region_id)
@@ -589,6 +768,41 @@ def _preflight(
         base_year_month=base_year_month,
     )
     boundary_status = _boundary_status(boundary_path, region_ids)
+    kakao_database_status: dict[str, Any] = {
+        "run_id": kakao_run_id or None,
+        "valid": False,
+        "region_count": 0,
+        "marker_matches": None,
+    }
+    try:
+        from hankkeut_calculation.datalab_navigation.kakao_supply import (
+            PostgresKakaoSupplyProvider,
+        )
+        provider = PostgresKakaoSupplyProvider(
+            database_url,
+            kakao_run_id,
+            required_region_ids=advanced_input_region_ids,
+            require_complete=True,
+        )
+        marker = _load_json(
+            release_root / "source-markers" / "kakao-content.json"
+        )
+        marker_matches = None if marker is None else (
+            marker.get("run_id") == provider.run.run_id
+            and marker.get("normalized_sha256") == provider.run.normalized_sha256
+        )
+        if marker_matches is False:
+            raise ValueError("완료된 Kakao run이 release marker 생성 후 변경되었습니다.")
+        kakao_database_status = {
+            "run_id": provider.run.run_id,
+            "valid": True,
+            "taxonomy_version": provider.run.taxonomy_version,
+            "region_count": len(provider.run.regions),
+            "normalized_sha256": provider.run.normalized_sha256,
+            "marker_matches": marker_matches,
+        }
+    except ValueError as exc:
+        kakao_database_status["error"] = str(exc)
     stage_status = []
     base_values = {
         "release_root": str(release_root),
@@ -596,6 +810,8 @@ def _preflight(
         "repository_root": str(Path.cwd()),
         "python": sys.executable,
         "base_year_month": base_year_month,
+        "raw_root": str(raw_root),
+        "kakao_run_id": kakao_run_id,
     }
     for scope in ("global_stages", "region_stages"):
         for stage in pipeline[scope]:
@@ -605,16 +821,23 @@ def _preflight(
             ]
             missing_inputs: list[str] = []
             blocked_region_ids: set[str] = set()
+            stage_region_ids = (
+                advanced_region_ids
+                if stage["name"] in {"datalab_navigation", "relative_supply", "ai_report"}
+                else region_ids
+            )
             for template in stage.get("inputs", []):
                 if "{region_id}" in template or "{raw_csv}" in template:
                     if scope == "region_stages":
-                        for region_id in region_ids:
+                        for region_id in stage_region_ids:
                             region = regions.find_region(region_id)
                             values = {
                                 **base_values,
                                 "region_id": region_id,
                                 "region_name": region["region_name"] if region else region_id,
                                 "raw_csv": str(raw_root / region_id / "navigation.csv"),
+                                "raw_root": str(raw_root),
+                                "kakao_run_id": kakao_run_id,
                             }
                             if not Path(template.format_map(values)).exists():
                                 blocked_region_ids.add(region_id)
@@ -649,9 +872,28 @@ def _preflight(
                 "blocked_region_ids": sorted(blocked_region_ids),
             })
 
-    release_ready = raw_valid == len(region_ids) and all(
-        count == len(region_ids) for count in artifact_counts.values()
+    missing_portfolios = {
+        region_id
+        for region_id in region_ids
+        if not (release_root / artifacts.PORTFOLIOS_DIR / f"{region_id}.json").is_file()
+    }
+    release_ready = (
+        artifact_counts[artifacts.PEER_CANDIDATES_DIR] == len(region_ids)
+        and artifact_counts[artifacts.PERFORMANCE_DIR] == len(region_ids)
+        and artifact_counts[artifacts.HUBS_DIR] == len(region_ids)
+        and missing_portfolios.issubset(PROVIDER_UNAVAILABLE_PORTFOLIOS)
     )
+    advanced_ready = (
+        raw_valid == len(advanced_input_region_ids)
+        and kakao_database_status["valid"]
+        and kakao_database_status["marker_matches"] is True
+        and all(
+            artifact_counts[directory] >= len(advanced_region_ids)
+            for directory in ADVANCED_ARTIFACT_DIRECTORIES
+        )
+    )
+    if require_advanced:
+        release_ready = release_ready and advanced_ready
     return {
         "ready": release_ready,
         "python": {"executable": sys.executable, "available": Path(sys.executable).is_file()},
@@ -669,13 +911,25 @@ def _preflight(
             "missing_region_ids": unmapped_tour_regions,
         },
         "national_boundaries": boundary_status,
+        "kakao_database": kakao_database_status,
         "raw_navigation": {
             "valid_count": raw_valid,
-            "required_count": len(region_ids),
+            "required_count": len(advanced_input_region_ids),
+            "required_region_ids": list(advanced_input_region_ids),
             "missing_or_invalid_region_ids": raw_invalid,
+            "scope_error": advanced_scope_error,
         },
         "artifacts": {
-            name: {"count": count, "required_count": len(region_ids)}
+            name: {
+                "count": count,
+                "required_count": (
+                    len(region_ids) - len(PROVIDER_UNAVAILABLE_PORTFOLIOS)
+                    if name == artifacts.PORTFOLIOS_DIR
+                    else len(advanced_region_ids)
+                    if name in ADVANCED_ARTIFACT_DIRECTORIES
+                    else len(region_ids)
+                ),
+            }
             for name, count in artifact_counts.items()
         },
         "embedded_development_artifacts": embedded_counts,
@@ -726,12 +980,13 @@ def _configured_boundary_path(
 
 
 def _postgresql_database_url() -> bool:
-    values = {**_dotenv_values(), **{key: value for key, value in os.environ.items() if value}}
-    url = (
-        values.get("CONTENT_DATABASE_URL", "").strip()
-        or values.get("AUTH_DATABASE_URL", "").strip()
-    )
+    url = _content_database_url()
     return url.startswith(("postgresql://", "postgresql+psycopg://"))
+
+
+def _content_database_url() -> str:
+    values = {**_dotenv_values(), **{key: value for key, value in os.environ.items() if value}}
+    return values.get("CONTENT_DATABASE_URL", "").strip()
 
 
 def _configured_env_names(dotenv_path: Path = Path(".env")) -> set[str]:

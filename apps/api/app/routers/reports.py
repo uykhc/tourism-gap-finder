@@ -19,6 +19,7 @@ router = APIRouter(prefix="/regions", tags=["reports"])
 def get_report(region_id: RegionIdPath, _: CurrentUser) -> RegionReport:
     """유형별 공급 빈칸 진단과 그 근거.
 
-    배포 가능한 산출물이 없는 지역은 `REPORT_NOT_READY`를 반환한다.
+    상세 산출물이 아직 없는 지역은 `INSUFFICIENT_DATA` 준비 중 보고서를
+    반환한다. 존재하지 않는 region_id만 404다.
     """
     return RegionReport.model_validate(report_service.build_region_report(region_id))

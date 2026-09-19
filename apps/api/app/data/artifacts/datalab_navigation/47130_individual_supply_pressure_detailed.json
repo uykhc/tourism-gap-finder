@@ -4,10 +4,10 @@
   "analysis_period": {
     "selection": "latest_available_months",
     "month_count": 12,
-    "start_ym": "202508",
-    "end_ym": "202607",
-    "available_source_start_ym": "202508",
-    "available_source_end_ym": "202607"
+    "start_ym": "202509",
+    "end_ym": "202608",
+    "available_source_start_ym": "202509",
+    "available_source_end_ym": "202608"
   },
   "selection_type": "structural_similarity_candidates",
   "peer_regions": [
@@ -20,10 +20,10 @@
     "analysis_period": {
       "selection": "latest_available_months",
       "month_count": 12,
-      "start_ym": "202508",
-      "end_ym": "202607",
-      "available_source_start_ym": "202508",
-      "available_source_end_ym": "202607"
+      "start_ym": "202509",
+      "end_ym": "202608",
+      "available_source_start_ym": "202509",
+      "available_source_end_ym": "202608"
     },
     "provenance": {
       "demand_source": "한국관광 데이터랩",
@@ -87,7 +87,7 @@
     ],
     "ai_report_context": {
       "region_name": "경주시",
-      "analysis_period": "202508~202607",
+      "analysis_period": "202509~202608",
       "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
       "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
       "priority_order_by_supply_pressure": [
@@ -183,10 +183,10 @@
       "analysis_period": {
         "selection": "latest_available_months",
         "month_count": 12,
-        "start_ym": "202508",
-        "end_ym": "202607",
-        "available_source_start_ym": "202508",
-        "available_source_end_ym": "202607"
+        "start_ym": "202509",
+        "end_ym": "202608",
+        "available_source_start_ym": "202509",
+        "available_source_end_ym": "202608"
       },
       "provenance": {
         "demand_source": "한국관광 데이터랩",
@@ -250,7 +250,7 @@
       ],
       "ai_report_context": {
         "region_name": "포항시",
-        "analysis_period": "202508~202607",
+        "analysis_period": "202509~202608",
         "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
         "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
         "priority_order_by_supply_pressure": [
@@ -345,10 +345,10 @@
       "analysis_period": {
         "selection": "latest_available_months",
         "month_count": 12,
-        "start_ym": "202508",
-        "end_ym": "202607",
-        "available_source_start_ym": "202508",
-        "available_source_end_ym": "202607"
+        "start_ym": "202509",
+        "end_ym": "202608",
+        "available_source_start_ym": "202509",
+        "available_source_end_ym": "202608"
       },
       "provenance": {
         "demand_source": "한국관광 데이터랩",
@@ -412,7 +412,7 @@
       ],
       "ai_report_context": {
         "region_name": "서산시",
-        "analysis_period": "202508~202607",
+        "analysis_period": "202509~202608",
         "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
         "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다.",
         "priority_order_by_supply_pressure": [
@@ -635,7 +635,7 @@
   ],
   "ai_report_context": {
     "region_name": "경주시",
-    "analysis_period": "202508~202607",
+    "analysis_period": "202509~202608",
     "metric_definition": "유형별 내비게이션 목적지 검색량 ÷ 카카오맵 유형별 장소 수",
     "limitation": "단일 지역 결과이므로 전국 또는 Peer percentile은 산출하지 않았습니다. Peer는 구조적 유사 후보이며 관광 성과 검증 전입니다. 전국 percentile도 아직 산출하지 않았습니다.",
     "priority_order_by_supply_pressure": [
