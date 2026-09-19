@@ -104,7 +104,9 @@ const regionMetricSchema = z.object({
   region_id: z.string(),
   region_name: z.string(),
   value: z.number().finite(),
-  target_to_benchmark_ratio: z.number().finite().optional(),
+  // The target itself has no comparison baseline, so the API represents its
+  // ratio as null. Benchmark rows contain a numeric ratio.
+  target_to_benchmark_ratio: z.number().finite().nullable().optional(),
 });
 
 const searchMetricSchema = z.object({
@@ -136,7 +138,7 @@ const quantitativeEvidenceSchema = z.object({
       region_id: z.string(),
       region_name: z.string(),
       benchmark_value: z.number().finite(),
-      target_to_benchmark_ratio: z.number().finite(),
+      target_to_benchmark_ratio: z.number().finite().nullable(),
     })
   ),
   rank: z.number().int().positive().optional(),

@@ -130,7 +130,7 @@ export interface RegionMetricDto {
   region_id: string;
   region_name: string;
   value: number;
-  target_to_benchmark_ratio?: number;
+  target_to_benchmark_ratio?: number | null;
 }
 
 export interface ContentTypeSearchMetricDto {
@@ -170,7 +170,7 @@ export interface QuantitativeEvidenceDto {
     region_id: string;
     region_name: string;
     benchmark_value: number;
-    target_to_benchmark_ratio: number;
+    target_to_benchmark_ratio: number | null;
   }>;
   rank?: number;
   total_count?: number;
