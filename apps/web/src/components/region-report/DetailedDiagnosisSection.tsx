@@ -35,16 +35,18 @@ const getEvidenceText = (evidence: QuantitativeEvidenceDto) => {
         ? evidence.comparisons
             .map(
               (comparison) =>
-                `${comparison.region_name} 대비 ${formatRatio(
-                  comparison.target_to_benchmark_ratio
-                )}`
+                `${comparison.region_name} 대비 ${
+                  comparison.target_to_benchmark_ratio === null
+                    ? '—'
+                    : formatRatio(comparison.target_to_benchmark_ratio)
+                }`
             )
             .join(' · ')
         : `최저 ${formatRatio(evidence.value)}`;
     case 'LOWER_BENCHMARK_COUNT':
       return `${formatCount(evidence.value)}곳보다 낮음`;
     case 'SEARCHES_PER_PLACE':
-      return evidence.rank && evidence.total_count
+      return evidence.rank !== null && evidence.total_count !== null
         ? `${formatCount(evidence.value)}회 · ${evidence.total_count}개 유형 중 ${evidence.rank}위`
         : `${formatCount(evidence.value)}회`;
     case 'SUPPLY_PLACE_COUNT':

@@ -53,6 +53,7 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
         region_id: '47130',
         region_name: '경주시',
         value: 6.57,
+        target_to_benchmark_ratio: null,
       },
       benchmarks: [
         {
@@ -209,6 +210,8 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
               target_to_benchmark_ratio: 0.6959,
             },
           ],
+          rank: null,
+          total_count: null,
         },
         {
           metric_code: 'SEARCHES_PER_PLACE',
@@ -226,7 +229,7 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
       content_type: 'SHOPPING',
       signal_level: 'NEEDS_REVIEW',
       judgement:
-        '포항시보다 공급이 낮지만 서산시보다 높아 공급 부족 신호가 한쪽 비교 지역에서만 관찰됩니다.',
+        '포항시보다 공급이 낮고, 서산시와의 비교 비율은 아직 산출되지 않았습니다.',
       quantitative_evidence: [
         {
           metric_code: 'MIN_BENCHMARK_SUPPLY_RATIO',
@@ -242,9 +245,11 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
               region_id: '44210',
               region_name: '서산시',
               benchmark_value: 9.56,
-              target_to_benchmark_ratio: 1.13,
+              target_to_benchmark_ratio: null,
             },
           ],
+          rank: null,
+          total_count: null,
         },
       ],
       applicability_insight:
@@ -424,7 +429,7 @@ export const pohangRegionReport: RegionReportResponseDto = {
 export const seosanInsufficientReport: RegionReportResponseDto = {
   ...gyeongjuRegionReport,
   report_version: '2026-09-09',
-  report_status: 'FINAL',
+  report_status: 'PROVISIONAL',
   target: {
     region_id: '44210',
     province_name: '충청남도',
@@ -435,7 +440,7 @@ export const seosanInsufficientReport: RegionReportResponseDto = {
     diagnosis_status: 'INSUFFICIENT_DATA',
     primary_gap_type: null,
     one_line_review: {
-      text: '서산시는 현재 분석에 필요한 검색·공급 데이터가 충분하지 않아 관광 빈칸을 판단하기 어렵습니다.',
+      text: '현재 이 지역의 상세 관광 분석을 준비하고 있습니다.',
       source: 'TEMPLATE',
       generated_at: null,
     },
@@ -444,11 +449,16 @@ export const seosanInsufficientReport: RegionReportResponseDto = {
   evidence: {
     supply_density: {
       content_type: 'UNKNOWN',
-      target: { region_id: '44210', region_name: '서산시', value: 0 },
+      target: {
+        region_id: '44210',
+        region_name: '서산시',
+        value: 0,
+        target_to_benchmark_ratio: null,
+      },
       benchmarks: [],
     },
     searches_per_place: {
-      metric_definition: '분석 가능한 데이터가 충분하지 않습니다.',
+      metric_definition: '상세 분석 준비 중',
       items: [],
     },
   },
@@ -457,9 +467,17 @@ export const seosanInsufficientReport: RegionReportResponseDto = {
   recommended_actions: [],
   benchmark_cases: [],
   methodology: {
-    ...gyeongjuRegionReport.methodology,
-    provisional_notice: null,
-    limitations: ['분석 기간에 필요한 검색·공급 데이터가 충분하지 않습니다.'],
+    benchmark_selection_rule:
+      '분석 준비가 완료된 후 비교 기준 지역을 선정합니다.',
+    benchmark_selection_note: '현재는 상세 비교 결과를 제공하지 않습니다.',
+    supply_comparison_rule: '비교 기준 지역과 관광 콘텐츠 현황을 비교합니다.',
+    search_pressure_definition:
+      '관광 검색 수요와 관련 콘텐츠 현황을 함께 살펴봅니다.',
+    provisional_notice:
+      '분석에 필요한 데이터가 보강되면 상세 진단과 추천 내용을 제공할 예정입니다.',
+    limitations: [
+      '분석에 필요한 데이터가 보강되면 상세 진단과 추천 내용을 제공할 예정입니다.',
+    ],
   },
   sources: [],
 };
