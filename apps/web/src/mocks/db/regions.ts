@@ -25,6 +25,12 @@ export const provinces: ProvinceSummary[] = [
 
 export const regions: RegionRef[] = [
   {
+    region_id: '36110',
+    province_name: '세종특별자치시',
+    region_name: '세종특별자치시',
+    administrative_type: '특별자치시',
+  },
+  {
     region_id: '47130',
     province_name: '경상북도',
     region_name: '경주시',

@@ -1,3 +1,5 @@
+import type { AdministrativeType } from './regions';
+
 export interface SignUpRequest {
   email: string;
   password: string;
@@ -25,7 +27,7 @@ export interface RegionRef {
   region_id: string;
   province_name: string;
   region_name: string;
-  administrative_type: '시' | '군' | '자치구';
+  administrative_type: AdministrativeType;
 }
 
 export interface UserResponse {
