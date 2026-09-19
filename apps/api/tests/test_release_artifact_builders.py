@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import csv
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -17,11 +18,14 @@ from hankkeut_calculation.gap_analyzer.models import (
 from scripts.build_release_artifacts import (
     _demand_scores_for_month,
     _write_json,
+    build_datalab_pressure,
+    build_relative_supply,
     collect_hubs,
     hubs_envelope,
     performance_envelope,
     portfolio_envelope,
     select_performance_peers,
+    validate_kakao_database,
     validate_boundaries,
 )
 
@@ -214,3 +218,98 @@ def test_boundary_validation_requires_complete_wgs84_region_set(tmp_path: Path) 
     result = validate_boundaries(path, expected_region_ids={"47130"})
 
     assert result["region_count"] == 1
+
+
+def test_database_run_drives_target_and_peer_pressure_and_relative_supply(
+    tmp_path: Path,
+) -> None:
+    peer_dir = tmp_path / "peers"
+    performance_dir = tmp_path / "performance"
+    raw_root = tmp_path / "raw"
+    peer_path = peer_dir / "47130.json"
+    _write_json(peer_path, {"peers": [
+        {"region_id": "47110"}, {"region_id": "44210"},
+    ]})
+    for region_id, score in {"47130": 0.5, "47110": 0.7, "44210": 0.6}.items():
+        _write_json(
+            performance_dir / f"{region_id}.json",
+            {"performance": {"composite_score": score}},
+        )
+        _write_period_total_csv(raw_root / region_id / "navigation.csv")
+    marker = tmp_path / "release" / "source-markers" / "kakao.json"
+
+    run_data = _kakao_run(["47130", "47110", "44210"])
+    with (
+        mock.patch(
+            "scripts.build_release_artifacts.required_advanced_region_ids",
+            return_value=["47130", "47110", "44210"],
+        ),
+        mock.patch(
+            "hankkeut_calculation.datalab_navigation.kakao_supply._read_supply_run",
+            return_value=run_data,
+        ),
+    ):
+        handoff = validate_kakao_database(
+            "postgresql://example",
+            "run-1",
+            peer_artifact_dir=peer_dir,
+            performance_dir=performance_dir,
+            marker=marker,
+        )
+        pressure = build_datalab_pressure(
+            "47130",
+            raw_root=raw_root,
+            database_url="postgresql://example",
+            kakao_run_id="run-1",
+            peer_artifact=peer_path,
+            performance_dir=performance_dir,
+            period_start_ym="202509",
+            period_end_ym="202608",
+        )
+        relative = build_relative_supply(
+            "47130",
+            peer_artifact=peer_path,
+            performance_dir=performance_dir,
+            database_url="postgresql://example",
+            kakao_run_id="run-1",
+            max_peers=3,
+        )
+
+    assert handoff["required_region_count"] == 3
+    assert marker.is_file()
+    assert pressure["target_region_id"] == "47130"
+    assert pressure["peer_region_ids"] == ["47110", "44210"]
+    assert pressure["peer_regions"] == ["포항시", "서산시"]
+    assert [row["region_id"] for row in relative["peer_regions"]] == ["47110", "44210"]
+
+
+def _write_period_total_csv(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        ("자연관광", 10), ("역사관광", 10), ("문화관광", 20),
+        ("체험관광", 10), ("레저스포츠", 10), ("쇼핑", 20),
+        ("음식", 10), ("숙박", 10), ("기타관광", 10),
+    ]
+    with path.open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["카테고리중분류명", "유형별 검색건수"])
+        writer.writerows(rows)
+
+
+def _kakao_run(region_ids: list[str]) -> tuple[dict, list[tuple]]:
+    content_types = (
+        "FOOD", "ACCOMMODATION", "CULTURE_TOURISM",
+        "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING",
+    )
+    metadata = {
+        "run_id": "run-1",
+        "taxonomy_version": "tourism-v1",
+        "collected_at": "2026-09-19T00:00:00+09:00",
+        "status": "completed",
+    }
+    rows = [
+        (region_id, name, index + 1, True, 0)
+        for region_id in region_ids
+        for index, name in enumerate(content_types)
+    ]
+    return metadata, rows

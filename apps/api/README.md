@@ -24,8 +24,8 @@ alembic upgrade head
 ```
 
 운영 요청 경로는 분석 패키지나 외부 API를 호출하지 않고, 검증 후 활성화된
-사전 계산 산출물만 읽습니다. 알려진 지역의 산출물이 없거나 미완성이면
-`REPORT_NOT_READY` 오류를 반환합니다.
+사전 계산 산출물만 읽습니다. 알려진 지역의 상세 리포트가 미완성이면 `/report`는
+준비 중 응답을 반환하고, 원시 `/gaps`만 `REPORT_NOT_READY`를 반환합니다.
 
 - Swagger UI: <http://localhost:8000/docs>
 - ReDoc: <http://localhost:8000/redoc>
@@ -37,7 +37,7 @@ alembic upgrade head
 ## Railway 배포
 
 레포 루트의 `Dockerfile`과 `railway.json`은 이 FastAPI 서비스만 빌드한다.
-Railway가 제공하는 `PORT`를 사용하며 `/health`를 배포 헬스체크로 사용한다.
+Railway가 제공하는 `PORT`를 사용하며 `/ready`를 배포 헬스체크로 사용한다.
 
 배포 전 Railway 서비스 Variables에 최소한 아래 값을 설정한다.
 
@@ -46,6 +46,7 @@ AUTH_DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST:5432/DATABASE
 AUTH_JWT_SECRET=32자 이상의 무작위 비밀값
 API_CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
 ANALYSIS_ARTIFACT_ROOT=/data/artifacts
+REQUIRED_ADVANCED_REPORT_COUNT=5
 ```
 
 이미지에는 API와 분석 패키지 소스, 그리고 `apps/api/app/data`의 지역 표·코드
@@ -95,25 +96,50 @@ python scripts/build_peer_artifacts.py
 교체됩니다.
 
 ```bash
-python scripts/build_api_release.py \
-  --release-id 2026-09 \
-  --artifact-root /data/artifacts \
-  --raw-root /data/raw/datalab_navigation \
-  --pipeline-config /data/config/release-pipeline.json \
+# 기존 전국 기본 산출물만 복사한다. 원천 API는 다시 호출하지 않는다.
+mkdir -p data/artifacts/releases/launch-202608
+for directory in peer_candidates performance portfolios hubs; do
+  cp -R "data/artifacts/releases/baseline-202608/$directory" \
+        "data/artifacts/releases/launch-202608/$directory"
+done
+
+# 심화 단계만 순서대로 실행한다.
+python -m scripts.build_api_release \
+  --release-id launch-202608 \
+  --artifact-root data/artifacts \
+  --raw-root data/raw/datalab_navigation \
+  --kakao-run-id "$KAKAO_COLLECTION_RUN_ID" \
+  --pipeline-config pipelines/api-release.json \
   --base-year-month 202608 \
+  --only-stage kakao_database
+python -m scripts.build_api_release --release-id launch-202608 \
+  --kakao-run-id "$KAKAO_COLLECTION_RUN_ID" --pipeline-config pipelines/api-release.json \
+  --only-stage datalab_navigation
+python -m scripts.build_api_release --release-id launch-202608 \
+  --kakao-run-id "$KAKAO_COLLECTION_RUN_ID" --pipeline-config pipelines/api-release.json \
+  --only-stage relative_supply
+python -m scripts.build_api_release --release-id launch-202608 \
+  --kakao-run-id "$KAKAO_COLLECTION_RUN_ID" --pipeline-config pipelines/api-release.json \
+  --only-stage ai_report
+
+# 생산 단계를 호출하지 않고 기존 산출물만 검증·활성화한다.
+python -m scripts.build_api_release \
+  --release-id launch-202608 \
+  --require-advanced \
   --activate
 ```
 
-데이터랩 CSV는 `<raw-root>/<region_id>/navigation.csv`에 두며 `기준연월`,
-`목적지 유형`, `목적지 검색량` 열이 필요합니다. release는 `peer_candidates`,
+데이터랩 CSV는 `<raw-root>/<region_id>/navigation.csv`에 두며
+`카테고리중분류명`, `유형별 검색건수` 열이 필요합니다. 분석 기간은
+`202509~202608`이고 입력 단위는 기간합계입니다. release는 `peer_candidates`,
 `relative_supply`, `datalab_navigation`, `ai_reports`, `performance`, `portfolios`, `hubs`
 각 디렉터리에 `<region_id>.json`을 가져야 합니다. 실패 내역은
 `release-manifest.json`에 지역별로 기록됩니다.
 
-전국 경계는 `sgis_boundaries` 단계가 SGIS EPSG:5179 응답을 WGS84로 변환해
-release의 `source-boundaries/national_sigungu.geojson`에 둡니다. SGIS에 아직 없는
-2026년 인천 신설 4개 구는 `data/raw/national_sigungu_overrides.geojson`에 공식 경계와
-TourAPI 코드를 제공해야 하며, 없으면 release를 만들지 않습니다.
+Kakao 담당자는 `content_collection_runs`와 `region_content_counts`에 수집 결과를
+적재합니다. 심화 release 생성기는 `CONTENT_DATABASE_URL`과 명시적인 completed
+`KAKAO_COLLECTION_RUN_ID`로 한 run만 읽습니다. 검증된 run의 해시·버전·수집시각은
+release의 `source-markers/`에 기록됩니다.
 
 `--pipeline-config`는 생산 명령을 실행하는 선택형 JSON입니다. 전국에서 한 번 실행할
 작업은 `global_stages`, 지역별 작업은 `region_stages`에 둡니다. 각 단계는 `name`,
@@ -126,12 +152,25 @@ TourAPI 코드를 제공해야 하며, 없으면 release를 만들지 않습니�
 있습니다. 외부 API 생산기는 `{cache_root}` 또는 `HANKKEUT_CACHE_ROOT`를 캐시 위치로
 사용하도록 구성합니다.
 
-`pipelines/api-release.json`에는 전국 Peer·Kakao 콘텐츠·Performance와 지역별
+`pipelines/api-release.json`에는 전국 Peer·Kakao DB 검증·Performance와 지역별
 Portfolio·Hub·데이터랩·상대공급·AI 보고서 생산 단계가 연결돼 있습니다.
 `--only-stage peer_candidates`는 그 단계만 실행하고 release 활성화는 하지 않습니다.
-`--preflight`는 외부 호출 없이 키 존재 여부, 데이터랩 CSV와 7종 산출물의 지역별
-준비 수, 전국 경계·TourAPI 코드·기준월 상태를 JSON으로 보고하며 비밀값은 출력하지
+`--preflight`는 원천 API 호출 없이 키 존재 여부, 데이터랩 CSV와 7종 산출물의 지역별
+준비 수, Kakao DB run·TourAPI 코드·기준월 상태를 JSON으로 보고하며 비밀값은 출력하지
 않습니다. `.env` 값은 필요한 subprocess에만 전달하며 로그에는 기록하지 않습니다.
+
+출시용 release는 다음처럼 전달 파일로 묶습니다. 생성된 archive와 `.sha256`을
+Railway 영구 볼륨 호스트로 옮겨 체크섬을 확인한 뒤 `/data/artifacts`에서 풀고,
+`current`가 `releases/launch-202608`을 가리키게 합니다. 원천 CSV와
+생성 산출물은 Git에 커밋하지 않습니다.
+
+```bash
+python -m scripts.package_api_release \
+  --artifact-root data/artifacts \
+  --release-id launch-202608 \
+  --output dist/launch-202608.tar.gz
+sha256sum -c dist/launch-202608.tar.gz.sha256
+```
 
 직전 release로 복구할 때는 그 release ID와 `--retry-failed --activate`를 사용합니다.
 이미 완료된 230개 지역을 다시 생산하지 않고 검증된 기존 release의 `current` 링크를

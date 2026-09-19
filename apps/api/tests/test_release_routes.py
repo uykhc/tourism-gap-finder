@@ -37,6 +37,50 @@ def test_release_endpoints_require_authentication() -> None:
         app.dependency_overrides[current_user] = override
 
 
+def test_ready_requires_configured_advanced_report_count(monkeypatch) -> None:
+    monkeypatch.setenv("REQUIRED_ADVANCED_REPORT_COUNT", "5")
+    manifest = {
+        "release_id": "launch-202608",
+        "status": "complete",
+        "complete_count": 230,
+        "failed_count": 0,
+        "advanced_report_ready_count": 4,
+        "advanced_report_target_count": 5,
+    }
+    with (
+        mock.patch("apps.api.app.main.SessionLocal") as session_local,
+        mock.patch.object(artifacts, "release_manifest", return_value=manifest),
+    ):
+        session_local.return_value.__enter__.return_value.execute.return_value = None
+        response = TestClient(app).get("/ready")
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "ADVANCED_REPORTS_NOT_READY",
+        "ready_count": 4,
+        "required_count": 5,
+    }
+
+
+def test_ready_accepts_five_advanced_reports(monkeypatch) -> None:
+    monkeypatch.setenv("REQUIRED_ADVANCED_REPORT_COUNT", "5")
+    manifest = {
+        "release_id": "launch-202608",
+        "status": "complete",
+        "complete_count": 230,
+        "failed_count": 0,
+        "advanced_report_ready_count": 5,
+        "advanced_report_target_count": 5,
+    }
+    with (
+        mock.patch("apps.api.app.main.SessionLocal") as session_local,
+        mock.patch.object(artifacts, "release_manifest", return_value=manifest),
+    ):
+        session_local.return_value.__enter__.return_value.execute.return_value = None
+        response = TestClient(app).get("/ready")
+    assert response.status_code == 200
+    assert response.json()["advanced_report_ready_count"] == 5
+
+
 def test_performance_and_compare_read_precomputed_artifacts() -> None:
     with TemporaryDirectory() as directory:
         root = Path(directory)

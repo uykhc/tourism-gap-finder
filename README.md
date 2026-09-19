@@ -82,18 +82,22 @@ hankkeut-similarity --region 수원시 --peer-k 5 \\
   --output data/analysis/peer_candidates/suwon_structural_peer_candidates.json
 ```
 
-데이터랩 월별 내비게이션 검색량은 다음처럼 카카오 공급 장소 수와 결합합니다.
+데이터랩 `202509~202608` 기간합계 검색량은 검증된 Kakao DB 수집 run과
+release 파이프라인에서 결합합니다. CSV는 대상과 선정 Peer별로
+`data/raw/datalab_navigation/<region-id>/navigation.csv`에 둡니다.
 
 ```bash
-hankkeut-datalab-navigation \\
-  --input data/raw/datalab_navigation/suwon/202501-202607/navigation_destination_type_search_count_monthly.csv \\
-  --region-name 수원시 \\
-  --kakao-collection data/analysis/kakao_regions/kakao_tourism_content.json \\
-  --import-output data/analysis/datalab_navigation/suwon_navigation_demand_import.json \\
-  --output data/analysis/datalab_navigation/suwon_supply_pressure_report.json
+python -m scripts.build_api_release \\
+  --release-id launch-202608 \\
+  --only-stage kakao_database \\
+  --only-stage datalab_navigation \\
+  --kakao-run-id "$KAKAO_COLLECTION_RUN_ID"
 ```
 
-명령은 CSV의 월별 전체값과 유형별 합계가 일치하는지 검증한 뒤, 최신 12개월을 기본 분석 기간으로 선택합니다. `자연관광`·`역사관광`은 문화관광으로 통합하고 `기타관광`은 원본에 보존하되 공급압력 계산에서 제외합니다. Peer CSV를 같은 형식으로 추가하면 다음 단계에서 Peer 비교와 percentile 산출에 활용할 수 있습니다.
+CSV는 `카테고리중분류명`·`유형별 검색건수` 형식이며 월별 값을 만들지 않습니다.
+`자연관광`·`역사관광`은 문화관광으로 통합하고 `기타관광`은 원본에 보존하되
+공급압력 계산에서 제외합니다. DB에 저장된 한글 또는 영문 유형은 adapter 경계에서
+영문 6개 코드로 정규화하며, 이후 분석에는 영문 코드만 사용합니다.
 
 AI 파일럿 리포트는 공급압력 결과와 확인된 Peer 사례를 분리해 처리합니다. `OPENAI_API_KEY`는 `.env` 또는 배포 환경변수에만 설정하고 브라우저에 노출하지 않습니다. 기본 모델은 `gpt-5.6-luna`입니다.
 
@@ -113,7 +117,7 @@ hankkeut-ai-tourism-report \
   --output data/analysis/ai_reports/suwon_pilot_report.json
 ```
 
-구조적 Peer 후보는 SGIS 실데이터와 전국 TourAPI 지역 마스터로 산출합니다. Peer 후보는 아직 성과가 검증된 `우수 Peer`가 아니며, 다음 단계에서 데이터랩 월별 수요와 공급압력·성과를 결합해 선별합니다.
+구조적 Peer 후보는 SGIS 실데이터와 전국 TourAPI 지역 마스터로 산출합니다. Peer 후보는 아직 성과가 검증된 `우수 Peer`가 아니며, 다음 단계에서 기간합계 수요와 공급압력·성과를 결합해 선별합니다.
 
 ```bash
 # Peer 분석 의존성 설치
@@ -126,7 +130,7 @@ hankkeut-similarity-collect --all
 hankkeut-similarity --region 수원시 --peer-k 5 \
   --output data/analysis/peer_candidates/suwon_structural_peer_candidates.json
 
-# 각 후보에 내려받아야 할 데이터랩 월별 CSV 목록을 생성한다.
+# 각 후보에 내려받아야 할 데이터랩 기간합계 CSV 목록을 생성한다.
 hankkeut-datalab-peer-manifest \
   --peer-result data/analysis/peer_candidates/suwon_structural_peer_candidates.json \
   --output data/analysis/datalab_navigation/suwon_peer_navigation_input_manifest.json

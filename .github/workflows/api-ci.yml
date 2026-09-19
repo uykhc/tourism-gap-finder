@@ -10,7 +10,11 @@ on:
       - 'pyproject.toml'
       - 'alembic.ini'
       - 'migrations/**'
-      - 'scripts/build_api_release.py'
+      - 'scripts/**'
+      - 'pipelines/**'
+      - 'railway.json'
+      - 'Dockerfile'
+      - '.env.example'
       - '.github/workflows/api-ci.yml'
   push:
     branches: [main]

@@ -10,9 +10,12 @@ from typing import Any
 
 from apps.api.app.services import regions
 try:  # module import in tests/package usage
-    from scripts.build_release_artifacts import select_performance_peers
+    from scripts.build_release_artifacts import (
+        ADVANCED_REPORT_TARGETS,
+        select_performance_peers,
+    )
 except ModuleNotFoundError:  # direct `python scripts/datalab_intake_manifest.py`
-    from build_release_artifacts import select_performance_peers
+    from build_release_artifacts import ADVANCED_REPORT_TARGETS, select_performance_peers
 
 
 REQUIRED_COLUMNS = {"카테고리중분류명", "유형별 검색건수"}
@@ -21,7 +24,7 @@ EXPECTED_SOURCE_TYPES = {
     "자연관광", "역사관광", "체험관광", "문화관광", "레저스포츠",
     "쇼핑", "음식", "숙박", "기타관광",
 }
-TARGET_REGION_IDS = ("26350", "41590", "51150", "47130", "12130")
+TARGET_REGION_IDS = ADVANCED_REPORT_TARGETS
 START_YM = "202509"
 END_YM = "202608"
 EXPECTED_MONTHS = (

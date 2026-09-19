@@ -2,7 +2,8 @@ import csv
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+
+from hankkeut_calculation.datalab_navigation.kakao_supply import MemorySupplyProvider
 
 from hankkeut_calculation.datalab_navigation.navigation_demand import (
     build_supply_pressure_report,
@@ -45,17 +46,13 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 "taxonomy_version": "test", "is_complete": True,
                 "truncated_tile_count": 0, "source": "test",
             }
-            with patch(
-                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
-                return_value=supply,
-            ):
-                report = build_supply_pressure_report(
-                    demand_import,
-                    taxonomy=taxonomy,
-                    content_database_url="postgresql://example",
-                    region_id="41110",
-                    month_count=12,
-                )
+            report = build_supply_pressure_report(
+                demand_import,
+                taxonomy=taxonomy,
+                supply_provider=_provider("41110", supply),
+                region_id="41110",
+                month_count=12,
+            )
 
         self.assertEqual(report["analysis_period"]["start_ym"], "202509")
         self.assertEqual(report["analysis_period"]["end_ym"], "202608")
@@ -92,14 +89,11 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
-            with patch(
-                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
-                return_value=supply,
-            ):
-                report = build_supply_pressure_report(
-                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
-                    region_id="41:115", month_count=2,
-                )
+            report = build_supply_pressure_report(
+                demand_import, taxonomy=taxonomy,
+                supply_provider=_provider("41:115", supply),
+                region_id="41:115", month_count=2,
+            )
 
         metrics = {metric["content_type"]: metric for metric in report["content_type_metrics"]}
         self.assertEqual(metrics["CULTURE_TOURISM"]["navigation_search_count"], 90)
@@ -119,7 +113,7 @@ class DataLabNavigationDemandTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "전체 검색량"):
                 import_navigation_demand_csv(csv_path, region_name="수원시", taxonomy=taxonomy)
 
-    def test_can_use_postgres_counts_with_a_nationwide_region_id(self):
+    def test_can_use_provider_counts_with_a_nationwide_region_id(self):
         with tempfile.TemporaryDirectory() as directory:
             csv_path = Path(directory) / "navigation.csv"
             _write_csv(csv_path, [
@@ -137,17 +131,13 @@ class DataLabNavigationDemandTest(unittest.TestCase):
                 "taxonomy_version": "test", "is_complete": True, "truncated_tile_count": 0,
                 "source": "postgres:region_content_counts/41:115",
             }
-            with patch(
-                "hankkeut_calculation.datalab_navigation.navigation_demand._load_kakao_supply_from_database",
-                return_value=supply,
-            ) as load_database:
-                report = build_supply_pressure_report(
-                    demand_import, taxonomy=taxonomy, content_database_url="postgresql://example",
-                    region_id="41:115", month_count=1,
-                )
+            report = build_supply_pressure_report(
+                demand_import, taxonomy=taxonomy,
+                supply_provider=_provider("41:115", supply),
+                region_id="41:115", month_count=1,
+            )
 
-        load_database.assert_called_once_with("postgresql://example", "41:115", taxonomy.content_types)
-        self.assertEqual(report["provenance"]["kakao_supply_source"], "postgres:region_content_counts/41:115")
+        self.assertIn("41:115", report["provenance"]["kakao_supply_source"])
 
     def test_restores_an_omitted_zero_destination_type_when_total_proves_it(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -257,6 +247,13 @@ def _kakao_region(region_name, overrides):
               "EXPERIENCE_TOURISM": 0, "LEISURE_SPORTS": 0, "SHOPPING": 0}
     counts.update(overrides)
     return {"region_name": region_name, "content_type_counts": counts, "is_complete": True}
+
+
+def _provider(region_id, supply):
+    return MemorySupplyProvider(
+        {region_id: supply},
+        taxonomy_version=str(supply["taxonomy_version"]),
+    )
 
 
 if __name__ == "__main__":

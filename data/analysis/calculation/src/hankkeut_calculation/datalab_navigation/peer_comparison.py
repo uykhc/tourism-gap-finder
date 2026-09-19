@@ -14,6 +14,7 @@ from .navigation_demand import (
     import_navigation_demand_csv,
     load_navigation_demand_taxonomy,
 )
+from .kakao_supply import PostgresKakaoSupplyProvider
 
 
 DEFAULT_MAX_COMPARISON_PEERS = 3
@@ -113,6 +114,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--peer", action="append", required=True, help="REGION_ID,REGION_NAME=monthly_csv_path; repeat for each peer.")
     parser.add_argument("--max-peers", type=int, default=DEFAULT_MAX_COMPARISON_PEERS)
     parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
+    parser.add_argument("--kakao-run-id", help="Completed Kakao collection run UUID.")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12)
     parser.add_argument("--period-start-ym", help="Period-total CSV start month in YYYYMM.")
@@ -126,12 +128,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         target = _load_json(args.target_report)
         taxonomy = load_navigation_demand_taxonomy(args.taxonomy)
-        database_url = args.content_database_url or os.getenv("CONTENT_DATABASE_URL") or os.getenv("AUTH_DATABASE_URL")
-        if not database_url:
-            raise ValueError("CONTENT_DATABASE_URL이 필요합니다.")
+        database_url = args.content_database_url or os.getenv("CONTENT_DATABASE_URL", "")
+        peer_specs = [_parse_peer(raw_peer) for raw_peer in args.peer]
+        provider = PostgresKakaoSupplyProvider(
+            database_url,
+            args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
+            required_region_ids=tuple(item[0] for item in peer_specs),
+            require_complete=True,
+        )
         names, reports = [], []
-        for raw_peer in args.peer:
-            region_id, name, path = _parse_peer(raw_peer)
+        for region_id, name, path in peer_specs:
             demand_import = import_navigation_demand_csv(
                 path,
                 region_name=name,
@@ -140,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
                 period_end_ym=args.period_end_ym,
             )
             reports.append(build_supply_pressure_report(
-                demand_import, taxonomy=taxonomy, content_database_url=database_url,
+                demand_import, taxonomy=taxonomy, supply_provider=provider,
                 region_id=region_id, month_count=args.months,
             ))
             names.append(name)

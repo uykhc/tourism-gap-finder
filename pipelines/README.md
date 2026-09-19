@@ -13,13 +13,13 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
 
 ## 현재 자동 연결 범위
 
-설정에는 SGIS 전국 경계, Peer, Kakao 콘텐츠 DB, Performance, Portfolio, Hub,
-데이터랩 공급압력, 상대공급, AI 보고서 생산 단계가 연결돼 있습니다. 외부 입력이
-없는 단계는 명령을 호출하지 않고 체크포인트에 `blocked`로 기록합니다. Peer 후보는
-전국 구조 변수 파일만 필요하므로 바로 실행할 수 있습니다.
+설정에는 Peer, Performance, Kakao DB run 검증, Portfolio, Hub, 데이터랩
+공급압력, 상대공급, AI 보고서 생산 단계가 연결돼 있습니다. 외부 입력이 없는
+단계는 명령을 호출하지 않고 체크포인트에 `blocked`로 기록합니다. 기본 경로는
+Kakao 수집기·SGIS 경계에는 직접 연결되지 않으며, 콘텐츠 DB는 읽기만 합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\build_api_release.py `
+.\.venv\Scripts\python.exe -m scripts.build_api_release `
   --release-id local-peers `
   --pipeline-config pipelines\api-release.json `
   --only-stage peer_candidates
@@ -32,7 +32,7 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
 전체 준비 상태는 외부 호출 없이 확인할 수 있습니다.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\build_api_release.py `
+.\.venv\Scripts\python.exe -m scripts.build_api_release `
   --release-id 2026-09 `
   --pipeline-config pipelines\api-release.json `
   --base-year-month 202608 `
@@ -42,22 +42,22 @@ CLI 명령은 `data/analysis/calculation`, `data/analysis/similarity`,
 출력에는 키의 존재 여부만 표시되고 값은 포함되지 않습니다. `ready`는 전국
 Peer·성과·중심 관광지 230개와 제공 가능한 포트폴리오 226개가 검증되면
 `true`입니다. DataLab·상대 공급·AI 보고서는 지정 5개 지역의 고급 범위로
-별도 보고하며 기본 release 활성화를 막지 않습니다. WGS84 경계, PostgreSQL
-콘텐츠 DB, 기준월, TourAPI 미매핑 지역도 운영 상세로 별도 보고합니다.
+별도 보고하며 기본 release 활성화를 막지 않습니다. 출시 검증에서는
+`--require-advanced`를 사용해 5/5가 아니면 활성화를 거부합니다.
 
 지정 5개 지역의 고급 분석을 완성하려면 다음 입력이 추가로 필요합니다.
 
-- `data/raw/national_sigungu_overrides.geojson`: SGIS가 아직 제공하지 않는 인천
-  신설 4개 구의 공식 WGS84 경계와 TourAPI `area_code`·`sigungu_code`
-- `CONTENT_DATABASE_URL`: `001_content_collection.sql`을 적용할 PostgreSQL
+- `CONTENT_DATABASE_URL`: Kakao 담당자가 적재한 PostgreSQL 읽기 연결
+- `KAKAO_COLLECTION_RUN_ID`: 출시 대상으로 고정한 completed 수집 run UUID
 - `<raw-root>/<region_id>/navigation.csv`: 지정 5개 지역과 선정된 비교 지역의
   `202509~202608` 유형별 검색건수 기간 합계 CSV
 - `--base-year-month YYYYMM`: 중심 관광지·방문자·관광 수요지수의 공통 기준월
+- `OPENAI_API_KEY`: 마지막 AI 보고서 생성 단계에서만 사용
 
 데이터랩 다운로드 대기 목록과 각 파일의 권장 경로는 다음 명령으로 확인합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe scripts\datalab_intake_manifest.py
+.\.venv\Scripts\python.exe -m scripts.datalab_intake_manifest
 ```
 
 파일이 있으면 `카테고리중분류명`·`유형별 검색건수`, 9개 관광 유형,
@@ -65,23 +65,22 @@ Peer·성과·중심 관광지 230개와 제공 가능한 포트폴리오 226개
 검색건수는 공개된 9개 유형 건수의 합으로 산출합니다. 월별 값을 임의로
 배분하지 않으며 파일 밖 release 설정에 `202509~202608` 기간을 기록합니다.
 
-`sgis_boundaries` 단계는 SGIS EPSG:5179 경계를 WGS84로 변환하고 일반구를 모 시로
-합칩니다. 2026년 인천 신설 4개 구는 SGIS 2025 경계와 TourAPI 코드에 아직 없으므로
-공식 override가 없으면 명시적으로 실패합니다. 이전 중구·동구·서구 경계를 복제하거나
-면적 비율로 임의 분할하지 않습니다. 완성된 경계는 release의
-`source-boundaries/national_sigungu.geojson`에 저장됩니다.
+`kakao_database` 단계는 대상 5개와 실제 선정 Peer의 합집합을 계산하고 한 DB run에
+모두 있는지 검증합니다. 한글·영문 유형은 영문 6개 코드로 정규화하고, 중복·누락,
+음수·비정수 건수, 미완성 수집, 잘린 타일은 실패합니다. run ID와 정규화 결과 해시,
+수집 메타데이터는 `source-markers/`에 저장됩니다.
 
 ## 지역별 생산자 계약
 
 | 산출물 | 생산 입력 | 준비되지 않았을 때 |
 |---|---|---|
-| `source-boundaries` | SGIS + 인천 신설 구 공식 override | 누락 지역을 표시하고 단계 실패 |
+| `source-markers/kakao-content.json` | Kakao DB의 고정 completed run | 계약 또는 필수 지역 누락으로 단계 실패 |
 | `peer_candidates` | `region_features.csv` | 단계 실패 |
 | `portfolios` | KorService2 | 키/수집 결과 누락으로 기록 |
 | `hubs` | 중심 관광지 API | 키/수집 결과 누락으로 기록 |
 | `performance` | 방문자수 API + 관광 수요지수 API | 키/수집 결과 누락으로 기록 |
 | `datalab_navigation` | 지역별 `navigation.csv` | `missing-input`, 임의의 0 생성 금지 |
-| `relative_supply` | 콘텐츠 DB, Peer, Performance | 성과가 더 높은 Peer나 선행 산출물 누락으로 기록 |
+| `relative_supply` | Kakao DB run, Peer, Performance | 성과가 더 높은 Peer나 선행 산출물 누락으로 기록 |
 | `ai_reports` | 공급 분석, 상대공급, 성과 검증 Peer | 선행 산출물 또는 OpenAI 키 누락으로 기록 |
 
 생산자는 최종적으로 `<release-root>/<산출물>/<region_id>.json`을 써야 합니다.

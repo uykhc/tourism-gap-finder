@@ -161,12 +161,34 @@ def ready() -> dict[str, object]:
         and manifest.get("complete_count") == 230
         and manifest.get("failed_count") == 0
     )
+    advanced_ready_count = int(
+        (manifest or {}).get("advanced_report_ready_count") or 0
+    )
+    advanced_target_count = int(
+        (manifest or {}).get("advanced_report_target_count") or 5
+    )
+    required_advanced = _required_advanced_report_count()
+    if advanced_ready_count < required_advanced:
+        raise HTTPException(503, detail={
+            "code": "ADVANCED_REPORTS_NOT_READY",
+            "ready_count": advanced_ready_count,
+            "required_count": required_advanced,
+        })
     return {
         "status": "ready",
         "release_id": str((manifest or {}).get("release_id") or "legacy-development"),
         "core_complete": core_complete,
-        "advanced_report_ready_count": int(
-            (manifest or {}).get("advanced_report_ready_count") or 0
-        ),
-        "advanced_report_target_count": 5,
+        "advanced_report_ready_count": advanced_ready_count,
+        "advanced_report_target_count": advanced_target_count,
     }
+
+
+def _required_advanced_report_count() -> int:
+    raw = os.getenv("REQUIRED_ADVANCED_REPORT_COUNT", "0").strip()
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise RuntimeError("REQUIRED_ADVANCED_REPORT_COUNT는 0~5 정수여야 합니다.") from exc
+    if not 0 <= value <= 5:
+        raise RuntimeError("REQUIRED_ADVANCED_REPORT_COUNT는 0~5 정수여야 합니다.")
+    return value
