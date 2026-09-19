@@ -41,23 +41,21 @@ class KakaoSupplyRun:
 
 
 class PostgresKakaoSupplyProvider:
-    """Validated, single-run PostgreSQL adapter used by release calculations."""
+    """Validated adapter using the latest complete collection for each region."""
 
     def __init__(
         self,
         database_url: str,
-        run_id: str,
         *,
         required_region_ids: Sequence[str] = (),
         require_complete: bool = True,
     ) -> None:
         if not database_url.strip():
             raise ValueError("CONTENT_DATABASE_URL이 필요합니다.")
-        if not run_id.strip():
-            raise ValueError("KAKAO_COLLECTION_RUN_ID가 필요합니다.")
-        metadata, rows = _read_supply_run(database_url, run_id.strip())
-        self.run = normalize_supply_run(
-            metadata, rows,
+        if not required_region_ids:
+            raise ValueError("required_region_ids is required for Kakao DB queries")
+        self.run = _read_latest_complete_regions(
+            database_url,
             required_region_ids=required_region_ids,
             require_complete=require_complete,
         )
@@ -75,10 +73,10 @@ class PostgresKakaoSupplyProvider:
         counts = row["content_type_counts"]
         return {
             "content_type_counts": {name: counts[name] for name in expected},
-            "taxonomy_version": self.run.taxonomy_version,
+            "taxonomy_version": row["taxonomy_version"],
             "truncated_tile_count": row["truncated_tile_count"],
             "is_complete": row["is_complete"],
-            "source": f"postgres:region_content_counts/{self.run.run_id}/{region_id}",
+            "source": f"postgres:region_content_counts/{row['run_id']}/{region_id}",
         }
 
 
@@ -121,11 +119,12 @@ def normalize_supply_run(
     *,
     required_region_ids: Sequence[str] = (),
     require_complete: bool = True,
+    require_completed: bool = True,
 ) -> KakaoSupplyRun:
     run_id = _required_string(metadata, "run_id")
     taxonomy_version = _required_string(metadata, "taxonomy_version")
     collected_at = _required_string(metadata, "collected_at")
-    if metadata.get("status") != "completed":
+    if require_completed and metadata.get("status") != "completed":
         raise ValueError(f"Kakao 수집 run이 completed 상태가 아닙니다: {run_id}")
     try:
         datetime.fromisoformat(collected_at.replace("Z", "+00:00"))
@@ -236,6 +235,89 @@ def _read_supply_run(
         "status": str(metadata_row[3]),
     }
     return metadata, list(rows)
+
+
+def _read_latest_complete_regions(
+    database_url: str,
+    *,
+    required_region_ids: Sequence[str],
+    require_complete: bool,
+) -> KakaoSupplyRun:
+    """Select the latest six-type collection independently per region."""
+    region_ids = tuple(dict.fromkeys(str(value) for value in required_region_ids))
+    regions: dict[str, dict[str, Any]] = {}
+    collected_at_values: list[str] = []
+    for region_id in region_ids:
+        metadata, rows = _read_latest_supply_region(database_url, region_id)
+        normalized = normalize_supply_run(
+            metadata,
+            rows,
+            required_region_ids=(region_id,),
+            require_complete=False,
+            require_completed=False,
+        )
+        region = dict(normalized.regions[region_id])
+        region["run_id"] = normalized.run_id
+        region["taxonomy_version"] = normalized.taxonomy_version
+        regions[region_id] = region
+        collected_at_values.append(normalized.collected_at)
+    canonical = {
+        "selection": "latest-six-type-per-region",
+        "regions": [regions[key] for key in sorted(regions)],
+    }
+    checksum = hashlib.sha256(
+        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return KakaoSupplyRun(
+        run_id="latest-six-type-per-region",
+        taxonomy_version="per-region",
+        collected_at=max(collected_at_values),
+        regions=regions,
+        normalized_sha256=checksum,
+    )
+
+
+def _read_latest_supply_region(
+    database_url: str, region_id: str
+) -> tuple[dict[str, Any], list[tuple[Any, ...]]]:
+    try:
+        import psycopg
+    except ImportError as exc:  # pragma: no cover - optional dependency boundary
+        raise ValueError("psycopg is required for Kakao supply DB queries") from exc
+    metadata_query = """
+        select runs.run_id::text, runs.taxonomy_version, runs.collected_at, runs.status
+        from public.content_collection_runs as runs
+        join public.region_content_counts as counts on counts.run_id = runs.run_id
+        where counts.region_id = %s
+        group by runs.run_id, runs.taxonomy_version, runs.collected_at, runs.status
+        having count(*) = 6
+           and count(distinct counts.content_type) = 6
+        order by runs.collected_at desc, runs.run_id desc
+        limit 1
+    """
+    rows_query = """
+        select region_id, content_type, place_count, is_complete, truncated_tile_count
+        from public.region_content_counts
+        where run_id = %s and region_id = %s
+        order by content_type
+    """
+    try:
+        with psycopg.connect(psycopg_connection_url(database_url)) as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(metadata_query, (region_id,))
+                metadata_row = cursor.fetchone()
+                if metadata_row is None:
+                    raise ValueError(f"No six-type Kakao collection exists for region_id={region_id}")
+                cursor.execute(rows_query, (metadata_row[0], region_id))
+                rows = cursor.fetchall()
+    except psycopg.Error as exc:
+        raise ValueError(f"Kakao supply DB query failed: {exc}") from exc
+    return {
+        "run_id": str(metadata_row[0]),
+        "taxonomy_version": str(metadata_row[1]),
+        "collected_at": str(metadata_row[2]),
+        "status": str(metadata_row[3]),
+    }, list(rows)
 
 
 def _required_string(payload: Mapping[str, Any], field: str) -> str:

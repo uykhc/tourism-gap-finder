@@ -9,6 +9,7 @@ from ..schemas.reports import RegionReport
 from ..services import report as report_service
 
 router = APIRouter(prefix="/regions", tags=["reports"])
+api_v1_router = APIRouter(prefix="/api/v1/regions", tags=["reports"])
 
 
 @router.get(
@@ -22,4 +23,14 @@ def get_report(region_id: RegionIdPath, _: CurrentUser) -> RegionReport:
     상세 산출물이 아직 없는 지역은 `INSUFFICIENT_DATA` 준비 중 보고서를
     반환한다. 존재하지 않는 region_id만 404다.
     """
+    return RegionReport.model_validate(report_service.build_region_report(region_id))
+
+
+@api_v1_router.get(
+    "/{region_id}/tourism-report",
+    response_model=RegionReport,
+    summary="지역 관광 보고서",
+)
+def get_tourism_report(region_id: RegionIdPath, _: CurrentUser) -> RegionReport:
+    """Frontend DTO endpoint; the legacy ``/regions/{id}/report`` remains supported."""
     return RegionReport.model_validate(report_service.build_region_report(region_id))

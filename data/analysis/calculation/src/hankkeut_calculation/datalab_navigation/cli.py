@@ -26,7 +26,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--period-start-ym", help="Period-total CSV start month in YYYYMM.")
     parser.add_argument("--period-end-ym", help="Period-total CSV end month in YYYYMM.")
     parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
-    parser.add_argument("--kakao-run-id", help="Completed Kakao collection run UUID.")
     parser.add_argument("--region-id", required=True, help="Nationwide region identifier (for example 41:115).")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12, help="Use this many latest available months (default: 12).")
@@ -48,7 +47,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         provider = PostgresKakaoSupplyProvider(
             args.content_database_url or os.getenv("CONTENT_DATABASE_URL", ""),
-            args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
             required_region_ids=(args.region_id,),
             require_complete=True,
         )

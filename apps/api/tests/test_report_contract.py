@@ -13,6 +13,7 @@ from unittest import mock
 
 from fastapi.testclient import TestClient
 
+from apps.api.app.deps import current_user
 from apps.api.app.main import app
 from apps.api.app.services import artifacts
 
@@ -81,8 +82,9 @@ class ReportContractTest(unittest.TestCase):
             {"시", "군", "자치구", "특별자치시"},
         )
 
-    def test_the_report_path_is_unchanged(self):
+    def test_the_legacy_and_frontend_report_paths_are_available(self):
         self.assertIn("/regions/{region_id}/report", self.spec["paths"])
+        self.assertIn("/api/v1/regions/{region_id}/tourism-report", self.spec["paths"])
 
     def test_complete_report_fields_are_required(self):
         report_required = set(self.schemas["RegionReport"]["required"])
@@ -109,6 +111,19 @@ class ExampleResponseTest(unittest.TestCase):
         with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded):
             live = TestClient(app).get("/regions/47130/report").json()
         self.assertEqual(_shape(fixture), _shape(live))
+
+    def test_frontend_path_returns_the_same_report_contract(self):
+        embedded = artifacts.APP_ROOT / "data" / "artifacts"
+        app.dependency_overrides[current_user] = lambda: object()
+        try:
+            with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded):
+                legacy = TestClient(app).get("/regions/47130/report")
+                frontend = TestClient(app).get("/api/v1/regions/47130/tourism-report")
+        finally:
+            app.dependency_overrides.pop(current_user, None)
+        self.assertEqual(frontend.status_code, legacy.status_code)
+        self.assertEqual(frontend.status_code, 200)
+        self.assertEqual(_shape(frontend.json()), _shape(legacy.json()))
 
 
 def _shape(node: object) -> object:

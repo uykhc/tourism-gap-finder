@@ -48,11 +48,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--release-id", required=True)
     parser.add_argument("--artifact-root", type=Path, default=Path("data/artifacts"))
     parser.add_argument("--raw-root", type=Path, default=Path("data/raw/datalab_navigation"))
-    parser.add_argument(
-        "--kakao-run-id",
-        default=os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
-        help="Immutable completed Kakao collection run UUID.",
-    )
     parser.add_argument("--activate", action="store_true")
     parser.add_argument(
         "--require-advanced",
@@ -95,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
             release_root=release_root,
             pipeline=pipeline,
             base_year_month=args.base_year_month,
-            kakao_run_id=args.kakao_run_id,
+            kakao_run_id="",
             require_advanced=args.require_advanced,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2))
@@ -127,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         cache_root=args.cache_root,
         base_year_month=args.base_year_month,
         raw_root=args.raw_root,
-        kakao_run_id=args.kakao_run_id,
+        kakao_run_id="",
     )
     if selected:
         region_records: dict[str, list[dict[str, Any]]] = {}
@@ -141,7 +136,7 @@ def main(argv: list[str] | None = None) -> int:
                     release_root=release_root,
                     cache_root=args.cache_root,
                     base_year_month=args.base_year_month,
-                    kakao_run_id=args.kakao_run_id,
+                    kakao_run_id="",
                 )
                 if records:
                     region_records[region_id] = records
@@ -179,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
             release_root=release_root,
             cache_root=args.cache_root,
             base_year_month=args.base_year_month,
-            kakao_run_id=args.kakao_run_id,
+            kakao_run_id="",
         )
         rows.append(_validate_region(
             region_id,
@@ -780,7 +775,6 @@ def _preflight(
         )
         provider = PostgresKakaoSupplyProvider(
             database_url,
-            kakao_run_id,
             required_region_ids=advanced_input_region_ids,
             require_complete=True,
         )

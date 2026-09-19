@@ -10,6 +10,7 @@ ALL_ROUTERS = (
     peers.router,
     analysis.router,
     reports.router,
+    reports.api_v1_router,
     compare.router,
 )
 

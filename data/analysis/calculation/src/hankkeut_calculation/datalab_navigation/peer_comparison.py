@@ -114,7 +114,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--peer", action="append", required=True, help="REGION_ID,REGION_NAME=monthly_csv_path; repeat for each peer.")
     parser.add_argument("--max-peers", type=int, default=DEFAULT_MAX_COMPARISON_PEERS)
     parser.add_argument("--content-database-url", help="Postgres URL. Defaults to CONTENT_DATABASE_URL.")
-    parser.add_argument("--kakao-run-id", help="Completed Kakao collection run UUID.")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--months", type=int, default=12)
     parser.add_argument("--period-start-ym", help="Period-total CSV start month in YYYYMM.")
@@ -132,7 +131,6 @@ def main(argv: list[str] | None = None) -> int:
         peer_specs = [_parse_peer(raw_peer) for raw_peer in args.peer]
         provider = PostgresKakaoSupplyProvider(
             database_url,
-            args.kakao_run_id or os.getenv("KAKAO_COLLECTION_RUN_ID", ""),
             required_region_ids=tuple(item[0] for item in peer_specs),
             require_complete=True,
         )

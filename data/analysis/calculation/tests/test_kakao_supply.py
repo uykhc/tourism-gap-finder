@@ -19,13 +19,13 @@ class KakaoSupplyDatabaseTest(unittest.TestCase):
         )
         self.assertEqual(korean.normalized_sha256, english.normalized_sha256)
 
-    def test_postgres_and_memory_providers_return_the_same_counts(self):
+    def test_postgres_provider_selects_regions_without_a_run_id(self):
         with patch(
-            "hankkeut_calculation.datalab_navigation.kakao_supply._read_supply_run",
+            "hankkeut_calculation.datalab_navigation.kakao_supply._read_latest_supply_region",
             return_value=(_metadata(), _rows(korean=True)),
         ):
             database = PostgresKakaoSupplyProvider(
-                "postgresql://example", "run-1", required_region_ids=("26350",)
+                "postgresql://example", required_region_ids=("26350",)
             )
         memory = MemorySupplyProvider(
             {"26350": database.run.regions["26350"]},
@@ -58,6 +58,23 @@ class KakaoSupplyDatabaseTest(unittest.TestCase):
     def test_rejects_missing_required_region(self):
         with self.assertRaisesRegex(ValueError, "필수 지역"):
             normalize_supply_run(_metadata(), _rows(korean=True), required_region_ids=("47130",))
+
+
+class KakaoSupplySelectionTest(unittest.TestCase):
+    def test_allows_incomplete_and_noncompleted_rows_when_requested(self):
+        metadata = _metadata()
+        metadata["status"] = "failed"
+        rows = _rows(korean=False)
+        rows[0][3] = False
+        rows[0][4] = 3
+        result = normalize_supply_run(
+            metadata,
+            rows,
+            required_region_ids=("26350",),
+            require_complete=False,
+            require_completed=False,
+        )
+        self.assertEqual(result.regions["26350"]["content_type_counts"]["FOOD"], 1)
 
 
 def _metadata() -> dict:

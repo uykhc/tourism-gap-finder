@@ -16,6 +16,8 @@ from .openai_report import (
     collect_approved_case_sources,
     create_openai_client,
 )
+from .report_store import AIReportStore
+from ..tourism_data.config import resolve_service_key
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--supply-pressure-report", required=True, type=Path)
     parser.add_argument("--relative-supply-report", type=Path, help="Optional individual-Peer composition/density comparison JSON.")
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--region-id", required=True, help="Five-digit municipality identifier.")
+    parser.add_argument("--content-database-url", help="Supabase Postgres URL. Defaults to CONTENT_DATABASE_URL.")
     parser.add_argument("--peer-region", action="append", default=[], help="Verified peer region; first three are used.")
     parser.add_argument("--case-documents", type=Path, help="JSON array of pre-reviewed CaseSearchDocument objects.")
     parser.add_argument("--search-cases", action="store_true", help="Use OpenAI web search for selected types and verified peers.")
@@ -80,13 +84,26 @@ def main(argv: list[str] | None = None) -> int:
     except (KeyError, TypeError, ValueError, RuntimeError) as exc:
         print(f"Error: {exc}")
         return 2
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps({
+    envelope = {
         "generator": {"model": result.model, "response_id": result.response_id},
         "report": result.report,
-    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    }
+    try:
+        database_url = args.content_database_url or resolve_content_database_url()
+        AIReportStore(database_url).save(region_id=args.region_id, envelope=envelope)
+    except ValueError as exc:
+        print(f"Error: {exc}")
+        return 2
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(envelope, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"saved report: {args.output}")
     return 0
+
+
+def resolve_content_database_url() -> str:
+    return resolve_service_key(
+        env_names=("CONTENT_DATABASE_URL", "AUTH_DATABASE_URL"),
+    ) or ""
 
 
 def _load_json(path: Path) -> dict[str, Any]:
