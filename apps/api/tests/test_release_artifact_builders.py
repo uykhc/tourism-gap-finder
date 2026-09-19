@@ -245,13 +245,15 @@ def test_database_run_drives_target_and_peer_pressure_and_relative_supply(
             return_value=["47130", "47110", "44210"],
         ),
         mock.patch(
-            "hankkeut_calculation.datalab_navigation.kakao_supply._read_supply_run",
-            return_value=run_data,
+            "hankkeut_calculation.datalab_navigation.kakao_supply._read_latest_supply_region",
+            side_effect=lambda _database_url, region_id: (
+                run_data[0],
+                [row for row in run_data[1] if row[0] == region_id],
+            ),
         ),
     ):
         handoff = validate_kakao_database(
             "postgresql://example",
-            "run-1",
             peer_artifact_dir=peer_dir,
             performance_dir=performance_dir,
             marker=marker,
@@ -260,7 +262,6 @@ def test_database_run_drives_target_and_peer_pressure_and_relative_supply(
             "47130",
             raw_root=raw_root,
             database_url="postgresql://example",
-            kakao_run_id="run-1",
             peer_artifact=peer_path,
             performance_dir=performance_dir,
             period_start_ym="202509",
@@ -271,7 +272,6 @@ def test_database_run_drives_target_and_peer_pressure_and_relative_supply(
             peer_artifact=peer_path,
             performance_dir=performance_dir,
             database_url="postgresql://example",
-            kakao_run_id="run-1",
             max_peers=3,
         )
 

@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import os
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -108,15 +109,27 @@ class ExampleResponseTest(unittest.TestCase):
     def test_the_committed_example_matches_the_live_response_structure(self):
         fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
         embedded = artifacts.APP_ROOT / "data" / "artifacts"
-        with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded):
-            live = TestClient(app).get("/regions/47130/report").json()
+        app.dependency_overrides[current_user] = lambda: object()
+        try:
+            with (
+                mock.patch.dict(os.environ, {"CONTENT_DATABASE_URL": ""}),
+                mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded),
+            ):
+                response = TestClient(app).get("/regions/47130/report")
+        finally:
+            app.dependency_overrides.pop(current_user, None)
+        self.assertEqual(response.status_code, 200, response.text)
+        live = response.json()
         self.assertEqual(_shape(fixture), _shape(live))
 
     def test_frontend_path_returns_the_same_report_contract(self):
         embedded = artifacts.APP_ROOT / "data" / "artifacts"
         app.dependency_overrides[current_user] = lambda: object()
         try:
-            with mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded):
+            with (
+                mock.patch.dict(os.environ, {"CONTENT_DATABASE_URL": ""}),
+                mock.patch.object(artifacts, "ARTIFACT_ROOT", embedded),
+            ):
                 legacy = TestClient(app).get("/regions/47130/report")
                 frontend = TestClient(app).get("/api/v1/regions/47130/tourism-report")
         finally:
