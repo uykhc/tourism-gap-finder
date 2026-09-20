@@ -70,7 +70,7 @@ function DetailedDiagnosisSection({
   return (
     <section className="bg-card">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-4 py-6 sm:px-8 lg:px-12">
-        <h2>분야별 상세 진단</h2>
+        <h2>분야별 진단과 다음 제안</h2>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {diagnoses.map((diagnosis) => (
             <article
@@ -94,7 +94,7 @@ function DetailedDiagnosisSection({
                 </p>
               </div>
               <p className="text-body-small text-muted-foreground">
-                {diagnosis.judgement}
+                {diagnosis.insight}
               </p>
               {diagnosis.quantitative_evidence.length > 0 && (
                 <ul className="flex flex-wrap gap-2" aria-label="정량 근거">
@@ -112,9 +112,6 @@ function DetailedDiagnosisSection({
                   ))}
                 </ul>
               )}
-              <p className="text-body-small text-muted-foreground">
-                <strong>적용 관점</strong> · {diagnosis.applicability_insight}
-              </p>
             </article>
           ))}
         </div>

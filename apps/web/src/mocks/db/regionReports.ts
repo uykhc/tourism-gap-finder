@@ -198,6 +198,7 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
       signal_level: 'STRONG_GAP_CANDIDATE',
       judgement:
         '두 우수 지역보다 공급밀도가 낮고, 장소당 검색량은 6개 유형 중 가장 높아 추가 검증 우선순위가 높습니다.',
+      insight: '공급과 수요 지표를 바탕으로 체험관광을 우선 검토합니다.',
       quantitative_evidence: [
         {
           metric_code: 'MIN_BENCHMARK_SUPPLY_RATIO',
@@ -230,6 +231,7 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
       signal_level: 'NEEDS_REVIEW',
       judgement:
         '포항시보다 공급이 낮고, 서산시와의 비교 비율은 아직 산출되지 않았습니다.',
+      insight: '공급과 수요 지표를 바탕으로 쇼핑 유형을 추가 확인합니다.',
       quantitative_evidence: [
         {
           metric_code: 'MIN_BENCHMARK_SUPPLY_RATIO',

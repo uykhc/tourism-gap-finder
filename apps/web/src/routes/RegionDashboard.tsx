@@ -5,7 +5,6 @@ import CategoryOverviewSection from '../components/region-report/CategoryOvervie
 import DetailedDiagnosisSection from '../components/region-report/DetailedDiagnosisSection';
 import DiagnosticEvidenceSection from '../components/region-report/DiagnosticEvidenceSection';
 import KeyMetricSection from '../components/region-report/KeyMetricSection';
-import RecommendedActionSection from '../components/region-report/RecommendedActionSection';
 import RegionChangeDialog from '../components/region-report/RegionChangeDialog';
 import RegionReportEmptyState from '../components/region-report/RegionReportEmptyState';
 import RegionReportError from '../components/region-report/RegionReportError';
@@ -166,10 +165,6 @@ function RegionDashboard() {
             primaryGapType={report.summary.primary_gap_type}
           />
           <DetailedDiagnosisSection diagnoses={report.detailed_diagnoses} />
-          <RecommendedActionSection
-            actions={report.recommended_actions}
-            cases={report.benchmark_cases}
-          />
         </>
       )}
 

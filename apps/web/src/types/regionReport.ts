@@ -160,6 +160,7 @@ export interface DetailedDiagnosisDto {
   content_type: TourismContentType;
   signal_level: GapSignalLevel;
   judgement: string;
+  insight: string;
   quantitative_evidence: QuantitativeEvidenceDto[];
   applicability_insight: string;
   case_ids: string[];

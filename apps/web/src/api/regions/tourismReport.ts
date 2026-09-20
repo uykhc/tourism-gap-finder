@@ -214,6 +214,7 @@ const regionReportSchema = z.object({
       content_type: contentTypeSchema,
       signal_level: signalLevelSchema,
       judgement: z.string(),
+      insight: z.string(),
       quantitative_evidence: z.array(quantitativeEvidenceSchema),
       applicability_insight: z.string(),
       case_ids: z.array(z.string()),
