@@ -22,11 +22,7 @@ function RecommendedActionSection({
   return (
     <section className="bg-secondary/55">
       <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 px-4 py-6 sm:px-8 lg:px-12">
-        <h2>데이터가 제안하는 다음 확인</h2>
-        <p className="text-body-small text-muted-foreground">
-          대규모 투자보다 현재 관광자원에서 실제 미충족 수요가 있는지 먼저
-          검증합니다.
-        </p>
+        <h2>AI가 제안하는 인사이트</h2>
         <div className="grid grid-cols-1 gap-4 pt-1 lg:grid-cols-2">
           {sortRecommendedActions(actions)
             .slice(0, 2)

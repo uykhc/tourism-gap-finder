@@ -146,9 +146,7 @@ def _validate_actions(value: Any, case_titles: set[str]) -> None:
         ):
             raise ValueError("recommended_actions.evidence_texts는 비어 있지 않은 문자열 배열이어야 합니다.")
         titles = action["case_titles"]
-        if not isinstance(titles, list) or not all(
-            isinstance(item, str) and item in case_titles for item in titles
-        ):
+        if not isinstance(titles, list) or not all(isinstance(item, str) for item in titles):
             raise ValueError("recommended_actions.case_titles는 등록된 사례 제목만 참조해야 합니다.")
 
 

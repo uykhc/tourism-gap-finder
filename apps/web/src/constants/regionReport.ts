@@ -1,7 +1,5 @@
 import type {
   BenchmarkCaseType,
-  GapSignalLevel,
-  KeyMetricCode,
   TourismContentType,
 } from '../types/regionReport';
 
@@ -30,23 +28,6 @@ export const CASE_TYPE_LABEL: Record<BenchmarkCaseType, string> = {
   PROGRAM: '프로그램',
   UNKNOWN: '유형 미상',
 };
-
-export const DETAIL_SIGNAL_LABEL: Record<GapSignalLevel, string> = {
-  STRONG_GAP_CANDIDATE: '강한 빈칸 후보',
-  NEEDS_REVIEW: '추가 확인 필요',
-  NO_CLEAR_GAP: '상대적 부족 아님',
-  UNKNOWN: '확인 필요',
-};
-
-export const KEY_METRIC_TITLE: Record<KeyMetricCode, string> = {
-  MIN_BENCHMARK_SUPPLY_RATIO: '상대 공급',
-  LOWER_BENCHMARK_COUNT: '비교 일관성',
-  SEARCHES_PER_PLACE: '수요 압력',
-  SUPPLY_PLACE_COUNT: '등록 공급',
-  SUPPLY_DENSITY_PER_100_KM2: '공급 밀도',
-  UNKNOWN: '추가 지표',
-};
-
 // 유형별 공급 현황 섹션의 정보 아이콘 설명. 방법론 카드의 산출 규칙
 // 문구와 달리, 수치를 어떻게 해석해야 하는지에 집중한 설명이다.
 export const SUPPLY_DENSITY_DESCRIPTION =
