@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 import {
   TOURISM_CONTENT_LABEL,
@@ -15,6 +16,8 @@ import {
   formatRatio,
   getNormalizedBarWidth,
 } from '../../utils/regionReport';
+import { Button } from '../ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 
 // 탭에는 UNKNOWN을 제외한 6개 관광 콘텐츠 유형만 노출한다.
 const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
@@ -24,11 +27,17 @@ const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
 interface TourismTypeComparisonSectionProps {
   comparisons: TourismTypeComparisonDto[];
   primaryGapType: TourismContentType | null;
+  // 공급밀도·공급 압력 지표 설명은 방법론 카드와 같은 문구를 그대로 써서
+  // 화면 전체에서 같은 지표를 다르게 설명하지 않게 한다.
+  supplyDensityDefinition: string;
+  searchPressureDefinition: string;
 }
 
 function TourismTypeComparisonSection({
   comparisons,
   primaryGapType,
+  supplyDensityDefinition,
+  searchPressureDefinition,
 }: TourismTypeComparisonSectionProps) {
   const comparisonByType = new Map(
     comparisons.map((comparison) => [comparison.content_type, comparison])
@@ -98,20 +107,28 @@ function TourismTypeComparisonSection({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <article className="flex flex-col gap-1.5 rounded-xl border bg-card px-4.5 py-4">
-            <p className="text-body-small text-primary">
+            <p className="flex items-center gap-1 text-body-small text-primary">
               {referenceName
                 ? `${referenceName} 대비 공급밀도`
                 : '비교 기준 지역 없음'}
+              <MetricInfoIcon
+                label="공급밀도"
+                description={supplyDensityDefinition}
+              />
             </p>
             <p className="text-heading text-primary">
               {formatRatio(active.supply_density.target_to_reference_ratio)}
             </p>
           </article>
           <article className="flex flex-col gap-1.5 rounded-xl border bg-card px-4.5 py-4">
-            <p className="text-body-small text-primary">
+            <p className="flex items-center gap-1 text-body-small text-primary">
               {referenceName
                 ? `${referenceName} 대비 공급 압력`
                 : '비교 기준 지역 없음'}
+              <MetricInfoIcon
+                label="공급 압력"
+                description={searchPressureDefinition}
+              />
             </p>
             <p className="text-heading text-primary">
               {formatRatio(active.searches_per_place.target_to_reference_ratio)}
@@ -125,12 +142,16 @@ function TourismTypeComparisonSection({
             unitLabel="100㎢당 등록 장소 수"
             rows={densityRows}
             formatValue={formatDecimal}
+            infoLabel="공급밀도"
+            infoDescription={supplyDensityDefinition}
           />
           <ComparisonChartCard
             title={`${TOURISM_CONTENT_LABEL[activeType]} 공급 압력`}
             unitLabel="등록 장소 1곳당 최근 12개월 목적지 검색량"
             rows={searchRows}
             formatValue={(value) => `${formatCount(value)}회`}
+            infoLabel="공급 압력"
+            infoDescription={searchPressureDefinition}
           />
         </div>
       </div>
@@ -143,6 +164,8 @@ interface ComparisonChartCardProps {
   unitLabel: string;
   rows: RegionComparisonMetricDto[];
   formatValue: (value: number) => string;
+  infoLabel: string;
+  infoDescription: string;
 }
 
 function ComparisonChartCard({
@@ -150,6 +173,8 @@ function ComparisonChartCard({
   unitLabel,
   rows,
   formatValue,
+  infoLabel,
+  infoDescription,
 }: ComparisonChartCardProps) {
   const numericValues = rows
     .map((row) => row.value)
@@ -158,7 +183,10 @@ function ComparisonChartCard({
   return (
     <article className="flex flex-col gap-3 rounded-xl border bg-card p-5">
       <div>
-        <p className="text-body-strong">{title}</p>
+        <p className="flex items-center gap-1 text-body-strong">
+          {title}
+          <MetricInfoIcon label={infoLabel} description={infoDescription} />
+        </p>
         <p className="text-body-small text-muted-foreground">{unitLabel}</p>
       </div>
       <div className="flex flex-col gap-2 py-1">
@@ -191,6 +219,30 @@ function ComparisonChartCard({
         ))}
       </div>
     </article>
+  );
+}
+
+interface MetricInfoIconProps {
+  label: string;
+  description: string;
+}
+
+function MetricInfoIcon({ label, description }: MetricInfoIconProps) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          aria-label={`${label} 설명 보기`}
+          className="size-4.5 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
+        >
+          <Info aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent>{description}</PopoverContent>
+    </Popover>
   );
 }
 

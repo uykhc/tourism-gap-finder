@@ -149,6 +149,10 @@ function RegionDashboard() {
           <TourismTypeComparisonSection
             comparisons={report.tourism_type_comparisons}
             primaryGapType={report.summary.primary_gap_type}
+            supplyDensityDefinition={report.methodology.supply_comparison_rule}
+            searchPressureDefinition={
+              report.methodology.search_pressure_definition
+            }
           />
           <DetailedDiagnosisSection diagnoses={report.detailed_diagnoses} />
           <RecommendedActionSection
