@@ -126,6 +126,7 @@ def build_parser() -> argparse.ArgumentParser:
     ai_report.add_argument("--performance-dir", required=True, type=Path)
     ai_report.add_argument("--output", required=True, type=Path)
     ai_report.add_argument("--max-peers", type=int, default=3)
+    ai_report.add_argument("--max-output-tokens", type=int, default=8_000)
     return parser
 
 
@@ -215,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
                 performance_dir=args.performance_dir,
                 output=args.output,
                 max_peers=args.max_peers,
+                max_output_tokens=args.max_output_tokens,
             )
         if args.command == "kakao-content":
             return collect_kakao_content(args.boundaries, args.migration, args.marker)
@@ -676,7 +678,11 @@ def build_datalab_pressure(
 
     target_report = pressure(region_id)
     peer_reports = [pressure(peer_id) for peer_id in peer_ids]
-    peer_names = [regions.find_region(peer_id)["region_name"] for peer_id in peer_ids]
+    peer_names = [
+        f"{region['province_name']} {region['region_name']}"
+        for peer_id in peer_ids
+        if (region := regions.find_region(peer_id)) is not None
+    ]
     result = build_peer_supply_pressure_comparison(
         target_report,
         peer_reports=peer_reports,
@@ -697,6 +703,7 @@ def build_ai_report(
     performance_dir: Path,
     output: Path,
     max_peers: int,
+    max_output_tokens: int,
 ) -> int:
     from hankkeut_calculation.ai_reports.cli import main as ai_main
 
@@ -706,7 +713,11 @@ def build_ai_report(
         performance_dir=performance_dir,
         max_peers=max_peers,
     )
-    peer_names = [regions.find_region(peer_id)["region_name"] for peer_id in peer_ids]
+    peer_names = [
+        f"{region['province_name']} {region['region_name']}"
+        for peer_id in peer_ids
+        if (region := regions.find_region(peer_id)) is not None
+    ]
     if not peer_names:
         raise ValueError(f"no performance-backed peer is available: {region_id}")
     priority_types = select_ai_priority_content_types(
@@ -719,6 +730,7 @@ def build_ai_report(
         "--relative-supply-report", str(relative_supply_report),
         "--output", str(output),
         "--search-cases",
+        "--max-output-tokens", str(max_output_tokens),
     ]
     for name in peer_names:
         argv.extend(("--peer-region", name))

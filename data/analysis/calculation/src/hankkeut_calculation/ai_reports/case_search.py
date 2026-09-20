@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Protocol
 from urllib.parse import urlparse
@@ -34,6 +34,7 @@ class CaseSearchDocument:
     source_kind: SourceKind
     snippet: str
     published_at: str | None = None
+    peer_region: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +46,7 @@ class SupportedCaseSource:
     published_at: str | None
     source_kind: SourceKind
     evidence_snippet: str
+    peer_region: str = ""
 
     def to_dict(self) -> dict[str, str | None]:
         return {
@@ -118,6 +120,7 @@ def screen_case_documents(documents: list[CaseSearchDocument], *, source_id_pref
             published_at=document.published_at.strip(),
             source_kind=document.source_kind,
             evidence_snippet=document.snippet.strip(),
+            peer_region=document.peer_region.strip(),
         ))
     return approved
 

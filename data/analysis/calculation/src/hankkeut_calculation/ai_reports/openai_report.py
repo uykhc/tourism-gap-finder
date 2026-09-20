@@ -7,7 +7,7 @@ import os
 import re
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import urlparse
@@ -24,12 +24,13 @@ from .case_search import (
 from .report_schema import CONTENT_TYPE_LABELS, validate_report_payload
 
 DEFAULT_MODEL = "gpt-5.6-luna"
-DEFAULT_MAX_OUTPUT_TOKENS = 4_000
+DEFAULT_MAX_OUTPUT_TOKENS = 8_000
 DEFAULT_MAX_GAP_TYPES = 3
 MAX_CASE_EVIDENCE_CHARS = 240
 # Three structural peers provide enough comparison context for the pilot while
 # keeping case-search calls and the LLM context bounded.
 DEFAULT_MAX_PEER_REGIONS = 3
+REQUIRED_PEER_CASE_COUNT = 4
 REPORT_SCHEMA_PATH = Path("config/ai/tourism_gap_report.schema.json")
 INTERPRETATION_RULES_PATH = Path("config/ai/tourism_gap_interpretation_rules.md")
 OPENAI_API_KEY_ENV_NAME = "OPENAI_API_KEY"
@@ -136,7 +137,6 @@ class OpenAITourismReportGenerator:
         self._client = client
         self._model = model
         self._schema = _load_schema(schema_path)
-        self._interpretation_rules = _load_interpretation_rules(interpretation_rules_path)
         self._max_output_tokens = max_output_tokens
 
     def generate(self, *, ai_report_context: Mapping[str, Any],
@@ -149,11 +149,14 @@ class OpenAITourismReportGenerator:
             model=self._model,
             reasoning={"effort": "low"},
             input=[
-                {"role": "system", "content": _system_instruction(self._interpretation_rules)},
+                {"role": "system", "content": _system_instruction()},
                 {"role": "user", "content": json.dumps({
         "analysis_context": context,
                     "peer_regions": _unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS),
-                    "approved_sources": [source.to_dict() | {"evidence_snippet": source.evidence_snippet} for source in sources],
+                    "approved_sources": [source.to_dict() | {
+                        "evidence_snippet": source.evidence_snippet,
+                        "peer_region": source.peer_region,
+                    } for source in sources],
                 }, ensure_ascii=False)},
             ],
             text={"format": {"type": "json_schema", "name": "tourism_gap_insight_report",
@@ -200,8 +203,39 @@ def collect_approved_case_sources(provider: CaseSearchProvider, *, content_types
         return []
     with ThreadPoolExecutor(max_workers=min(max_concurrent_searches, len(queries))) as executor:
         result_sets = list(executor.map(provider.search, queries))
-    documents = [document for result in result_sets for document in result]
-    return screen_case_documents(documents)
+    documents = [
+        replace(document, peer_region=query.peer_region)
+        for query, result in zip(queries, result_sets, strict=True)
+        for document in result
+    ]
+    return _select_required_case_sources(screen_case_documents(documents), peers)
+
+
+def _select_required_case_sources(
+    sources: Sequence[SupportedCaseSource], peer_regions: Sequence[str]
+) -> list[SupportedCaseSource]:
+    """Keep exactly four approved cases while covering every selected peer."""
+    peers = _unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS)
+    if len(peers) != DEFAULT_MAX_PEER_REGIONS:
+        raise ValueError("참고 사례에는 선정된 유사 지역 3곳이 필요합니다.")
+    by_peer = {
+        peer: [source for source in sources if source.peer_region == peer]
+        for peer in peers
+    }
+    missing = [peer for peer, values in by_peer.items() if not values]
+    if missing:
+        raise ValueError("선정된 유사 지역의 검증 가능한 참고 사례를 찾지 못했습니다: " + ", ".join(missing))
+    selected = [by_peer[peer][0] for peer in peers]
+    selected_urls = {source.url for source in selected}
+    for source in sources:
+        if len(selected) == REQUIRED_PEER_CASE_COUNT:
+            break
+        if source.url not in selected_urls:
+            selected.append(source)
+            selected_urls.add(source.url)
+    if len(selected) != REQUIRED_PEER_CASE_COUNT:
+        raise ValueError("검증 가능한 참고 사례 4건을 확보하지 못했습니다.")
+    return [replace(source, source_id=f"source-{index}") for index, source in enumerate(selected, start=1)]
 
 
 def _prepare_context(context: Mapping[str, Any], *, max_gap_types: int) -> dict[str, Any]:
@@ -281,23 +315,33 @@ def _validate_report_against_input(
     allowed_peers = set(_unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS))
     emitted_case_titles: set[str] = set()
     for item in report["gap_types"]:
-        expected = metrics[item["content_type"]]["searches_per_place"]
-        if not any(evidence["target_value"] == expected for evidence in item["quantitative_evidence"]):
-            raise ValueError("리포트 정량근거에 입력 공급압력 값이 포함되지 않았습니다.")
         for case in item["peer_cases"]:
             if case["peer_region"] not in allowed_peers:
                 raise ValueError("리포트가 허용되지 않은 Peer 지역을 포함합니다.")
             if not set(case["source_ids"]).issubset(allowed_source_ids):
                 raise ValueError("리포트 사례가 승인되지 않은 출처를 참조합니다.")
             emitted_case_titles.add(case["title"])
+    required_peers = set(_unique_nonempty(peer_regions, DEFAULT_MAX_PEER_REGIONS))
+    if len(required_peers) == DEFAULT_MAX_PEER_REGIONS:
+        cases = [case for item in report["gap_types"] for case in item["peer_cases"]]
+        if len(cases) != REQUIRED_PEER_CASE_COUNT:
+            raise ValueError("리포트 참고 사례는 정확히 4건이어야 합니다.")
+        if {case["peer_region"] for case in cases} != required_peers:
+            raise ValueError("리포트 참고 사례는 선정된 유사 지역 3곳을 모두 포함해야 합니다.")
+        source_peer_by_id = {source.source_id: source.peer_region for source in sources}
+        used_source_ids = {source_id for case in cases for source_id in case["source_ids"]}
+        if used_source_ids != set(source_peer_by_id):
+            raise ValueError("모든 승인 참고 사례 출처를 리포트에 사용해야 합니다.")
+        if any(any(source_peer_by_id[source_id] != case["peer_region"] for source_id in case["source_ids"]) for case in cases):
+            raise ValueError("참고 사례의 유사 지역과 출처 지역이 일치하지 않습니다.")
 
 
 
 
-def _system_instruction(interpretation_rules: str) -> str:
-    return """You write Korean tourism-gap insight reports as strict JSON. Use only the supplied analysis_context for numbers. Never invent a number, source, URL, publisher, date, case, operator, or similar region. Copy approved_sources to sources exactly. A peer case may cite only supplied source_ids; include case_type, period, and operator only when the approved source evidence supports them. If complete case metadata is unavailable, use an empty peer_cases array. Each peer_cases.summary must be at most two concise Korean sentences and must not restate a source body. Produce at least one recommended_action grounded in supplied quantitative evidence; case_titles may reference only emitted peer case titles. Use the term '유사 지역' in Korean prose, never 'Peer'. selected_content_types is a backend decision: do not rank, add, remove, or prioritize content types yourself. Do not select a reference region and do not calculate or state a target-to-reference ratio; those quantitative comparisons are API-owned. If peer_supply_pressure_comparison is supplied, use it only as a structural similar-region comparison. If relative_supply_comparison is supplied, use it only as a separate relative-supply signal based on composition share or 100-km² density; do not confuse it with demand pressure. Select only selected_content_types. If selected_content_types is empty, return gap_types as an empty array and recommend only additional data validation. For each included type, put its exact searches_per_place value from content_type_metrics in quantitative_evidence. Supply pressure is a screening signal, not proof that a new facility will succeed. Every Korean narrative field must use respectful formal speech ending in 입니다, 합니다, 됩니다, 있습니다, or 없습니다. For every gap_types item, write integrated_insight as exactly one respectful Korean sentence that integrates the detailed diagnosis and the data-suggested next step. Use approved web-source case evidence as qualitative context so this sentence explains a plausible, locally applicable direction rather than merely paraphrasing the metrics. Do not introduce any factual claim, number, case, or operator that is not supported by the supplied quantitative data or approved web-source evidence.
+def _system_instruction() -> str:
+    return """Write a Korean tourism-development insight report as strict JSON. Use the supplied analysis context and approved web-source cases as your only factual basis. Do not mention supply pressure, metric names, rankings, ratios, counts, or any numeric value in narrative fields; return quantitative_evidence as an empty array for every gap type. Do not apply any fixed sentence template, tone ending, diagnosis formula, or prewritten interpretation rule. Instead, reason freely about what the selected region needs for tourism development: visitor experience, local resources, routes, partnerships, operations, accessibility, or implementation priorities, only where supported by the input and approved cases. Provide exactly two distinct, concrete recommended actions.
 
-Recommended-actions policy overrides every earlier recommended-action instruction: create at least one autonomous and concrete general insight from the current analysis and approved web-source cases; use it to suggest how existing tourism resources can be reused or visitor needs can be addressed; do not focus solely on a deficient content type; avoid discussing Kakao collection quality and avoid merely listing metric values; and use respectful Korean formal speech.\n\nThe following interpretation rules are normative and override any intuitive but conflicting interpretation:\n\n""" + interpretation_rules
+Copy approved_sources to sources exactly. Produce exactly four peer_cases across the report, all inside the first emitted gap_types item: use one case from each of the three selected similar regions plus one additional case. Every case must use its matching approved source and must not invent facts. Select only selected_content_types. If no selected content type is supplied, return empty gap_types and still provide two actions based only on approved cases. Do not invent a source, URL, publisher, date, case, operator, region, or factual outcome."""
 
 
 def _load_schema(path: Path) -> dict[str, Any]:

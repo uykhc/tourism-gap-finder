@@ -95,8 +95,8 @@ def _validate_gap_types(value: Any, source_ids: set[str]) -> set[str]:
 
 
 def _validate_evidence(value: Any, gap_index: int) -> None:
-    if not isinstance(value, list) or not value:
-        raise ValueError(f"gap_types[{gap_index}].quantitative_evidence는 비어 있지 않은 배열이어야 합니다.")
+    if not isinstance(value, list):
+        raise ValueError(f"gap_types[{gap_index}].quantitative_evidence는 배열이어야 합니다.")
     allowed = frozenset({"metric", "target_value", "comparison"})
     for index, evidence in enumerate(value):
         if not isinstance(evidence, dict):
@@ -131,8 +131,8 @@ def _validate_cases(value: Any, source_ids: set[str], gap_index: int) -> set[str
 
 
 def _validate_actions(value: Any, case_titles: set[str]) -> None:
-    if not isinstance(value, list) or not value:
-        raise ValueError("recommended_actions는 비어 있지 않은 배열이어야 합니다.")
+    if not isinstance(value, list) or len(value) != 2:
+        raise ValueError("recommended_actions는 정확히 2개여야 합니다.")
     allowed = frozenset({"title", "rationale", "evidence_texts", "case_titles"})
     for index, action in enumerate(value):
         if not isinstance(action, dict):

@@ -414,9 +414,7 @@ def _tourism_type_comparisons(
             }
             for item in benchmarks.regions
         ]
-        reference = _largest_relative_supply_density_gap(
-            density_target, benchmarks.regions, density_by_id
-        )
+        reference = _highest_supply_density_benchmark(benchmarks.regions, density_by_id)
         reference_id = None if reference is None else reference["region_id"]
         density_reference = None if reference_id is None else density_by_id.get(reference_id)
         pressure_reference = None if reference_id is None else pressure_by_peer_id.get(reference_id)
@@ -460,14 +458,11 @@ def _ratio(numerator: float | None, denominator: float | None) -> float | None:
     return None if numerator is None or denominator is None or denominator == 0 else round(numerator / denominator, 1)
 
 
-def _largest_relative_supply_density_gap(
-    target_value: float | None,
+def _highest_supply_density_benchmark(
     regions: tuple[dict[str, Any], ...],
     values_by_id: dict[str, float | None],
 ) -> dict[str, Any] | None:
-    """Choose the selected similar region with the largest density ratio gap."""
-    if target_value is None or target_value <= 0:
-        return None
+    """Use the peer that makes the target's supply-density ratio lowest."""
     comparable = [
         region for region in regions
         if _positive(values_by_id.get(str(region["region_id"])))
@@ -477,10 +472,7 @@ def _largest_relative_supply_density_gap(
     return max(
         comparable,
         key=lambda region: (
-            max(
-                target_value / float(values_by_id[str(region["region_id"])]),
-                float(values_by_id[str(region["region_id"])]) / target_value,
-            ),
+            float(values_by_id[str(region["region_id"])]),
             str(region["region_id"]),
         ),
     )

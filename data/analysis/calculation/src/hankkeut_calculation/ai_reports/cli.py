@@ -11,6 +11,7 @@ from .case_search import CaseSearchDocument, SourceKind, screen_case_documents
 from .openai_report import (
     DEFAULT_MAX_GAP_TYPES,
     DEFAULT_MODEL,
+    DEFAULT_MAX_OUTPUT_TOKENS,
     OpenAITourismReportGenerator,
     OpenAIWebCaseSearchProvider,
     collect_approved_case_sources,
@@ -35,6 +36,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--case-documents", type=Path, help="JSON array of pre-reviewed CaseSearchDocument objects.")
     parser.add_argument("--search-cases", action="store_true", help="Use OpenAI web search for selected types and verified peers.")
     parser.add_argument("--max-gap-types", type=int, default=DEFAULT_MAX_GAP_TYPES)
+    parser.add_argument(
+        "--max-output-tokens", type=int, default=DEFAULT_MAX_OUTPUT_TOKENS,
+        help="Maximum OpenAI response tokens for the structured report.",
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     return parser
 
@@ -83,7 +88,9 @@ def main(argv: list[str] | None = None) -> int:
                 content_types=priority[:args.max_gap_types],
                 peer_regions=args.peer_region,
             )
-        result = OpenAITourismReportGenerator(client, model=args.model).generate(
+        result = OpenAITourismReportGenerator(
+            client, model=args.model, max_output_tokens=args.max_output_tokens,
+        ).generate(
             ai_report_context=context, peer_regions=args.peer_region,
             approved_sources=sources, max_gap_types=args.max_gap_types,
         )

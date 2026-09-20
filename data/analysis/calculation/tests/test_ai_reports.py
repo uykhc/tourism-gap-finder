@@ -83,7 +83,7 @@ class OpenAIReportGeneratorTest(unittest.TestCase):
         self.assertEqual(result.report["region_name"], "수원시")
         self.assertEqual(response.kwargs["text"]["format"]["type"], "json_schema")
         self.assertFalse(response.kwargs["store"])
-        self.assertIn("공급압력 값이 **높을수록**", response.kwargs["input"][0]["content"])
+        self.assertIn("Do not mention supply pressure", response.kwargs["input"][0]["content"])
 
     def test_reads_only_openai_key_from_dotenv(self):
         with TemporaryDirectory() as temp_dir:
@@ -162,11 +162,12 @@ class CaseSourceCollectionTest(unittest.TestCase):
         provider = _RecordingCaseProvider()
         peers = ["성남시", "용인시", "고양시", "안양시", "구리시"]
         sources = collect_approved_case_sources(
-            provider, content_types=["CULTURE_TOURISM"], peer_regions=peers,
+            provider, content_types=["CULTURE_TOURISM", "EXPERIENCE_TOURISM"], peer_regions=peers,
         )
         self.assertEqual(DEFAULT_MAX_PEER_REGIONS, 3)
-        self.assertEqual([query.peer_region for query in provider.queries], peers[:3])
-        self.assertEqual(len(sources), 3)
+        self.assertCountEqual([query.peer_region for query in provider.queries], peers[:3] * 2)
+        self.assertEqual(len(sources), 4)
+        self.assertEqual({source.peer_region for source in sources}, set(peers[:3]))
 
 
 class _FakeResponses:
@@ -223,10 +224,16 @@ def _payload():
             }],
             "applicability_insight": "수원시 여건을 검토한다.",
         }],
-        "recommended_actions": [{
-            "title": "시범 운영", "rationale": "정량 근거를 먼저 검증한다.",
-            "evidence_texts": ["장소당 검색량 8516.021"], "case_titles": [],
-        }],
+        "recommended_actions": [
+            {
+                "title": "시범 운영", "rationale": "정량 근거를 먼저 검증한다.",
+                "evidence_texts": ["근거"], "case_titles": [],
+            },
+            {
+                "title": "협력 운영", "rationale": "지역 협력 구조를 만든다.",
+                "evidence_texts": ["근거"], "case_titles": [],
+            },
+        ],
         "sources": [{"source_id": "source-1", "title": "공식 문서", "publisher": "강릉시", "url": "https://city.example/case", "published_at": "2026-01-01"}],
         "limitations": ["파일럿 결과"],
     }
