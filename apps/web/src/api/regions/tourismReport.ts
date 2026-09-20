@@ -197,7 +197,6 @@ const regionReportSchema = z.object({
   recommended_actions: z.array(
     z.object({
       order: z.number().int().positive(),
-      content_type: contentTypeSchema.nullable().optional().default(null),
       title: z.string(),
       rationale: z.string(),
       evidence_texts: z.array(z.string()),

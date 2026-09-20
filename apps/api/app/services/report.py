@@ -750,7 +750,6 @@ def _recommended_actions(
             raise HTTPException(502, detail="AI 보고서의 recommended_actions 형식이 잘못됐습니다.")
         result.append({
             "order": order,
-            "content_type": action.get("content_type") if action.get("content_type") in CONTENT_TYPES else None,
             "title": str(action.get("title") or ""),
             "rationale": str(action.get("rationale") or ""),
             "evidence_texts": [str(item) for item in action.get("evidence_texts", [])],

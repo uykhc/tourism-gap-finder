@@ -133,14 +133,11 @@ def _validate_cases(value: Any, source_ids: set[str], gap_index: int) -> set[str
 def _validate_actions(value: Any, case_titles: set[str]) -> None:
     if not isinstance(value, list) or not value:
         raise ValueError("recommended_actions는 비어 있지 않은 배열이어야 합니다.")
-    allowed = frozenset({"content_type", "title", "rationale", "evidence_texts", "case_titles"})
+    allowed = frozenset({"title", "rationale", "evidence_texts", "case_titles"})
     for index, action in enumerate(value):
         if not isinstance(action, dict):
             raise ValueError(f"recommended_actions[{index}]는 객체여야 합니다.")
         _require_exact_keys(action, allowed, f"recommended_actions[{index}]")
-        _require_nonempty_string(action["content_type"], f"recommended_actions[{index}].content_type")
-        if action["content_type"] not in CONTENT_TYPES:
-            raise ValueError("recommended_actions.content_type must be a defined content type")
         for key in ("title", "rationale"):
             _require_nonempty_string(action[key], f"recommended_actions[{index}].{key}")
         evidence = action["evidence_texts"]

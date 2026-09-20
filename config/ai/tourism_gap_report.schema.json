@@ -59,9 +59,8 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["content_type", "title", "rationale", "evidence_texts", "case_titles"],
+        "required": ["title", "rationale", "evidence_texts", "case_titles"],
         "properties": {
-          "content_type": {"enum": ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM", "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"]},
           "title": {"type": "string", "minLength": 1},
           "rationale": {"type": "string", "minLength": 1},
           "evidence_texts": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},

@@ -146,7 +146,6 @@ export interface QuantitativeEvidenceDto {
 
 export interface RecommendedActionDto {
   order: number;
-  content_type: TourismContentType | null;
   title: string;
   rationale: string;
   evidence_texts: string[];
