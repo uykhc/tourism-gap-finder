@@ -70,7 +70,7 @@ def build_region_report(region_id: str) -> dict[str, Any]:
     pressure = artifacts.load_supply_pressure(region_id)
     ai_report = artifacts.load_ai_report(region_id)
     if any(value is None for value in (peers, relative, pressure, ai_report)):
-        return _preparing_report(region)
+        return _preparing_report(region, peers)
     benchmarks = resolve_benchmarks(region_id, relative)
 
     target_report: dict[str, Any] | None = None
@@ -94,9 +94,14 @@ def build_region_report(region_id: str) -> dict[str, Any]:
         "summary": {
             "diagnosis_status": status.value,
             "primary_gap_type": primary,
+            "priority_content_types": _priority_content_types(primary, status, signals),
             "one_line_review": _one_line_review(region, ai_report, primary, status, signals),
             "key_metrics": _key_metrics(primary, status, signals),
         },
+        "similar_regions": _similar_regions(peers),
+        "tourism_type_comparisons": _tourism_type_comparisons(
+            region, signals, target_report, pressure, benchmarks
+        ),
         "evidence": _evidence(region, primary, status, signals, target_report),
         "category_overview": _category_overview(status, signals),
         "detailed_diagnoses": diagnoses,
@@ -107,7 +112,9 @@ def build_region_report(region_id: str) -> dict[str, Any]:
     }
 
 
-def _preparing_report(region: dict[str, Any]) -> dict[str, Any]:
+def _preparing_report(
+    region: dict[str, Any], peers: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """현재 프론트 계약을 만족하는 사용자용 준비 중 보고서."""
     return {
         "report_version": ASSEMBLER_VERSION,
@@ -118,6 +125,7 @@ def _preparing_report(region: dict[str, Any]) -> dict[str, Any]:
         "summary": {
             "diagnosis_status": DiagnosisStatus.INSUFFICIENT_DATA.value,
             "primary_gap_type": None,
+            "priority_content_types": [],
             "one_line_review": {
                 "text": _PREPARING_REVIEW,
                 "source": OneLineReviewSource.TEMPLATE.value,
@@ -125,6 +133,8 @@ def _preparing_report(region: dict[str, Any]) -> dict[str, Any]:
             },
             "key_metrics": [],
         },
+        "similar_regions": _similar_regions(peers),
+        "tourism_type_comparisons": [],
         "evidence": {
             "supply_density": {
                 "content_type": "UNKNOWN",
@@ -299,6 +309,148 @@ def _sorted_signals(signals: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
         )
 
     return sorted(signals.values(), key=sort_key)
+
+
+def _priority_content_types(
+    primary: str | None, status: DiagnosisStatus, signals: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Return the deterministic, non-LLM top-three screen priorities."""
+    if status is DiagnosisStatus.INSUFFICIENT_DATA:
+        return []
+    ordered = _sorted_signals(signals)
+    if primary is not None:
+        ordered = [signals[primary], *(item for item in ordered if item["content_type"] != primary)]
+    return [
+        {
+            "rank": index,
+            "content_type": item["content_type"],
+            "signal_level": item["signal_level"].value,
+        }
+        for index, item in enumerate(ordered[:3], start=1)
+    ]
+
+
+def _similar_regions(peers: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """Expose the policy's structural top ten without UI-only status fields."""
+    items = (peers or {}).get("peers", [])
+    result = []
+    for item in sorted(
+        (row for row in items if isinstance(row, dict)),
+        key=lambda row: (int(row.get("rank", 10**9)), str(row.get("region_id", ""))),
+    )[:10]:
+        if not (
+            isinstance(item.get("similarity"), (int, float))
+            and str(item.get("region_id", "")).isdigit()
+        ):
+            continue
+        result.append({
+            "region_id": str(item["region_id"]),
+            "province_name": str(item.get("province_name", "")),
+            "region_name": str(item.get("region_name", "")),
+            "administrative_type": item.get("administrative_type"),
+            "rank": int(item["rank"]),
+            "similarity": float(item["similarity"]),
+        })
+    return result
+
+
+def _tourism_type_comparisons(
+    region: dict[str, Any],
+    signals: dict[str, dict[str, Any]],
+    target_report: dict[str, Any] | None,
+    pressure: dict[str, Any] | None,
+    benchmarks: BenchmarkSelection,
+) -> list[dict[str, Any]]:
+    """Build all six type-by-region comparisons from already persisted inputs."""
+    if target_report is None:
+        return []
+    target_period = target_report.get("analysis_period")
+    peer_ids = list((pressure or {}).get("peer_region_ids") or [])
+    peer_reports = list((pressure or {}).get("peer_reports") or [])
+    pressure_by_id = {
+        str(region_id): report
+        for region_id, report in zip(peer_ids, peer_reports, strict=False)
+        if isinstance(report, dict) and report.get("analysis_period") == target_period
+    }
+    result: list[dict[str, Any]] = []
+    for content_type in CONTENT_TYPES:
+        signal = signals[content_type]
+        density_target = _numeric_or_none(signal.get("supply_density_per_100_km2"))
+        pressure_target = _numeric_or_none(signal.get("searches_per_place"))
+        density_by_id = {
+            str(row["region_id"]): _numeric_or_none(row.get("value"))
+            for row in signal.get("benchmark_metrics", [])
+            if isinstance(row, dict) and row.get("region_id")
+        }
+        pressure_by_peer_id = {
+            region_id: _peer_searches_per_place(report, content_type)
+            for region_id, report in pressure_by_id.items()
+        }
+        benchmark_rows = [
+            {
+                "region_id": item["region_id"],
+                "region_name": item["region_name"],
+                "value": density_by_id.get(item["region_id"]),
+            }
+            for item in benchmarks.regions
+        ]
+        pressure_rows = [
+            {
+                "region_id": item["region_id"],
+                "region_name": item["region_name"],
+                "value": pressure_by_peer_id.get(item["region_id"]),
+            }
+            for item in benchmarks.regions
+        ]
+        reference = next(
+            (
+                item for item in benchmarks.regions
+                if _positive(density_by_id.get(item["region_id"]))
+                and _positive(pressure_by_peer_id.get(item["region_id"]))
+            ),
+            None,
+        )
+        reference_id = None if reference is None else reference["region_id"]
+        density_reference = None if reference_id is None else density_by_id.get(reference_id)
+        pressure_reference = None if reference_id is None else pressure_by_peer_id.get(reference_id)
+        result.append({
+            "content_type": content_type,
+            "reference_region": None if reference is None else {
+                "region_id": reference["region_id"], "region_name": reference["region_name"],
+            },
+            "supply_density": {
+                "unit": "PLACES_PER_100_KM2",
+                "target": {"region_id": region["region_id"], "region_name": region["region_name"], "value": density_target},
+                "benchmarks": benchmark_rows,
+                "target_to_reference_ratio": _ratio(density_target, density_reference),
+            },
+            "searches_per_place": {
+                "unit": "SEARCHES_PER_PLACE",
+                "target": {"region_id": region["region_id"], "region_name": region["region_name"], "value": pressure_target},
+                "benchmarks": pressure_rows,
+                "target_to_reference_ratio": _ratio(pressure_target, pressure_reference),
+            },
+        })
+    return result
+
+
+def _peer_searches_per_place(report: dict[str, Any], content_type: str) -> float | None:
+    for item in report.get("content_type_metrics", []):
+        if isinstance(item, dict) and item.get("content_type") == content_type:
+            return _numeric_or_none(item.get("searches_per_place"))
+    return None
+
+
+def _numeric_or_none(value: Any) -> float | None:
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _positive(value: float | None) -> bool:
+    return value is not None and value > 0
+
+
+def _ratio(numerator: float | None, denominator: float | None) -> float | None:
+    return None if numerator is None or denominator is None or denominator == 0 else numerator / denominator
 
 
 # ---------------------------------------------------------------------------

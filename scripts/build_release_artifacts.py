@@ -27,6 +27,7 @@ from hankkeut_calculation.tourism_data.config import (
 )
 
 ADVANCED_REPORT_TARGETS = ("26350", "41590", "51150", "47130", "12130")
+PERFORMANCE_PEER_CANDIDATE_LIMIT = 10
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -76,6 +77,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     store_artifact.add_argument("--input", required=True, type=Path)
     store_artifact.add_argument("--content-database-url")
+
+    selected_peers = subparsers.add_parser(
+        "select-peers", help="Show the top-10 similarity candidates and selected high-performance peers."
+    )
+    selected_peers.add_argument("--region-id", required=True)
+    selected_peers.add_argument("--peer-artifact", required=True, type=Path)
+    selected_peers.add_argument("--performance-dir", required=True, type=Path)
+    selected_peers.add_argument("--max-peers", type=int, default=3)
 
     handoff = subparsers.add_parser(
         "kakao-db", help="Validate one completed Kakao database collection run."
@@ -175,6 +184,18 @@ def main(argv: list[str] | None = None) -> int:
                 args.content_database_url or resolve_content_database_url(),
             )
             print(f"stored {args.artifact_type}: {args.region_id}")
+            return 0
+        if args.command == "select-peers":
+            print(json.dumps(
+                performance_peer_selection(
+                    args.region_id,
+                    peer_artifact=args.peer_artifact,
+                    performance_dir=args.performance_dir,
+                    max_peers=args.max_peers,
+                ),
+                ensure_ascii=False,
+                indent=2,
+            ))
             return 0
         if args.command == "kakao-db":
             validate_kakao_database(
@@ -707,22 +728,54 @@ def select_performance_peers(
     performance_dir: Path,
     max_peers: int,
 ) -> list[str]:
+    selection = performance_peer_selection(
+        region_id,
+        peer_artifact=peer_artifact,
+        performance_dir=performance_dir,
+        max_peers=max_peers,
+    )
+    return [str(item["region_id"]) for item in selection["selected_peers"]]
+
+
+def performance_peer_selection(
+    region_id: str,
+    *,
+    peer_artifact: Path,
+    performance_dir: Path,
+    max_peers: int,
+) -> dict[str, Any]:
+    """Fixed policy: top 10 structural candidates, then performance-score top 3."""
     if max_peers < 1:
         raise ValueError("max_peers must be positive")
     peer_payload = _read_json(peer_artifact)
-    candidates = [
-        str(item.get("region_id"))
-        for item in peer_payload.get("peers", [])
-        if isinstance(item, dict) and item.get("region_id")
-    ]
+    candidates = sorted(
+        (item for item in peer_payload.get("peers", []) if isinstance(item, dict) and item.get("region_id")),
+        key=lambda item: (int(item.get("rank", 10**9)), str(item.get("region_id"))),
+    )[:PERFORMANCE_PEER_CANDIDATE_LIMIT]
     target_score = _performance_value(performance_dir / f"{region_id}.json")
-    better: list[tuple[str, float]] = []
-    for peer_id in candidates:
+    evaluated: list[dict[str, Any]] = []
+    for candidate in candidates:
+        peer_id = str(candidate["region_id"])
         score = _performance_value(performance_dir / f"{peer_id}.json")
-        if score > target_score:
-            better.append((peer_id, score))
-    better.sort(key=lambda item: (-item[1], item[0]))
-    return [peer_id for peer_id, _score in better[:max_peers]]
+        evaluated.append({
+            "region_id": peer_id,
+            "region_name": candidate.get("region_name"),
+            "similarity_rank": int(candidate.get("rank", 0)),
+            "similarity": candidate.get("similarity"),
+            "composite_score": score,
+            "is_higher_performance": score > target_score,
+        })
+    selected = sorted(
+        evaluated,
+        key=lambda item: (-float(item["composite_score"]), int(item["similarity_rank"]), str(item["region_id"])),
+    )[:max_peers]
+    return {
+        "policy": "top_10_structural_similarity_then_performance_score_top_3",
+        "target_region_id": region_id,
+        "target_composite_score": target_score,
+        "similarity_candidates": evaluated,
+        "selected_peers": selected,
+    }
 
 
 def _performance_value(path: Path) -> float:

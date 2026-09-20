@@ -31,7 +31,7 @@ _STRUCTURAL_NOTE = (
 )
 
 _PERFORMANCE_RULE = (
-    "구조적으로 유사한 지역 중 관광 성과 복합점수가 대상 지역보다 높은 상위 "
+    "구조적 유사도 상위 10개 지역 중 관광 성과 복합점수가 높은 상위 "
     f"{DEFAULT_BENCHMARK_COUNT}곳입니다."
 )
 _PERFORMANCE_NOTE = (
@@ -39,17 +39,6 @@ _PERFORMANCE_NOTE = (
     "30%를 비교 집단 안에서 백분위로 환산해 합산한 값입니다."
 )
 
-#: 성과 점수는 나왔지만 대상보다 높은 지역이 없는 경우. '데이터가 없다'와 다른
-#: 사실이므로 문구를 구분한다.
-_NO_BETTER_PEER_RULE = (
-    "관광 성과 복합점수가 대상 지역보다 높은 유사 지역이 없어, 공급 비교 "
-    "데이터가 확보된 유사 지역을 비교 기준으로 사용합니다."
-)
-_NO_BETTER_PEER_NOTE = (
-    "성과 점수는 산출됐으나 비교한 유사 지역 모두가 대상 지역보다 낮았습니다. "
-    "따라서 이 비교 기준은 '대상보다 우수한 지역'이 아니라 구조적으로 비슷한 "
-    "지역입니다."
-)
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,17 +100,11 @@ def resolve_benchmarks(
             note=_PERFORMANCE_NOTE,
             unresolved_names=tuple(unresolved),
         )
-    # 성과 점수가 나왔는데 아무도 대상보다 높지 않은 것과, 점수를 아예 낼 수
-    # 없는 것은 다른 사실이다. 화면에 그대로 구분해 보여준다.
-    rule, note = (
-        (_NO_BETTER_PEER_RULE, _NO_BETTER_PEER_NOTE) if scored
-        else (_STRUCTURAL_RULE, _STRUCTURAL_NOTE)
-    )
     return BenchmarkSelection(
         regions=tuple(resolved[:limit]),
         performance_backed=False,
-        rule=rule,
-        note=note,
+        rule=_STRUCTURAL_RULE,
+        note=_STRUCTURAL_NOTE,
         unresolved_names=tuple(unresolved),
     )
 
@@ -129,7 +112,7 @@ def resolve_benchmarks(
 def _performance_backed_benchmarks(
     region_id: str, resolved: list[dict[str, Any]], *, limit: int
 ) -> tuple[list[str], bool]:
-    """`(성과가 대상보다 높은 지역, 점수를 낼 수 있었는지)`.
+    """`(후보 중 성과 점수 상위 지역, 점수를 낼 수 있었는지)`.
 
     계약상 빈 목록은 정상이다. 다만 '점수가 없어서 비었다'와 '점수는 있는데
     대상보다 높은 지역이 없어서 비었다'를 호출측이 구분할 수 있어야 한다.
@@ -139,23 +122,26 @@ def _performance_backed_benchmarks(
     peer_ids = [region["region_id"] for region in resolved]
     requested_ids = [region_id, *peer_ids]
     scores = _artifact_performance_scores(requested_ids)
-    if region_id in scores:
-        selected = performance.select_benchmarks(
-            region_id, peer_ids, scorer=_FixedScorer(scores), k=limit
-        )
-        return selected, True
+    if scores:
+        selected = _top_performance_regions(peer_ids, scores, limit)
+        return selected, bool(selected)
     try:
         scorer = performance.default_scorer()
         scores = scorer.score(requested_ids)
-        if region_id not in scores:
-            return [], False
-        selected = performance.select_benchmarks(
-            region_id, peer_ids, scorer=_FixedScorer(scores), k=limit
-        )
+        selected = _top_performance_regions(peer_ids, scores, limit)
     except HTTPException:
         # 키나 패키지가 없는 것은 오류가 아니다. 성과 기반 선정만 못 한다.
         return [], False
     return selected, True
+
+
+def _top_performance_regions(
+    peer_ids: list[str], scores: dict[str, float], limit: int
+) -> list[str]:
+    return sorted(
+        (region_id for region_id in peer_ids if region_id in scores),
+        key=lambda region_id: (-scores[region_id], region_id),
+    )[:limit]
 
 
 def _artifact_performance_scores(region_ids: list[str]) -> dict[str, float]:

@@ -38,19 +38,18 @@ class ResolveBenchmarksTest(unittest.TestCase):
         ):
             return benchmarks.resolve_benchmarks(TARGET, RELATIVE_SUPPLY)
 
-    def test_peers_that_outscore_the_target_become_performance_backed(self):
+    def test_highest_scoring_peers_become_performance_backed(self):
         selection = self._resolve(FakeScorer({TARGET: 0.10, "47110": 0.90, "44210": 0.50}))
         self.assertTrue(selection.performance_backed)
         self.assertEqual([region["region_id"] for region in selection.regions], ["47110", "44210"])
         self.assertIn("복합점수", selection.rule)
 
-    def test_scored_but_nobody_better_says_so_instead_of_blaming_missing_data(self):
+    def test_scored_peers_are_ranked_even_when_target_scores_higher(self):
         selection = self._resolve(FakeScorer({TARGET: 0.99, "47110": 0.10, "44210": 0.20}))
-        self.assertFalse(selection.performance_backed)
-        self.assertIn("높은 유사 지역이 없어", selection.rule)
-        self.assertIn("성과 점수는 산출됐으나", selection.note)
-        # 비교 자체는 계속 가능하므로 지역은 남는다.
-        self.assertEqual(len(selection.regions), 2)
+        self.assertTrue(selection.performance_backed)
+        self.assertEqual(
+            [region["region_id"] for region in selection.regions], ["44210", "47110"]
+        )
 
     def test_no_score_at_all_falls_back_to_the_structural_wording(self):
         selection = self._resolve(performance.UnavailableScorer())
@@ -94,7 +93,7 @@ class ResolveBenchmarksTest(unittest.TestCase):
         ):
             selection = benchmarks.resolve_benchmarks(TARGET, RELATIVE_SUPPLY)
 
-        self.assertEqual([region["region_id"] for region in selection.regions], ["47110"])
+        self.assertEqual([region["region_id"] for region in selection.regions], ["47110", "44210"])
         self.assertTrue(selection.performance_backed)
         live.assert_not_called()
 

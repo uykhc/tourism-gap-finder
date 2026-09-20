@@ -154,7 +154,7 @@ def test_demand_month_resolves_current_and_legacy_code_alternatives() -> None:
     assert "12:12150" in scores["resource_service"]
 
 
-def test_peer_selection_uses_only_higher_scoring_structural_candidates(tmp_path: Path) -> None:
+def test_peer_selection_uses_top_ten_structural_candidates_then_score(tmp_path: Path) -> None:
     peer_path = tmp_path / "peers.json"
     performance_dir = tmp_path / "performance"
     _write_json(peer_path, {"peers": [
@@ -180,7 +180,7 @@ def test_peer_selection_uses_only_higher_scoring_structural_candidates(tmp_path:
         max_peers=3,
     )
 
-    assert selected == ["47110", "44210"]
+    assert selected == ["47110", "44210", "48870"]
 
 
 def test_peer_selection_refuses_missing_scores(tmp_path: Path) -> None:

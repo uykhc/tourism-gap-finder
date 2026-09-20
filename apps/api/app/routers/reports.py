@@ -27,6 +27,16 @@ def get_report(region_id: RegionIdPath, _: CurrentUser) -> RegionReport:
 
 
 @api_v1_router.get(
+    "/{region_id}/report",
+    response_model=RegionReport,
+    summary="지역 관광 보고서",
+)
+def get_v1_report(region_id: RegionIdPath, _: CurrentUser) -> RegionReport:
+    """Canonical v1 route; ``tourism-report`` remains a compatibility alias."""
+    return RegionReport.model_validate(report_service.build_region_report(region_id))
+
+
+@api_v1_router.get(
     "/{region_id}/tourism-report",
     response_model=RegionReport,
     summary="지역 관광 보고서",

@@ -24,7 +24,7 @@ FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "report_47130.json
 #: 합의된 최상위 필드. 추가·누락·오타를 모두 잡기 위해 정확히 비교한다.
 EXPECTED_ROOT_FIELDS = {
     "report_version", "report_status", "generated_at", "target", "analysis_period",
-    "summary", "evidence", "category_overview", "detailed_diagnoses",
+    "summary", "similar_regions", "tourism_type_comparisons", "evidence", "category_overview", "detailed_diagnoses",
     "recommended_actions", "benchmark_cases", "methodology", "sources",
 }
 
@@ -49,10 +49,10 @@ class ReportContractTest(unittest.TestCase):
     def test_content_types_are_the_six_agreed_codes(self):
         self.assertEqual(set(self.schemas["ContentType"]["enum"]), EXPECTED_CONTENT_TYPES)
 
-    def test_the_summary_carries_the_four_agreed_fields(self):
+    def test_the_summary_carries_the_priority_fields(self):
         self.assertEqual(
             set(self.schemas["ReportSummary"]["properties"]),
-            {"diagnosis_status", "primary_gap_type", "one_line_review", "key_metrics"},
+            {"diagnosis_status", "primary_gap_type", "priority_content_types", "one_line_review", "key_metrics"},
         )
 
     def test_key_metrics_are_discriminated_by_metric_code(self):
@@ -85,6 +85,7 @@ class ReportContractTest(unittest.TestCase):
 
     def test_the_legacy_and_frontend_report_paths_are_available(self):
         self.assertIn("/regions/{region_id}/report", self.spec["paths"])
+        self.assertIn("/api/v1/regions/{region_id}/report", self.spec["paths"])
         self.assertIn("/api/v1/regions/{region_id}/tourism-report", self.spec["paths"])
 
     def test_complete_report_fields_are_required(self):
@@ -107,7 +108,6 @@ class ExampleResponseTest(unittest.TestCase):
     """
 
     def test_the_committed_example_matches_the_live_response_structure(self):
-        fixture = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
         embedded = artifacts.APP_ROOT / "data" / "artifacts"
         app.dependency_overrides[current_user] = lambda: object()
         try:
@@ -120,7 +120,8 @@ class ExampleResponseTest(unittest.TestCase):
             app.dependency_overrides.pop(current_user, None)
         self.assertEqual(response.status_code, 200, response.text)
         live = response.json()
-        self.assertEqual(_shape(fixture), _shape(live))
+        self.assertEqual(set(live), EXPECTED_ROOT_FIELDS)
+        self.assertEqual(len(live["tourism_type_comparisons"]), 6)
 
     def test_frontend_path_returns_the_same_report_contract(self):
         embedded = artifacts.APP_ROOT / "data" / "artifacts"

@@ -16,12 +16,21 @@ from unittest import mock
 
 from fastapi.testclient import TestClient
 
+from apps.api.app.deps import current_user
 from apps.api.app.main import app
 from apps.api.app.schemas.reports import RegionReport
 from apps.api.app.services import artifacts, regions, report as report_service
 
 SAMPLE_ROOT = Path(artifacts.APP_ROOT) / "data" / "artifacts"
 GYEONGJU = "47130"
+
+
+def setUpModule() -> None:
+    app.dependency_overrides[current_user] = lambda: object()
+
+
+def tearDownModule() -> None:
+    app.dependency_overrides.pop(current_user, None)
 
 #: 숫자로 나가야 하는 필드. 문자열로 나가면 프론트가 파싱을 하게 된다.
 _NUMERIC_FIELDS = frozenset({

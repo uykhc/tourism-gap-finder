@@ -16,7 +16,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
-from .common import ContentType, RegionRef
+from .common import AdministrativeType, ContentType, RegionRef
 
 
 class ReportStatus(str, Enum):
@@ -124,9 +124,16 @@ class OneLineReview(BaseModel):
     generated_at: str | None = Field(default=None)
 
 
+class PriorityContentType(BaseModel):
+    rank: int = Field(ge=1, le=3)
+    content_type: ContentType
+    signal_level: GapSignalLevel
+
+
 class ReportSummary(BaseModel):
     diagnosis_status: DiagnosisStatus
     primary_gap_type: ContentType | None = Field(default=None)
+    priority_content_types: list[PriorityContentType] = Field(default_factory=list, max_length=3)
     one_line_review: OneLineReview
     key_metrics: list[KeyMetric] = Field(default_factory=list)
 
@@ -140,9 +147,19 @@ class ReportSummary(BaseModel):
                 raise ValueError("INSUFFICIENT_DATA에서는 primary_gap_type이 null이어야 합니다.")
             if self.key_metrics:
                 raise ValueError("INSUFFICIENT_DATA에서는 key_metrics가 빈 배열이어야 합니다.")
+            if self.priority_content_types:
+                raise ValueError("INSUFFICIENT_DATA에서는 priority_content_types가 빈 배열이어야 합니다.")
             return self
         if self.diagnosis_status is DiagnosisStatus.GAP_FOUND and self.primary_gap_type is None:
             raise ValueError("GAP_FOUND에서는 primary_gap_type이 있어야 합니다.")
+        ranks = [item.rank for item in self.priority_content_types]
+        if ranks != list(range(1, len(ranks) + 1)):
+            raise ValueError("priority_content_types의 rank는 1부터 중복 없이 연속되어야 합니다.")
+        if self.diagnosis_status is DiagnosisStatus.GAP_FOUND and (
+            not self.priority_content_types
+            or self.priority_content_types[0].content_type is not self.primary_gap_type
+        ):
+            raise ValueError("GAP_FOUND의 priority_content_types 1위는 primary_gap_type과 같아야 합니다.")
         if self.diagnosis_status is DiagnosisStatus.NO_CLEAR_GAP and self.primary_gap_type is not None:
             raise ValueError("NO_CLEAR_GAP에서는 primary_gap_type이 null이어야 합니다.")
         if not 2 <= len(self.key_metrics) <= 4:
@@ -186,6 +203,47 @@ class SearchesPerPlaceEvidence(BaseModel):
 class ReportEvidence(BaseModel):
     supply_density: SupplyDensityEvidence
     searches_per_place: SearchesPerPlaceEvidence
+
+
+class SimilarRegion(BaseModel):
+    region_id: str = Field(pattern=r"^\d{5}$")
+    province_name: str
+    region_name: str
+    administrative_type: AdministrativeType
+    rank: int = Field(ge=1)
+    similarity: float = Field(ge=0, le=1)
+
+
+class ComparisonRegionRef(BaseModel):
+    region_id: str = Field(pattern=r"^\d{5}$")
+    region_name: str
+
+
+class RegionComparisonMetric(BaseModel):
+    region_id: str = Field(pattern=r"^\d{5}$")
+    region_name: str
+    value: float | None = None
+
+
+class SupplyDensityComparison(BaseModel):
+    unit: Literal["PLACES_PER_100_KM2"]
+    target: RegionComparisonMetric
+    benchmarks: list[RegionComparisonMetric] = Field(default_factory=list)
+    target_to_reference_ratio: float | None = None
+
+
+class SearchesPerPlaceComparison(BaseModel):
+    unit: Literal["SEARCHES_PER_PLACE"]
+    target: RegionComparisonMetric
+    benchmarks: list[RegionComparisonMetric] = Field(default_factory=list)
+    target_to_reference_ratio: float | None = None
+
+
+class TourismTypeComparison(BaseModel):
+    content_type: ContentType
+    reference_region: ComparisonRegionRef | None = None
+    supply_density: SupplyDensityComparison
+    searches_per_place: SearchesPerPlaceComparison
 
 
 # ---------------------------------------------------------------------------
@@ -282,6 +340,8 @@ class RegionReport(BaseModel):
     target: RegionRef
     analysis_period: AnalysisPeriod
     summary: ReportSummary
+    similar_regions: list[SimilarRegion] = Field(default_factory=list)
+    tourism_type_comparisons: list[TourismTypeComparison] = Field(default_factory=list)
     evidence: ReportEvidence
     category_overview: list[CategoryOverviewItem] = Field(default_factory=list)
     detailed_diagnoses: list[DetailedDiagnosis] = Field(default_factory=list)
