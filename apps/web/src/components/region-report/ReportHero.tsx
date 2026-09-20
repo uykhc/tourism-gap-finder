@@ -1,4 +1,4 @@
-import { Bookmark } from 'lucide-react';
+import { Bookmark, Info } from 'lucide-react';
 import { TOURISM_CONTENT_LABEL } from '../../constants/regionReport';
 import type {
   AnalysisPeriodDto,
@@ -36,9 +36,9 @@ function ReportHero({
   interestAction,
   onOpenRegionChange,
 }: ReportHeroProps) {
-  const primaryLabel = summary.primary_gap_type
-    ? TOURISM_CONTENT_LABEL[summary.primary_gap_type]
-    : null;
+  const rankedPriorities = [...summary.priority_content_types].sort(
+    (left, right) => left.rank - right.rank
+  );
 
   return (
     <section className="bg-secondary">
@@ -48,11 +48,27 @@ function ReportHero({
             {target.province_name} · {target.region_name} 관광 빈칸 리포트
           </p>
           <h1 className="max-w-3xl">{summary.one_line_review.text}</h1>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {summary.diagnosis_status === 'GAP_FOUND' && primaryLabel && (
-              <span className="rounded-full bg-primary px-3 py-2 text-label-small text-primary-foreground">
-                우선 검증 · {primaryLabel}
-              </span>
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {rankedPriorities.length > 0 && (
+              <>
+                <span className="inline-flex items-center gap-1 text-label-small text-primary">
+                  우선 검증
+                  <Info
+                    aria-hidden="true"
+                    className="size-3.5"
+                    strokeWidth={1.75}
+                  />
+                </span>
+                {rankedPriorities.map((priority) => (
+                  <span
+                    key={priority.content_type}
+                    className="rounded-full border border-primary/30 bg-card px-3 py-2 text-label-small text-primary"
+                  >
+                    {priority.rank}.{' '}
+                    {TOURISM_CONTENT_LABEL[priority.content_type]}
+                  </span>
+                ))}
+              </>
             )}
             {reportStatus === 'PROVISIONAL' && (
               <span className="rounded-full border bg-card px-3 py-2 text-label-small text-muted-foreground">

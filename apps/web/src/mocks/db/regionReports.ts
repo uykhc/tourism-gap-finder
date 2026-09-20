@@ -18,178 +18,188 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
   summary: {
     diagnosis_status: 'GAP_FOUND',
     primary_gap_type: 'EXPERIENCE_TOURISM',
+    priority_content_types: [
+      {
+        rank: 1,
+        content_type: 'EXPERIENCE_TOURISM',
+        signal_level: 'STRONG_GAP_CANDIDATE',
+      },
+      { rank: 2, content_type: 'SHOPPING', signal_level: 'NEEDS_REVIEW' },
+      {
+        rank: 3,
+        content_type: 'ACCOMMODATION',
+        signal_level: 'NO_CLEAR_GAP',
+      },
+    ],
     one_line_review: {
       text: '경주시는 기존 관광 거점에 참여형 체험을 더해 실제 수요를 먼저 검증할 필요가 있습니다.',
       source: 'LLM',
       generated_at: '2026-09-10T12:00:00Z',
     },
-    key_metrics: [
-      {
-        metric_code: 'MIN_BENCHMARK_SUPPLY_RATIO',
-        content_type: 'EXPERIENCE_TOURISM',
-        value: 0.6959,
-        benchmark_region_id: '47110',
-        benchmark_region_name: '포항시',
-      },
-      {
-        metric_code: 'LOWER_BENCHMARK_COUNT',
-        content_type: 'EXPERIENCE_TOURISM',
-        value: 2,
-        total_benchmark_count: 2,
-      },
-      {
-        metric_code: 'SEARCHES_PER_PLACE',
-        content_type: 'EXPERIENCE_TOURISM',
-        value: 2117.5862,
-        rank: 1,
-        total_content_type_count: 6,
-      },
-    ],
   },
-  evidence: {
-    supply_density: {
-      content_type: 'EXPERIENCE_TOURISM',
-      target: {
-        region_id: '47130',
-        region_name: '경주시',
-        value: 6.57,
-        target_to_benchmark_ratio: null,
-      },
-      benchmarks: [
-        {
-          region_id: '47110',
-          region_name: '포항시',
-          value: 9.44,
-          target_to_benchmark_ratio: 0.6959,
-        },
-        {
-          region_id: '44210',
-          region_name: '서산시',
-          value: 8.12,
-          target_to_benchmark_ratio: 0.8091,
-        },
-      ],
+  // 인구·면적·관광 구조가 비슷한 지역을 유사도 순으로 표시한다. 실제 유사도
+  // 값은 백엔드 구조 유사도 산출 결과(artifacts.comparison_result)와 맞춘다.
+  similar_regions: [
+    {
+      region_id: '47110',
+      province_name: '경상북도',
+      region_name: '포항시',
+      administrative_type: '시',
+      rank: 1,
+      similarity: 0.728,
     },
-    searches_per_place: {
-      metric_definition: '최근 12개월 내비게이션 목적지 검색량 ÷ 등록 장소 수',
-      items: [
-        {
-          content_type: 'EXPERIENCE_TOURISM',
-          navigation_search_count: 233684,
-          supply_place_count: 110,
-          searches_per_place: 2117.5862,
-          rank: 1,
-        },
-        {
-          content_type: 'ACCOMMODATION',
-          navigation_search_count: 402072,
-          supply_place_count: 264,
-          searches_per_place: 1523,
-          rank: 2,
-        },
-        {
-          content_type: 'SHOPPING',
-          navigation_search_count: 178464,
-          supply_place_count: 143,
-          searches_per_place: 1248,
-          rank: 3,
-        },
-        {
-          content_type: 'LEISURE_SPORTS',
-          navigation_search_count: 65731,
-          supply_place_count: 65,
-          searches_per_place: 1011.25,
-          rank: 4,
-        },
-        {
-          content_type: 'CULTURE_TOURISM',
-          navigation_search_count: 108914,
-          supply_place_count: 118,
-          searches_per_place: 923,
-          rank: 5,
-        },
-        {
-          content_type: 'FOOD',
-          navigation_search_count: 481110,
-          supply_place_count: 553,
-          searches_per_place: 870,
-          rank: 6,
-        },
-      ],
+    {
+      region_id: '44210',
+      province_name: '충청남도',
+      region_name: '서산시',
+      administrative_type: '시',
+      rank: 2,
+      similarity: 0.723,
     },
-  },
-  category_overview: [
+    {
+      region_id: '44270',
+      province_name: '충청남도',
+      region_name: '당진시',
+      administrative_type: '시',
+      rank: 3,
+      similarity: 0.7115,
+    },
+  ],
+  tourism_type_comparisons: [
     {
       content_type: 'EXPERIENCE_TOURISM',
-      signal_level: 'STRONG_GAP_CANDIDATE',
-      supply_place_count: 87,
-      composition_share: 0.1312,
-      supply_density_per_100_km2: 6.57,
-      lower_benchmark_count: 2,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: 0.6959,
-      searches_per_place: 2117.5862,
-      search_rank: 1,
+      reference_region: { region_id: '47110', region_name: '포항시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 6.57 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 9.44 },
+          { region_id: '44210', region_name: '서산시', value: 8.12 },
+        ],
+        target_to_reference_ratio: 0.6959,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 2118 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 1620 },
+          { region_id: '44210', region_name: '서산시', value: 1540 },
+        ],
+        target_to_reference_ratio: 1.31,
+      },
     },
     {
       content_type: 'SHOPPING',
-      signal_level: 'NEEDS_REVIEW',
-      supply_place_count: 143,
-      composition_share: 0.2157,
-      supply_density_per_100_km2: 10.8,
-      lower_benchmark_count: 1,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: 0.9,
-      searches_per_place: 1248,
-      search_rank: 3,
+      reference_region: { region_id: '47110', region_name: '포항시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 10.8 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 12 },
+          { region_id: '44210', region_name: '서산시', value: 9.56 },
+        ],
+        target_to_reference_ratio: 0.9,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 1248 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 1150 },
+          { region_id: '44210', region_name: '서산시', value: 1320 },
+        ],
+        target_to_reference_ratio: 1.09,
+      },
     },
     {
       content_type: 'ACCOMMODATION',
-      signal_level: 'NO_CLEAR_GAP',
-      supply_place_count: 264,
-      composition_share: 0.3982,
-      supply_density_per_100_km2: 19.93,
-      lower_benchmark_count: 0,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: 1.08,
-      searches_per_place: 1523,
-      search_rank: 2,
+      reference_region: { region_id: '47110', region_name: '포항시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 19.93 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 18.46 },
+          { region_id: '44210', region_name: '서산시', value: 20.9 },
+        ],
+        target_to_reference_ratio: 1.08,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 1523 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 1450 },
+          { region_id: '44210', region_name: '서산시', value: 1600 },
+        ],
+        target_to_reference_ratio: 1.05,
+      },
     },
     {
       content_type: 'LEISURE_SPORTS',
-      signal_level: 'NO_CLEAR_GAP',
-      supply_place_count: 96,
-      composition_share: 0.1448,
-      supply_density_per_100_km2: 7.25,
-      lower_benchmark_count: 0,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: 1.02,
-      searches_per_place: 1002,
-      search_rank: 4,
+      reference_region: { region_id: '47110', region_name: '포항시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 7.25 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 7.11 },
+          { region_id: '44210', region_name: '서산시', value: 7.6 },
+        ],
+        target_to_reference_ratio: 1.02,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 1002 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 982 },
+          { region_id: '44210', region_name: '서산시', value: 1050 },
+        ],
+        target_to_reference_ratio: 1.02,
+      },
     },
     {
       content_type: 'CULTURE_TOURISM',
-      signal_level: 'NO_CLEAR_GAP',
-      supply_place_count: 118,
-      composition_share: 0.178,
-      supply_density_per_100_km2: 8.91,
-      lower_benchmark_count: 0,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: 1.11,
-      searches_per_place: 923,
-      search_rank: 5,
+      reference_region: { region_id: '47110', region_name: '포항시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 8.91 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 8.03 },
+          { region_id: '44210', region_name: '서산시', value: 9.2 },
+        ],
+        target_to_reference_ratio: 1.11,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 923 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: 880 },
+          { region_id: '44210', region_name: '서산시', value: 950 },
+        ],
+        target_to_reference_ratio: 1.05,
+      },
     },
     {
+      // 두 비교 지역 모두 아직 유형별 공급/검색 데이터가 산출되지 않아
+      // 기준 지역을 고르지 못한 경우. 0이 아니라 null로 표현해 '자료
+      // 없음'과 '값이 0'을 구분한다.
       content_type: 'FOOD',
-      signal_level: 'NO_CLEAR_GAP',
-      supply_place_count: 553,
-      composition_share: 0.52,
-      supply_density_per_100_km2: 41.76,
-      lower_benchmark_count: 1,
-      total_benchmark_count: 2,
-      lowest_benchmark_supply_ratio: null,
-      searches_per_place: 870,
-      search_rank: 6,
+      reference_region: null,
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47130', region_name: '경주시', value: 41.76 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: null },
+          { region_id: '44210', region_name: '서산시', value: null },
+        ],
+        target_to_reference_ratio: null,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47130', region_name: '경주시', value: 870 },
+        benchmarks: [
+          { region_id: '47110', region_name: '포항시', value: null },
+          { region_id: '44210', region_name: '서산시', value: null },
+        ],
+        target_to_reference_ratio: null,
+      },
     },
   ],
   detailed_diagnoses: [
@@ -389,41 +399,187 @@ export const pohangRegionReport: RegionReportResponseDto = {
   summary: {
     diagnosis_status: 'NO_CLEAR_GAP',
     primary_gap_type: null,
+    priority_content_types: [
+      {
+        rank: 1,
+        content_type: 'CULTURE_TOURISM',
+        signal_level: 'NO_CLEAR_GAP',
+      },
+      {
+        rank: 2,
+        content_type: 'ACCOMMODATION',
+        signal_level: 'NO_CLEAR_GAP',
+      },
+      { rank: 3, content_type: 'SHOPPING', signal_level: 'NO_CLEAR_GAP' },
+    ],
     one_line_review: {
       text: '포항시는 비교 지역 대비 뚜렷한 대표 빈칸이 없어 유형별 변화 추이를 함께 살펴볼 필요가 있습니다.',
       source: 'TEMPLATE',
       generated_at: null,
     },
-    key_metrics: [
-      {
-        metric_code: 'SUPPLY_PLACE_COUNT',
-        content_type: 'CULTURE_TOURISM',
-        value: 152,
-      },
-      {
-        metric_code: 'SUPPLY_DENSITY_PER_100_KM2',
-        content_type: 'CULTURE_TOURISM',
-        value: 13.42,
-      },
-      {
-        metric_code: 'SEARCHES_PER_PLACE',
-        content_type: 'CULTURE_TOURISM',
-        value: 1014.2,
-        rank: 3,
-        total_content_type_count: 6,
-      },
-      {
-        metric_code: 'LOWER_BENCHMARK_COUNT',
-        content_type: 'CULTURE_TOURISM',
-        value: 0,
-        total_benchmark_count: 2,
-      },
-    ],
   },
-  category_overview: gyeongjuRegionReport.category_overview.map((item) => ({
-    ...item,
-    signal_level: 'NO_CLEAR_GAP',
-  })),
+  similar_regions: [
+    {
+      region_id: '47130',
+      province_name: '경상북도',
+      region_name: '경주시',
+      administrative_type: '시',
+      rank: 1,
+      similarity: 0.728,
+    },
+    {
+      region_id: '44210',
+      province_name: '충청남도',
+      region_name: '서산시',
+      administrative_type: '시',
+      rank: 2,
+      similarity: 0.701,
+    },
+    {
+      region_id: '44270',
+      province_name: '충청남도',
+      region_name: '당진시',
+      administrative_type: '시',
+      rank: 3,
+      similarity: 0.684,
+    },
+  ],
+  // 포항시는 NO_CLEAR_GAP 상태라 대부분 유형에서 비교 지역과 큰 차이가
+  // 없다는 점을 보여주도록 값을 구성한다.
+  tourism_type_comparisons: [
+    {
+      content_type: 'EXPERIENCE_TOURISM',
+      reference_region: { region_id: '47130', region_name: '경주시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 9.44 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 6.57 },
+          { region_id: '44210', region_name: '서산시', value: 8.12 },
+        ],
+        target_to_reference_ratio: 1.44,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 1620 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 2118 },
+          { region_id: '44210', region_name: '서산시', value: 1540 },
+        ],
+        target_to_reference_ratio: 0.76,
+      },
+    },
+    {
+      content_type: 'SHOPPING',
+      reference_region: { region_id: '47130', region_name: '경주시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 12 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 10.8 },
+          { region_id: '44210', region_name: '서산시', value: 9.56 },
+        ],
+        target_to_reference_ratio: 1.11,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 1150 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 1248 },
+          { region_id: '44210', region_name: '서산시', value: 1320 },
+        ],
+        target_to_reference_ratio: 0.92,
+      },
+    },
+    {
+      content_type: 'ACCOMMODATION',
+      reference_region: { region_id: '47130', region_name: '경주시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 18.46 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 19.93 },
+          { region_id: '44210', region_name: '서산시', value: 20.9 },
+        ],
+        target_to_reference_ratio: 0.93,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 1450 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 1523 },
+          { region_id: '44210', region_name: '서산시', value: 1600 },
+        ],
+        target_to_reference_ratio: 0.95,
+      },
+    },
+    {
+      content_type: 'LEISURE_SPORTS',
+      reference_region: { region_id: '47130', region_name: '경주시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 7.11 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 7.25 },
+          { region_id: '44210', region_name: '서산시', value: 7.6 },
+        ],
+        target_to_reference_ratio: 0.98,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 982 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 1002 },
+          { region_id: '44210', region_name: '서산시', value: 1050 },
+        ],
+        target_to_reference_ratio: 0.98,
+      },
+    },
+    {
+      content_type: 'CULTURE_TOURISM',
+      reference_region: { region_id: '47130', region_name: '경주시' },
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 8.03 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 8.91 },
+          { region_id: '44210', region_name: '서산시', value: 9.2 },
+        ],
+        target_to_reference_ratio: 0.9,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 880 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 923 },
+          { region_id: '44210', region_name: '서산시', value: 950 },
+        ],
+        target_to_reference_ratio: 0.95,
+      },
+    },
+    {
+      content_type: 'FOOD',
+      reference_region: null,
+      supply_density: {
+        unit: 'PLACES_PER_100_KM2',
+        target: { region_id: '47110', region_name: '포항시', value: 38.2 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 41.76 },
+          { region_id: '44210', region_name: '서산시', value: null },
+        ],
+        target_to_reference_ratio: null,
+      },
+      searches_per_place: {
+        unit: 'SEARCHES_PER_PLACE',
+        target: { region_id: '47110', region_name: '포항시', value: 812 },
+        benchmarks: [
+          { region_id: '47130', region_name: '경주시', value: 870 },
+          { region_id: '44210', region_name: '서산시', value: null },
+        ],
+        target_to_reference_ratio: null,
+      },
+    },
+  ],
   detailed_diagnoses: [],
   recommended_actions: [],
 };
@@ -441,30 +597,35 @@ export const seosanInsufficientReport: RegionReportResponseDto = {
   summary: {
     diagnosis_status: 'INSUFFICIENT_DATA',
     primary_gap_type: null,
+    priority_content_types: [],
     one_line_review: {
       text: '현재 이 지역의 상세 관광 분석을 준비하고 있습니다.',
       source: 'TEMPLATE',
       generated_at: null,
     },
-    key_metrics: [],
   },
-  evidence: {
-    supply_density: {
-      content_type: 'UNKNOWN',
-      target: {
-        region_id: '44210',
-        region_name: '서산시',
-        value: 0,
-        target_to_benchmark_ratio: null,
-      },
-      benchmarks: [],
+  // 구조 유사도는 다른 산출물보다 먼저 준비될 수 있어, 분석이 부족한
+  // 상태에서도 비어 있지 않을 수 있다. 다만 화면에서는 다른 상세 섹션과
+  // 함께 INSUFFICIENT_DATA 안내로 대체해 노출하지 않는다.
+  similar_regions: [
+    {
+      region_id: '47130',
+      province_name: '경상북도',
+      region_name: '경주시',
+      administrative_type: '시',
+      rank: 1,
+      similarity: 0.723,
     },
-    searches_per_place: {
-      metric_definition: '상세 분석 준비 중',
-      items: [],
+    {
+      region_id: '47110',
+      province_name: '경상북도',
+      region_name: '포항시',
+      administrative_type: '시',
+      rank: 2,
+      similarity: 0.701,
     },
-  },
-  category_overview: [],
+  ],
+  tourism_type_comparisons: [],
   detailed_diagnoses: [],
   recommended_actions: [],
   benchmark_cases: [],

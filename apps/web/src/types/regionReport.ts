@@ -41,8 +41,8 @@ export interface RegionReportResponseDto {
   target: RegionDto;
   analysis_period: AnalysisPeriodDto;
   summary: ReportSummaryDto;
-  evidence: ReportEvidenceDto;
-  category_overview: CategoryOverviewItemDto[];
+  similar_regions: SimilarRegionDto[];
+  tourism_type_comparisons: TourismTypeComparisonDto[];
   detailed_diagnoses: DetailedDiagnosisDto[];
   recommended_actions: RecommendedActionDto[];
   benchmark_cases: BenchmarkCaseDto[];
@@ -63,97 +63,62 @@ export interface AnalysisPeriodDto {
   month_count: number;
 }
 
+export interface PriorityContentTypeDto {
+  rank: number;
+  content_type: TourismContentType;
+  signal_level: GapSignalLevel;
+}
+
 export interface ReportSummaryDto {
   diagnosis_status: DiagnosisStatus;
   primary_gap_type: TourismContentType | null;
+  priority_content_types: PriorityContentTypeDto[];
   one_line_review: {
     text: string;
     source: OneLineReviewSource;
     generated_at: string | null;
   };
-  key_metrics: KeyMetricDto[];
 }
 
-interface KeyMetricBaseDto {
-  content_type: TourismContentType;
-  value: number;
-}
-
-export interface MinimumBenchmarkSupplyRatioMetricDto extends KeyMetricBaseDto {
-  metric_code: 'MIN_BENCHMARK_SUPPLY_RATIO';
-  benchmark_region_id: string;
-  benchmark_region_name: string;
-}
-
-export interface LowerBenchmarkCountMetricDto extends KeyMetricBaseDto {
-  metric_code: 'LOWER_BENCHMARK_COUNT';
-  total_benchmark_count: number;
-}
-
-export interface SearchesPerPlaceMetricDto extends KeyMetricBaseDto {
-  metric_code: 'SEARCHES_PER_PLACE';
+export interface SimilarRegionDto {
+  region_id: string;
+  province_name: string;
+  region_name: string;
+  administrative_type: AdministrativeType | 'UNKNOWN';
   rank: number;
-  total_content_type_count: number;
+  similarity: number;
 }
 
-export interface SupplyPlaceCountMetricDto extends KeyMetricBaseDto {
-  metric_code: 'SUPPLY_PLACE_COUNT';
-}
-
-export interface SupplyDensityMetricDto extends KeyMetricBaseDto {
-  metric_code: 'SUPPLY_DENSITY_PER_100_KM2';
-}
-
-export interface UnknownKeyMetricDto extends KeyMetricBaseDto {
-  metric_code: 'UNKNOWN';
-}
-
-export type KeyMetricDto =
-  | MinimumBenchmarkSupplyRatioMetricDto
-  | LowerBenchmarkCountMetricDto
-  | SearchesPerPlaceMetricDto
-  | SupplyPlaceCountMetricDto
-  | SupplyDensityMetricDto
-  | UnknownKeyMetricDto;
-
-export interface ReportEvidenceDto {
-  supply_density: {
-    content_type: TourismContentType;
-    target: RegionMetricDto;
-    benchmarks: RegionMetricDto[];
-  };
-  searches_per_place: {
-    metric_definition: string;
-    items: ContentTypeSearchMetricDto[];
-  };
-}
-
-export interface RegionMetricDto {
+export interface ComparisonRegionRefDto {
   region_id: string;
   region_name: string;
-  value: number;
-  target_to_benchmark_ratio?: number | null;
 }
 
-export interface ContentTypeSearchMetricDto {
-  content_type: TourismContentType;
-  navigation_search_count: number;
-  supply_place_count: number;
-  searches_per_place: number;
-  rank: number;
+export interface RegionComparisonMetricDto {
+  region_id: string;
+  region_name: string;
+  value: number | null;
 }
 
-export interface CategoryOverviewItemDto {
+export interface SupplyDensityComparisonDto {
+  unit: 'PLACES_PER_100_KM2';
+  target: RegionComparisonMetricDto;
+  benchmarks: RegionComparisonMetricDto[];
+  target_to_reference_ratio: number | null;
+}
+
+export interface SearchesPerPlaceComparisonDto {
+  unit: 'SEARCHES_PER_PLACE';
+  target: RegionComparisonMetricDto;
+  benchmarks: RegionComparisonMetricDto[];
+  target_to_reference_ratio: number | null;
+}
+
+export interface TourismTypeComparisonDto {
   content_type: TourismContentType;
-  signal_level: GapSignalLevel;
-  supply_place_count: number;
-  composition_share: number;
-  supply_density_per_100_km2: number;
-  lower_benchmark_count: number;
-  total_benchmark_count: number;
-  lowest_benchmark_supply_ratio: number | null;
-  searches_per_place: number;
-  search_rank: number;
+  reference_region: ComparisonRegionRefDto | null;
+  supply_density: SupplyDensityComparisonDto;
+  searches_per_place: SearchesPerPlaceComparisonDto;
 }
 
 export interface DetailedDiagnosisDto {
