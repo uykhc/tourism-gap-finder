@@ -30,13 +30,13 @@ function SimilarRegionsSection({ regions }: SimilarRegionsSectionProps) {
           인구·면적·관광 구조가 비슷한 지역을 유사도 순으로 표시합니다.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {topRegions.map((region) => (
+          {topRegions.map((region, index) => (
             <article
               key={region.region_id}
               className="flex items-center gap-2 rounded-[10px] border bg-muted/50 p-3.5"
             >
               <span className="text-label-small text-primary">
-                {formatTwoDigitOrder(region.rank)}
+                {formatTwoDigitOrder(index + 1)}
               </span>
               <span className="text-body-strong">{region.region_name}</span>
               <span className="ml-auto text-body-small text-primary">
