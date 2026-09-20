@@ -215,6 +215,7 @@ def _payload():
             "content_type": "CULTURE_TOURISM",
             "judgement": "우선 검토 유형",
             "quantitative_evidence": [{"metric": "searches_per_place", "target_value": 8516.021, "comparison": "Peer 비교 전 잠정 순위"}],
+            "integrated_insight": "공급과 수요 지표를 바탕으로 추가 검토가 필요합니다.",
             "peer_cases": [{
                 "title": "공식 사례", "peer_region": "강릉시", "case_type": "PROGRAM",
                 "period": "2026", "operator": "강릉시", "summary": "운영 성과",

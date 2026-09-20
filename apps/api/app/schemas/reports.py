@@ -283,6 +283,7 @@ class DetailedDiagnosis(BaseModel):
         GapSignalLevel.STRONG_GAP_CANDIDATE, GapSignalLevel.NEEDS_REVIEW
     ]
     judgement: str = Field(min_length=1)
+    insight: str = Field(min_length=1)
     quantitative_evidence: list[QuantitativeEvidence] = Field(default_factory=list)
     applicability_insight: str = Field(min_length=1)
     case_ids: list[str] = Field(default_factory=list, examples=[["case-01"]])

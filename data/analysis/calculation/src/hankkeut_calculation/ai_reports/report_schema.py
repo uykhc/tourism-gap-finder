@@ -77,7 +77,7 @@ def _validate_gap_types(value: Any, source_ids: set[str]) -> set[str]:
         raise ValueError("gap_types는 배열이어야 합니다.")
     seen_types: set[str] = set()
     case_titles: set[str] = set()
-    allowed = frozenset({"content_type", "judgement", "quantitative_evidence", "peer_cases", "applicability_insight"})
+    allowed = frozenset({"content_type", "judgement", "integrated_insight", "quantitative_evidence", "peer_cases", "applicability_insight"})
     for index, gap_type in enumerate(value):
         if not isinstance(gap_type, dict):
             raise ValueError(f"gap_types[{index}]는 객체여야 합니다.")
@@ -87,6 +87,7 @@ def _validate_gap_types(value: Any, source_ids: set[str]) -> set[str]:
             raise ValueError("gap_types.content_type은 정의된 유형 중 중복 없이 하나여야 합니다.")
         seen_types.add(content_type)
         _require_nonempty_string(gap_type["judgement"], f"gap_types[{index}].judgement")
+        _require_nonempty_string(gap_type["integrated_insight"], f"gap_types[{index}].integrated_insight")
         _require_nonempty_string(gap_type["applicability_insight"], f"gap_types[{index}].applicability_insight")
         _validate_evidence(gap_type["quantitative_evidence"], index)
         case_titles.update(_validate_cases(gap_type["peer_cases"], source_ids, index))

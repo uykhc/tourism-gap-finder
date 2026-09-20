@@ -13,10 +13,11 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["content_type", "judgement", "quantitative_evidence", "peer_cases", "applicability_insight"],
+        "required": ["content_type", "judgement", "integrated_insight", "quantitative_evidence", "peer_cases", "applicability_insight"],
         "properties": {
           "content_type": {"enum": ["FOOD", "ACCOMMODATION", "CULTURE_TOURISM", "EXPERIENCE_TOURISM", "LEISURE_SPORTS", "SHOPPING"]},
           "judgement": {"type": "string", "minLength": 1},
+          "integrated_insight": {"type": "string", "minLength": 1},
           "quantitative_evidence": {
             "type": "array",
             "minItems": 1,

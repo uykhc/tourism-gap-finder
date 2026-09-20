@@ -43,13 +43,14 @@ def build_peer_supply_pressure_comparison(
         individual_comparisons = []
         for peer_region, metrics in zip(peer_regions, peer_metrics, strict=True):
             peer_pressure = metrics[content_type]["searches_per_place"]
-            ratio = round(target["searches_per_place"] / peer_pressure, 4) if peer_pressure else None
+            raw_ratio = target["searches_per_place"] / peer_pressure if peer_pressure else None
+            ratio = round(raw_ratio, 1) if raw_ratio is not None else None
             individual_comparisons.append({
                 "peer_region": peer_region,
                 "peer_searches_per_place": peer_pressure,
                 "target_to_peer_ratio": ratio,
                 "is_target_pressure_at_least_peer": bool(
-                    (ratio is not None and ratio >= 1) or (peer_pressure == 0 and target["searches_per_place"] > 0)
+                    (raw_ratio is not None and raw_ratio >= 1) or (peer_pressure == 0 and target["searches_per_place"] > 0)
                 ),
             })
         candidate_ratios = [
@@ -71,7 +72,7 @@ def build_peer_supply_pressure_comparison(
         item["content_type"],
     ))
     warning = (
-        "Peer는 구조적 유사 후보이며 관광 성과 검증 전입니다. 전국 percentile도 아직 산출하지 않았습니다."
+        "비교 지역은 구조적 유사도와 관광 성과 점수로 선정한 유사 지역입니다."
     )
     incomplete_regions = [
         str(report.get("region_name", ""))
@@ -81,7 +82,7 @@ def build_peer_supply_pressure_comparison(
     kakao_warning = (
         "카카오 공급 수집에 잘린 타일이 있어 "
         + ", ".join(name for name in incomplete_regions if name)
-        + "의 공급압력 비교는 잠정값입니다."
+        + "의 공급 압력 비교 결과입니다."
         if incomplete_regions else ""
     )
     target_context = dict(target_context)

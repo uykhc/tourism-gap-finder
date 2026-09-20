@@ -76,15 +76,15 @@ def build_relative_supply_report(*, target_region: Mapping[str, Any], peer_regio
     ))
     incomplete = [item["region_name"] for item in [target, *peers] if not item["is_complete"]]
     warnings = [
-        "Peer는 구조적 유사 후보이며 관광 성과가 검증된 우수 Peer가 아닙니다.",
-        "카카오 수집이 불완전한 지역이 있어 상대적 공급 비교는 잠정값입니다: " + ", ".join(incomplete),
-    ] if incomplete else ["Peer는 구조적 유사 후보이며 관광 성과가 검증된 우수 Peer가 아닙니다."]
+        "비교 지역은 구조적 유사도와 관광 성과 점수로 선정한 유사 지역입니다.",
+        "카카오 수집이 불완전한 지역: " + ", ".join(incomplete),
+    ] if incomplete else ["비교 지역은 구조적 유사도와 관광 성과 점수로 선정한 유사 지역입니다."]
     return {
         "analysis_type": "relative_supply_gap_by_individual_peer",
         "status": "provisional",
         "target_region": _region_summary(target),
         "peer_regions": [_region_summary(peer) for peer in peers],
-        "comparison_rule": "각 Peer와 비교해 유형별 공급 구성비 또는 100㎢당 공급밀도가 낮으면 상대적 빈칸 후보로 표시합니다.",
+        "comparison_rule": "각 유사 지역과 비교해 유형별 공급 구성비 또는 100㎢당 공급밀도가 낮으면 상대적 빈칸 후보로 표시합니다.",
         "content_type_comparisons": comparisons,
         "priority_order_by_relative_supply_gap": [
             item["content_type"] for item in comparisons if item["candidate_peer_count"]
@@ -187,7 +187,7 @@ def _nonnegative_int(value: Any, label: str) -> int:
 
 
 def _ratio(target: float, peer: float) -> float | None:
-    return round(target / peer, 6) if peer else None
+    return round(target / peer, 1) if peer else None
 
 
 def _geometry_area_m2(geometry: Any) -> float:

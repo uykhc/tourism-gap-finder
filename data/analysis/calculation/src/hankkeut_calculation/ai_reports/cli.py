@@ -28,6 +28,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--region-id", required=True, help="Five-digit municipality identifier.")
     parser.add_argument("--content-database-url", help="Supabase Postgres URL. Defaults to CONTENT_DATABASE_URL.")
     parser.add_argument("--peer-region", action="append", default=[], help="Verified peer region; first three are used.")
+    parser.add_argument(
+        "--selected-content-type", action="append", default=[],
+        help="Backend-confirmed priority content type; repeat in rank order.",
+    )
     parser.add_argument("--case-documents", type=Path, help="JSON array of pre-reviewed CaseSearchDocument objects.")
     parser.add_argument("--search-cases", action="store_true", help="Use OpenAI web search for selected types and verified peers.")
     parser.add_argument("--max-gap-types", type=int, default=DEFAULT_MAX_GAP_TYPES)
@@ -53,18 +57,20 @@ def main(argv: list[str] | None = None) -> int:
                 f"{context.get('limitation', '')} "
                 f"{' '.join(relative_supply.get('limitations', []))}"
             ).strip()
+        if args.selected_content_type:
+            context["selected_content_types"] = list(dict.fromkeys(args.selected_content_type))[:args.max_gap_types]
         client = create_openai_client()
         if args.search_cases and not args.peer_region:
             raise ValueError("--search-cases에는 최소 한 개의 검증된 --peer-region이 필요합니다.")
         sources = _load_approved_sources(args.case_documents)
         if args.search_cases:
-            priority = (
+            priority = context.get("selected_content_types") or (
                 context["priority_order_by_individual_peer_pressure"]
                 if "priority_order_by_individual_peer_pressure" in context
                 else context["priority_order_by_supply_pressure"]
             )
             peer_comparison = context.get("peer_supply_pressure_comparison")
-            if isinstance(peer_comparison, list):
+            if isinstance(peer_comparison, list) and not context.get("selected_content_types"):
                 candidate_types = {
                     item.get("content_type") for item in peer_comparison
                     if isinstance(item, dict)

@@ -182,7 +182,7 @@ class SampleReportTest(unittest.TestCase):
 
     def test_the_report_is_provisional_while_benchmarks_are_structural(self):
         self.assertEqual(self.report["report_status"], "PROVISIONAL")
-        self.assertIsNotNone(self.report["methodology"]["provisional_notice"])
+        self.assertIsNone(self.report["methodology"]["provisional_notice"])
 
     def test_numbers_are_sent_as_numbers_and_missing_values_as_null(self):
         for path, key, value in _walk(self.report):

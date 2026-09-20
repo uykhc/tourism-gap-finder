@@ -45,15 +45,12 @@ _SIGNAL_ORDER = {
     GapSignalLevel.NO_CLEAR_GAP: 2,
 }
 
-_PROVISIONAL_NOTICE = (
-    "관광 성과 검증과 전국 비교가 끝나기 전의 잠정 결과입니다. 빈칸 후보는 추가 "
-    "검증 우선순위이며 신규 시설·사업의 성공 근거가 아닙니다."
-)
+CONTENT_TYPE_LABELS = {
+    "FOOD": "음식", "ACCOMMODATION": "숙박", "CULTURE_TOURISM": "문화관광",
+    "EXPERIENCE_TOURISM": "체험관광", "LEISURE_SPORTS": "레저·스포츠", "SHOPPING": "쇼핑",
+}
 
 _PREPARING_REVIEW = "현재 이 지역의 상세 관광 분석을 준비하고 있습니다."
-_PREPARING_LIMITATION = (
-    "분석에 필요한 데이터가 보강되면 상세 진단과 추천 내용을 제공할 예정입니다."
-)
 _PLANNED_ANALYSIS_PERIOD = {"start_ym": "202509", "end_ym": "202608", "month_count": 12}
 
 _FACILITY_KEYWORDS = re.compile(r"시설|센터|타워|공원|워크|박물관|미술관|전망|둘레길|전시관")
@@ -160,8 +157,8 @@ def _preparing_report(
             "benchmark_selection_note": "현재는 상세 비교 결과를 제공하지 않습니다.",
             "supply_comparison_rule": "비교 기준 지역과 관광 콘텐츠 현황을 비교합니다.",
             "search_pressure_definition": "관광 검색 수요와 관련 콘텐츠 현황을 함께 살펴봅니다.",
-            "provisional_notice": _PREPARING_LIMITATION,
-            "limitations": [_PREPARING_LIMITATION],
+            "provisional_notice": None,
+            "limitations": [],
         },
         "sources": [],
     }
@@ -450,7 +447,7 @@ def _positive(value: float | None) -> bool:
 
 
 def _ratio(numerator: float | None, denominator: float | None) -> float | None:
-    return None if numerator is None or denominator is None or denominator == 0 else numerator / denominator
+    return None if numerator is None or denominator is None or denominator == 0 else round(numerator / denominator, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -545,7 +542,7 @@ def _benchmark_metrics(
             "region_id": region["region_id"],
             "region_name": region["region_name"],
             "value": value,
-            "target_to_benchmark_ratio": ratio if isinstance(ratio, (int, float)) else None,
+            "target_to_benchmark_ratio": round(float(ratio), 1) if isinstance(ratio, (int, float)) else None,
         })
     return rows
 
@@ -689,6 +686,7 @@ def _diagnoses_and_cases(
             "content_type": content_type,
             "signal_level": signal["signal_level"].value,
             "judgement": str(gap_type.get("judgement") or ""),
+            "insight": str(gap_type.get("integrated_insight") or gap_type.get("judgement") or ""),
             "quantitative_evidence": _quantitative_evidence(signal),
             "applicability_insight": str(gap_type.get("applicability_insight") or ""),
             "case_ids": case_ids,
@@ -773,11 +771,10 @@ def _one_line_review(
     signals: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     """사전 생성 AI 판정의 첫 문장을 쓰고, 없으면 템플릿 문장을 만든다."""
-    sentence = _first_sentence(_primary_judgement(ai_report, primary))
-    if sentence:
+    if primary is not None:
         return {
-            "text": sentence,
-            "source": OneLineReviewSource.LLM.value,
+            "text": f"{region['region_name']}에 필요한 한끗은 {CONTENT_TYPE_LABELS.get(primary, primary)}입니다.",
+            "source": OneLineReviewSource.TEMPLATE.value,
             "generated_at": None,
         }
     return {
@@ -785,25 +782,6 @@ def _one_line_review(
         "source": OneLineReviewSource.TEMPLATE.value,
         "generated_at": None,
     }
-
-
-def _primary_judgement(ai_report: dict[str, Any] | None, primary: str | None) -> str:
-    gap_types = (ai_report or {}).get("gap_types")
-    if not isinstance(gap_types, list):
-        return ""
-    for gap_type in gap_types:
-        if isinstance(gap_type, dict) and gap_type.get("content_type") == primary:
-            return str(gap_type.get("judgement") or "")
-    return ""
-
-
-def _first_sentence(text: str, *, limit: int = 120) -> str:
-    stripped = re.sub(r"\s+", " ", text).strip()
-    if not stripped:
-        return ""
-    match = re.search(r"^(.+?[.!?])(?:\s|$)", stripped)
-    sentence = match.group(1) if match else stripped
-    return sentence if len(sentence) <= limit else ""
 
 
 def _template_review(
@@ -845,7 +823,12 @@ def _limitations(
         )
     if status is DiagnosisStatus.INSUFFICIENT_DATA:
         lines.append("비교에 필요한 분석 산출물이 없어 빈칸 진단을 산출하지 않았습니다.")
-    return _dedupe(lines)
+    return _dedupe([line for line in lines if not _is_redundant_disclaimer(line)])
+
+
+def _is_redundant_disclaimer(line: str) -> bool:
+    normalized = line.replace(" ", "")
+    return any(token in normalized for token in ("잠정", "완벽", "전국percentile", "관광성과검증전"))
 
 
 def _dedupe(lines: list[str]) -> list[str]:
@@ -865,7 +848,6 @@ def _methodology(
     limitations: list[str],
 ) -> dict[str, Any]:
     context = (target_report or {}).get("ai_report_context") or {}
-    provisional = not benchmarks.performance_backed
     return {
         "benchmark_selection_rule": benchmarks.rule,
         "benchmark_selection_note": benchmarks.note,
@@ -873,7 +855,7 @@ def _methodology(
         or "비교 기준 지역과 유형별 공급 구성비 또는 100㎢당 공급밀도를 비교합니다.",
         "search_pressure_definition": context.get("metric_definition")
         or "유형별 내비게이션 목적지 검색량 ÷ 유형별 등록 장소 수",
-        "provisional_notice": _PROVISIONAL_NOTICE if provisional else None,
+        "provisional_notice": None,
         "limitations": limitations,
     }
 

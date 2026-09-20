@@ -709,6 +709,10 @@ def build_ai_report(
     peer_names = [regions.find_region(peer_id)["region_name"] for peer_id in peer_ids]
     if not peer_names:
         raise ValueError(f"no performance-backed peer is available: {region_id}")
+    priority_types = select_ai_priority_content_types(
+        supply_pressure_report=supply_pressure_report,
+        relative_supply_report=relative_supply_report,
+    )
     argv = [
         "--region-id", region_id,
         "--supply-pressure-report", str(supply_pressure_report),
@@ -718,7 +722,43 @@ def build_ai_report(
     ]
     for name in peer_names:
         argv.extend(("--peer-region", name))
+    for content_type in priority_types:
+        argv.extend(("--selected-content-type", content_type))
     return ai_main(argv)
+
+
+def select_ai_priority_content_types(
+    *, supply_pressure_report: Path, relative_supply_report: Path
+) -> list[str]:
+    """Fix the LLM input to the release builder's deterministic screen result."""
+    pressure = _read_json(supply_pressure_report)
+    relative = _read_json(relative_supply_report)
+    relative_rows = {
+        str(item.get("content_type")): item
+        for item in relative.get("content_type_comparisons", [])
+        if isinstance(item, dict) and item.get("content_type")
+    }
+    context = pressure.get("ai_report_context")
+    if not isinstance(context, dict):
+        raise ValueError("supply-pressure report is missing ai_report_context")
+    pressure_rows = {
+        str(item.get("content_type")): item
+        for item in context.get("peer_supply_pressure_comparison", [])
+        if isinstance(item, dict) and item.get("content_type")
+    }
+    pressure_order = [
+        str(item) for item in context.get("priority_order_by_individual_peer_pressure", [])
+        if str(item) in pressure_rows
+    ]
+    all_types = list(dict.fromkeys([*pressure_order, *relative_rows, *pressure_rows]))
+    ranked: list[tuple[int, int, str]] = []
+    for content_type in all_types:
+        relative_candidate = int(relative_rows.get(content_type, {}).get("candidate_peer_count", 0)) > 0
+        pressure_candidate = int(pressure_rows.get(content_type, {}).get("candidate_peer_count", 0)) > 0
+        signal_rank = 0 if relative_candidate and pressure_candidate else 1 if (relative_candidate or pressure_candidate) else 2
+        pressure_rank = pressure_order.index(content_type) if content_type in pressure_order else len(pressure_order)
+        ranked.append((signal_rank, pressure_rank, content_type))
+    return [content_type for _, _, content_type in sorted(ranked)[:3]]
 
 
 def select_performance_peers(

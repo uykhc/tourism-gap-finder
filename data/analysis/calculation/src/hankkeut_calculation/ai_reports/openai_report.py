@@ -25,7 +25,7 @@ from .report_schema import CONTENT_TYPE_LABELS, validate_report_payload
 
 DEFAULT_MODEL = "gpt-5.6-luna"
 DEFAULT_MAX_OUTPUT_TOKENS = 4_000
-DEFAULT_MAX_GAP_TYPES = 2
+DEFAULT_MAX_GAP_TYPES = 3
 MAX_CASE_EVIDENCE_CHARS = 240
 # Three structural peers provide enough comparison context for the pilot while
 # keeping case-search calls and the LLM context bounded.
@@ -212,13 +212,16 @@ def _prepare_context(context: Mapping[str, Any], *, max_gap_types: int) -> dict[
     metrics = context.get("content_type_metrics")
     if not region_name or not analysis_period or not isinstance(metrics, list):
         raise ValueError("ai_report_context에 region_name, analysis_period, content_type_metrics가 필요합니다.")
+    selected_by_backend = context.get("selected_content_types")
     priority = (
-        context["priority_order_by_individual_peer_pressure"]
+        selected_by_backend
+        if isinstance(selected_by_backend, list)
+        else context["priority_order_by_individual_peer_pressure"]
         if "priority_order_by_individual_peer_pressure" in context
         else context.get("priority_order_by_supply_pressure", [])
     )
     peer_comparison = context.get("peer_supply_pressure_comparison")
-    if peer_comparison is not None:
+    if peer_comparison is not None and not isinstance(selected_by_backend, list):
         if not isinstance(peer_comparison, list):
             raise ValueError("peer_supply_pressure_comparison은 배열이어야 합니다.")
         # A type is a candidate if the target has at least as much pressure as
@@ -295,7 +298,7 @@ def _validate_report_against_input(
 
 
 def _system_instruction(interpretation_rules: str) -> str:
-    return """You write Korean tourism-gap insight reports as strict JSON. Use only the supplied analysis_context for numbers. Never invent a number, source, URL, publisher, date, case, operator, or peer region. Copy approved_sources to sources exactly. A peer case may cite only supplied source_ids; include case_type, period, and operator only when the approved source evidence supports them. If complete case metadata is unavailable, use an empty peer_cases array. Each peer_cases.summary must be at most two concise Korean sentences and must not restate a source body. Produce at least one recommended_action grounded in supplied quantitative evidence; case_titles may reference only emitted peer case titles. The pilot has no national or peer percentile, so it must remain provisional and state this in limitations. If peer_supply_pressure_comparison is supplied, use it only as a cautious structural-peer comparison and clearly retain its data-quality limitations. If relative_supply_comparison is supplied, use it only as a separate relative-supply signal based on composition share or 100-km² density; do not confuse it with demand pressure. Select only selected_content_types. If selected_content_types is empty, return gap_types as an empty array and recommend only additional data validation. For each included type, put its exact searches_per_place value from content_type_metrics in quantitative_evidence. Supply pressure is a screening signal, not proof that a new facility will succeed.
+    return """You write Korean tourism-gap insight reports as strict JSON. Use only the supplied analysis_context for numbers. Never invent a number, source, URL, publisher, date, case, operator, or similar region. Copy approved_sources to sources exactly. A peer case may cite only supplied source_ids; include case_type, period, and operator only when the approved source evidence supports them. If complete case metadata is unavailable, use an empty peer_cases array. Each peer_cases.summary must be at most two concise Korean sentences and must not restate a source body. Produce at least one recommended_action grounded in supplied quantitative evidence; case_titles may reference only emitted peer case titles. Use the term '유사 지역' in Korean prose, never 'Peer'. selected_content_types is a backend decision: do not rank, add, remove, or prioritize content types yourself. Do not select a reference region and do not calculate or state a target-to-reference ratio; those quantitative comparisons are API-owned. If peer_supply_pressure_comparison is supplied, use it only as a structural similar-region comparison. If relative_supply_comparison is supplied, use it only as a separate relative-supply signal based on composition share or 100-km² density; do not confuse it with demand pressure. Select only selected_content_types. If selected_content_types is empty, return gap_types as an empty array and recommend only additional data validation. For each included type, put its exact searches_per_place value from content_type_metrics in quantitative_evidence. Supply pressure is a screening signal, not proof that a new facility will succeed. Every Korean narrative field must use respectful formal speech ending in 입니다, 합니다, 됩니다, 있습니다, or 없습니다. For every gap_types item, write integrated_insight as exactly one respectful Korean sentence that integrates the detailed diagnosis and the data-suggested next step; it explains the supplied data and must not introduce a new fact.
 
 The following interpretation rules are normative and override any intuitive but conflicting interpretation:\n\n""" + interpretation_rules
 
