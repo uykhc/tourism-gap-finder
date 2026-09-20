@@ -207,7 +207,7 @@ export const gyeongjuRegionReport: RegionReportResponseDto = {
       content_type: 'EXPERIENCE_TOURISM',
       signal_level: 'STRONG_GAP_CANDIDATE',
       judgement:
-        '두 우수 지역보다 공급밀도가 낮고, 장소당 검색량은 6개 유형 중 가장 높아 추가 검증 우선순위가 높습니다.',
+        '두 우수 지역보다 공급 밀도가 낮고, 장소당 검색량은 6개 유형 중 가장 높아 추가 검증 우선순위가 높습니다.',
       insight: '공급과 수요 지표를 바탕으로 체험관광을 우선 검토합니다.',
       quantitative_evidence: [
         {

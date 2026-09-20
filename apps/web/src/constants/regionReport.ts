@@ -28,3 +28,14 @@ export const CASE_TYPE_LABEL: Record<BenchmarkCaseType, string> = {
   PROGRAM: '프로그램',
   UNKNOWN: '유형 미상',
 };
+// 유형별 공급 현황 섹션의 정보 아이콘 설명. 방법론 카드의 산출 규칙
+// 문구와 달리, 수치를 어떻게 해석해야 하는지에 집중한 설명이다.
+export const SUPPLY_DENSITY_DESCRIPTION =
+  '지역 면적 100㎢당 등록된 해당 유형의 장소 수입니다. 이 값이 낮을수록 같은 면적에 이용할 수 있는 장소가 적다는 뜻입니다.';
+
+export const SEARCH_PRESSURE_DESCRIPTION =
+  '최근 12개월 동안 해당 유형 장소 1곳당 발생한 내비게이션 목적지 검색량입니다. 이 값이 높을수록 장소 수에 비해 수요가 많아, 공급이 부족할 가능성이 크다는 뜻입니다.';
+
+// 선정된 유사 지역 섹션의 정보 아이콘 설명.
+export const SIMILAR_REGION_SELECTION_DESCRIPTION =
+  '인구·면적, 자연환경, 기후, 산업구조 등 지역 여건이 비슷한 상위 10곳을 먼저 찾고, 그중 관광 성과가 높은 3곳을 비교 지역으로 선정합니다.';

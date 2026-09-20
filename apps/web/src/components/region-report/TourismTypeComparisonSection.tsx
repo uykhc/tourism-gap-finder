@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  SEARCH_PRESSURE_DESCRIPTION,
+  SUPPLY_DENSITY_DESCRIPTION,
   TOURISM_CONTENT_LABEL,
   TOURISM_CONTENT_ORDER,
 } from '../../constants/regionReport';
@@ -15,6 +17,7 @@ import {
   formatRatio,
   getNormalizedBarWidth,
 } from '../../utils/regionReport';
+import InfoHoverCard from './InfoHoverCard';
 
 // 탭에는 UNKNOWN을 제외한 6개 관광 콘텐츠 유형만 노출한다.
 const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
@@ -68,7 +71,7 @@ function TourismTypeComparisonSection({
         <div>
           <h2>관광 콘텐츠 유형별 공급 현황</h2>
           <p className="mt-1 text-body-small text-muted-foreground">
-            관광 콘텐츠 유형별 공급밀도와 공급 압력을 유사 지역과 비교합니다.
+            관광 콘텐츠 유형별 공급 밀도와 공급 압력을 유사 지역과 비교합니다.
           </p>
         </div>
 
@@ -98,20 +101,28 @@ function TourismTypeComparisonSection({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <article className="flex flex-col gap-1.5 rounded-xl border bg-card px-4.5 py-4">
-            <p className="text-body-small text-primary">
+            <p className="flex items-center gap-1 text-body-small text-primary">
               {referenceName
-                ? `${referenceName} 대비 공급밀도`
+                ? `${referenceName} 대비 공급 밀도`
                 : '비교 기준 지역 없음'}
+              <InfoHoverCard
+                label="공급 밀도"
+                description={SUPPLY_DENSITY_DESCRIPTION}
+              />
             </p>
             <p className="text-heading text-primary">
               {formatRatio(active.supply_density.target_to_reference_ratio)}
             </p>
           </article>
           <article className="flex flex-col gap-1.5 rounded-xl border bg-card px-4.5 py-4">
-            <p className="text-body-small text-primary">
+            <p className="flex items-center gap-1 text-body-small text-primary">
               {referenceName
                 ? `${referenceName} 대비 공급 압력`
                 : '비교 기준 지역 없음'}
+              <InfoHoverCard
+                label="공급 압력"
+                description={SEARCH_PRESSURE_DESCRIPTION}
+              />
             </p>
             <p className="text-heading text-primary">
               {formatRatio(active.searches_per_place.target_to_reference_ratio)}
@@ -121,16 +132,20 @@ function TourismTypeComparisonSection({
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ComparisonChartCard
-            title={`${TOURISM_CONTENT_LABEL[activeType]} 공급밀도`}
+            title={`${TOURISM_CONTENT_LABEL[activeType]} 공급 밀도`}
             unitLabel="100㎢당 등록 장소 수"
             rows={densityRows}
             formatValue={formatDecimal}
+            infoLabel="공급 밀도"
+            infoDescription={SUPPLY_DENSITY_DESCRIPTION}
           />
           <ComparisonChartCard
             title={`${TOURISM_CONTENT_LABEL[activeType]} 공급 압력`}
             unitLabel="등록 장소 1곳당 최근 12개월 목적지 검색량"
             rows={searchRows}
             formatValue={(value) => `${formatCount(value)}회`}
+            infoLabel="공급 압력"
+            infoDescription={SEARCH_PRESSURE_DESCRIPTION}
           />
         </div>
       </div>
@@ -143,6 +158,8 @@ interface ComparisonChartCardProps {
   unitLabel: string;
   rows: RegionComparisonMetricDto[];
   formatValue: (value: number) => string;
+  infoLabel: string;
+  infoDescription: string;
 }
 
 function ComparisonChartCard({
@@ -150,6 +167,8 @@ function ComparisonChartCard({
   unitLabel,
   rows,
   formatValue,
+  infoLabel,
+  infoDescription,
 }: ComparisonChartCardProps) {
   const numericValues = rows
     .map((row) => row.value)
@@ -158,7 +177,10 @@ function ComparisonChartCard({
   return (
     <article className="flex flex-col gap-3 rounded-xl border bg-card p-5">
       <div>
-        <p className="text-body-strong">{title}</p>
+        <p className="flex items-center gap-1 text-body-strong">
+          {title}
+          <InfoHoverCard label={infoLabel} description={infoDescription} />
+        </p>
         <p className="text-body-small text-muted-foreground">{unitLabel}</p>
       </div>
       <div className="flex flex-col gap-2 py-1">
