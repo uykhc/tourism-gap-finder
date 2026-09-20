@@ -1,4 +1,3 @@
-import { Info } from 'lucide-react';
 import { useState } from 'react';
 import {
   SEARCH_PRESSURE_DESCRIPTION,
@@ -18,12 +17,7 @@ import {
   formatRatio,
   getNormalizedBarWidth,
 } from '../../utils/regionReport';
-import { Button } from '../ui/button';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '../ui/hover-card';
+import InfoHoverCard from './InfoHoverCard';
 
 // 탭에는 UNKNOWN을 제외한 6개 관광 콘텐츠 유형만 노출한다.
 const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
@@ -111,7 +105,7 @@ function TourismTypeComparisonSection({
               {referenceName
                 ? `${referenceName} 대비 공급 밀도`
                 : '비교 기준 지역 없음'}
-              <MetricInfoIcon
+              <InfoHoverCard
                 label="공급 밀도"
                 description={SUPPLY_DENSITY_DESCRIPTION}
               />
@@ -125,7 +119,7 @@ function TourismTypeComparisonSection({
               {referenceName
                 ? `${referenceName} 대비 공급 압력`
                 : '비교 기준 지역 없음'}
-              <MetricInfoIcon
+              <InfoHoverCard
                 label="공급 압력"
                 description={SEARCH_PRESSURE_DESCRIPTION}
               />
@@ -185,7 +179,7 @@ function ComparisonChartCard({
       <div>
         <p className="flex items-center gap-1 text-body-strong">
           {title}
-          <MetricInfoIcon label={infoLabel} description={infoDescription} />
+          <InfoHoverCard label={infoLabel} description={infoDescription} />
         </p>
         <p className="text-body-small text-muted-foreground">{unitLabel}</p>
       </div>
@@ -219,30 +213,6 @@ function ComparisonChartCard({
         ))}
       </div>
     </article>
-  );
-}
-
-interface MetricInfoIconProps {
-  label: string;
-  description: string;
-}
-
-function MetricInfoIcon({ label, description }: MetricInfoIconProps) {
-  return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          aria-label={`${label} 설명 보기`}
-          className="size-4.5 shrink-0 text-muted-foreground hover:bg-transparent hover:text-foreground"
-        >
-          <Info aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
-        </Button>
-      </HoverCardTrigger>
-      <HoverCardContent>{description}</HoverCardContent>
-    </HoverCard>
   );
 }
 
