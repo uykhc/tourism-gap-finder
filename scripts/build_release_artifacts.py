@@ -678,11 +678,7 @@ def build_datalab_pressure(
 
     target_report = pressure(region_id)
     peer_reports = [pressure(peer_id) for peer_id in peer_ids]
-    peer_names = [
-        f"{region['province_name']} {region['region_name']}"
-        for peer_id in peer_ids
-        if (region := regions.find_region(peer_id)) is not None
-    ]
+    peer_names = [regions.find_region(peer_id)["region_name"] for peer_id in peer_ids]
     result = build_peer_supply_pressure_comparison(
         target_report,
         peer_reports=peer_reports,
