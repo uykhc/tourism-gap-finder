@@ -15,6 +15,9 @@ export const formatDecimal = (value: number) => decimalFormatter.format(value);
 export const formatRatio = (value: number | null) =>
   value === null ? '-' : `${value.toFixed(2)}배`;
 
+export const formatTwoDigitOrder = (value: number) =>
+  String(value).padStart(2, '0');
+
 const formatYearMonth = (value: string) => {
   if (!/^\d{6}$/.test(value)) return null;
   const month = Number(value.slice(4));
