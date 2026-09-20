@@ -22,6 +22,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Collect six-type tourism content from Kakao Local API.")
     parser.add_argument("--boundaries", required=True, type=Path, help="WGS84 GeoJSON FeatureCollection file.")
     parser.add_argument("--region-name", action="append", default=[], help="Feature region_name to collect; repeatable. Defaults to all.")
+    parser.add_argument("--region-id", action="append", default=[], help="Five-digit feature region_id to collect; repeatable and unambiguous.")
     parser.add_argument("--taxonomy", type=Path, default=DEFAULT_TAXONOMY_PATH)
     parser.add_argument("--initial-tile-meters", type=int, default=DEFAULT_INITIAL_TILE_METERS)
     parser.add_argument("--minimum-tile-meters", type=int, default=DEFAULT_MIN_TILE_METERS)
@@ -36,10 +37,26 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     features = _load_features(args.boundaries)
     requested_names = set(args.region_name)
-    selected = [feature for feature in features if not requested_names or _region_name(feature) in requested_names]
-    missing_names = requested_names - {_region_name(feature) for feature in selected}
+    requested_ids = set(args.region_id)
+    def is_selected(feature: dict) -> bool:
+        properties = feature.get("properties") or {}
+        return (
+            (not requested_names and not requested_ids)
+            or _region_name(feature) in requested_names
+            or str(properties.get("region_id", "")) in requested_ids
+        )
+    selected = [feature for feature in features if is_selected(feature)]
+    selected_names = {_region_name(feature) for feature in selected}
+    selected_ids = {
+        str((feature.get("properties") or {}).get("region_id", ""))
+        for feature in selected
+    }
+    missing_names = requested_names - selected_names
     if missing_names:
         raise SystemExit("Unknown region_name: " + ", ".join(sorted(missing_names)))
+    missing_ids = requested_ids - selected_ids
+    if missing_ids:
+        raise SystemExit("Unknown region_id: " + ", ".join(sorted(missing_ids)))
     key = args.rest_api_key or resolve_kakao_rest_api_key()
     if not key:
         print("Error: provide --rest-api-key or KAKAO_REST_API_KEY.", file=sys.stderr)
