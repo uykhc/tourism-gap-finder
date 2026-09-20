@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import CasesAndMethodologySection from '../components/region-report/CasesAndMethodologySection';
-import DetailedDiagnosisSection from '../components/region-report/DetailedDiagnosisSection';
 import RecommendedActionSection from '../components/region-report/RecommendedActionSection';
 import RegionChangeDialog from '../components/region-report/RegionChangeDialog';
 import RegionReportEmptyState from '../components/region-report/RegionReportEmptyState';
@@ -151,7 +150,6 @@ function RegionDashboard() {
             comparisons={report.tourism_type_comparisons}
             primaryGapType={report.summary.primary_gap_type}
           />
-          <DetailedDiagnosisSection diagnoses={report.detailed_diagnoses} />
           <RecommendedActionSection
             actions={report.recommended_actions}
             cases={report.benchmark_cases}
