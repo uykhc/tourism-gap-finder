@@ -2,7 +2,6 @@ import { TOURISM_CONTENT_ORDER } from '../constants/regionReport';
 import type {
   CategoryOverviewItemDto,
   ContentTypeSearchMetricDto,
-  RecommendedActionDto,
   SourceDto,
   TourismContentType,
 } from '../types/regionReport';
@@ -21,9 +20,6 @@ export const formatDecimal = (value: number) => decimalFormatter.format(value);
 
 export const formatRatio = (value: number | null) =>
   value === null ? '-' : `${value.toFixed(2)}배`;
-
-export const formatTwoDigitOrder = (value: number) =>
-  String(value).padStart(2, '0');
 
 const formatYearMonth = (value: string) => {
   if (!/^\d{6}$/.test(value)) return null;
@@ -47,9 +43,6 @@ export const getNormalizedBarWidth = (value: number, values: number[]) => {
 
 export const sortSearchMetrics = (items: ContentTypeSearchMetricDto[]) =>
   [...items].sort((left, right) => left.rank - right.rank);
-
-export const sortRecommendedActions = (items: RecommendedActionDto[]) =>
-  [...items].sort((left, right) => left.order - right.order);
 
 export const sortCategoryOverview = (
   items: CategoryOverviewItemDto[],
