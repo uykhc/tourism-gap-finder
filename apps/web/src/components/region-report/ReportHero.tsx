@@ -1,4 +1,4 @@
-import { Bookmark, Info } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import { TOURISM_CONTENT_LABEL } from '../../constants/regionReport';
 import type {
   AnalysisPeriodDto,
@@ -48,13 +48,8 @@ function ReportHero({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {rankedPriorities.length > 0 && (
               <>
-                <span className="inline-flex items-center gap-1 text-label-small text-primary">
-                  우선 검증
-                  <Info
-                    aria-hidden="true"
-                    className="size-3.5"
-                    strokeWidth={1.75}
-                  />
+                <span className="text-label-small text-primary">
+                  보완 우선순위
                 </span>
                 {rankedPriorities.map((priority) => (
                   <span
