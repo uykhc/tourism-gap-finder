@@ -108,6 +108,21 @@ class ResolveBenchmarksTest(unittest.TestCase):
             selection = benchmarks.resolve_benchmarks(TARGET, relative)
         self.assertNotIn(TARGET, [region["region_id"] for region in selection.regions])
 
+    def test_keeps_an_id_selected_peer_when_its_name_is_ambiguous(self):
+        relative = {
+            "peer_regions": [
+                {"region_id": "12300", "region_name": "북구"},
+                {"region_id": "26230", "region_name": "부산진구"},
+                {"region_id": "26260", "region_name": "동래구"},
+            ],
+        }
+        with mock.patch.object(performance, "default_scorer", performance.UnavailableScorer):
+            selection = benchmarks.resolve_benchmarks("26350", relative)
+        self.assertEqual(
+            [region["region_id"] for region in selection.regions],
+            ["12300", "26230", "26260"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

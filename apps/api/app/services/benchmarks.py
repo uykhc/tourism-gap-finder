@@ -16,7 +16,7 @@ from typing import Any
 
 from fastapi import HTTPException
 
-from . import artifacts, performance
+from . import artifacts, performance, regions as region_table
 
 #: 비교 기준 지역 수 상한. COLLABORATION.md §6의 "최대 3곳"을 따른다.
 DEFAULT_BENCHMARK_COUNT = 3
@@ -76,14 +76,7 @@ def resolve_benchmarks(
     """
     if relative_supply is None:
         return BenchmarkSelection()
-    names = [
-        str(item.get("region_name") or "").strip()
-        for item in relative_supply.get("peer_regions", [])
-        if isinstance(item, dict) and str(item.get("region_name") or "").strip()
-    ]
-    resolved, unresolved = artifacts.resolve_peer_regions(
-        names, candidate_region_ids=artifacts.peer_region_ids(region_id)
-    )
+    resolved, unresolved = _resolve_relative_supply_peers(region_id, relative_supply)
     # 대상 지역 자신은 비교 기준이 될 수 없다.
     resolved = [region for region in resolved if region["region_id"] != region_id]
 
@@ -107,6 +100,48 @@ def resolve_benchmarks(
         note=_STRUCTURAL_NOTE,
         unresolved_names=tuple(unresolved),
     )
+
+
+def _resolve_relative_supply_peers(
+    region_id: str, relative_supply: dict[str, Any]
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Resolve selected peers, preferring the artifact's unambiguous region ID.
+
+    Older artifacts only stored a region name.  A name such as ``북구`` is
+    nationally ambiguous, so resolving it by name can silently omit one of
+    the three selected comparison regions.  Current relative-supply artifacts
+    include ``region_id``; retain that exact selection whenever it is valid.
+    """
+    resolved: list[dict[str, Any]] = []
+    unresolved: list[str] = []
+    legacy_names: list[str] = []
+    seen_ids: set[str] = set()
+    for item in relative_supply.get("peer_regions", []):
+        if not isinstance(item, dict):
+            continue
+        peer_id = str(item.get("region_id") or "").strip()
+        peer_name = str(item.get("region_name") or "").strip()
+        peer = region_table.find_region(peer_id) if peer_id else None
+        if peer is not None:
+            if peer_id not in seen_ids:
+                resolved.append(peer)
+                seen_ids.add(peer_id)
+            continue
+        if peer_name:
+            legacy_names.append(peer_name)
+        elif peer_id:
+            unresolved.append(peer_id)
+
+    legacy_resolved, legacy_unresolved = artifacts.resolve_peer_regions(
+        legacy_names, candidate_region_ids=artifacts.peer_region_ids(region_id)
+    )
+    for peer in legacy_resolved:
+        peer_id = str(peer["region_id"])
+        if peer_id not in seen_ids:
+            resolved.append(peer)
+            seen_ids.add(peer_id)
+    unresolved.extend(legacy_unresolved)
+    return resolved, unresolved
 
 
 def _performance_backed_benchmarks(
