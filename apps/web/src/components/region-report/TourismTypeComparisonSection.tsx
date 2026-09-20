@@ -17,7 +17,11 @@ import {
   getNormalizedBarWidth,
 } from '../../utils/regionReport';
 import { Button } from '../ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '../ui/hover-card';
 
 // 탭에는 UNKNOWN을 제외한 6개 관광 콘텐츠 유형만 노출한다.
 const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
@@ -229,8 +233,8 @@ interface MetricInfoIconProps {
 
 function MetricInfoIcon({ label, description }: MetricInfoIconProps) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
+    <HoverCard>
+      <HoverCardTrigger asChild>
         <Button
           type="button"
           variant="ghost"
@@ -240,9 +244,9 @@ function MetricInfoIcon({ label, description }: MetricInfoIconProps) {
         >
           <Info aria-hidden="true" className="size-3.5" strokeWidth={1.75} />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent>{description}</PopoverContent>
-    </Popover>
+      </HoverCardTrigger>
+      <HoverCardContent>{description}</HoverCardContent>
+    </HoverCard>
   );
 }
 
