@@ -1,6 +1,8 @@
 import { Info } from 'lucide-react';
 import { useState } from 'react';
 import {
+  SEARCH_PRESSURE_DESCRIPTION,
+  SUPPLY_DENSITY_DESCRIPTION,
   TOURISM_CONTENT_LABEL,
   TOURISM_CONTENT_ORDER,
 } from '../../constants/regionReport';
@@ -31,17 +33,11 @@ const SELECTABLE_TYPES = TOURISM_CONTENT_ORDER.filter(
 interface TourismTypeComparisonSectionProps {
   comparisons: TourismTypeComparisonDto[];
   primaryGapType: TourismContentType | null;
-  // 공급밀도·공급 압력 지표 설명은 방법론 카드와 같은 문구를 그대로 써서
-  // 화면 전체에서 같은 지표를 다르게 설명하지 않게 한다.
-  supplyDensityDefinition: string;
-  searchPressureDefinition: string;
 }
 
 function TourismTypeComparisonSection({
   comparisons,
   primaryGapType,
-  supplyDensityDefinition,
-  searchPressureDefinition,
 }: TourismTypeComparisonSectionProps) {
   const comparisonByType = new Map(
     comparisons.map((comparison) => [comparison.content_type, comparison])
@@ -117,7 +113,7 @@ function TourismTypeComparisonSection({
                 : '비교 기준 지역 없음'}
               <MetricInfoIcon
                 label="공급밀도"
-                description={supplyDensityDefinition}
+                description={SUPPLY_DENSITY_DESCRIPTION}
               />
             </p>
             <p className="text-heading text-primary">
@@ -131,7 +127,7 @@ function TourismTypeComparisonSection({
                 : '비교 기준 지역 없음'}
               <MetricInfoIcon
                 label="공급 압력"
-                description={searchPressureDefinition}
+                description={SEARCH_PRESSURE_DESCRIPTION}
               />
             </p>
             <p className="text-heading text-primary">
@@ -147,7 +143,7 @@ function TourismTypeComparisonSection({
             rows={densityRows}
             formatValue={formatDecimal}
             infoLabel="공급밀도"
-            infoDescription={supplyDensityDefinition}
+            infoDescription={SUPPLY_DENSITY_DESCRIPTION}
           />
           <ComparisonChartCard
             title={`${TOURISM_CONTENT_LABEL[activeType]} 공급 압력`}
@@ -155,7 +151,7 @@ function TourismTypeComparisonSection({
             rows={searchRows}
             formatValue={(value) => `${formatCount(value)}회`}
             infoLabel="공급 압력"
-            infoDescription={searchPressureDefinition}
+            infoDescription={SEARCH_PRESSURE_DESCRIPTION}
           />
         </div>
       </div>
