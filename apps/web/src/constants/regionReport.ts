@@ -43,7 +43,7 @@ export const KEY_METRIC_TITLE: Record<KeyMetricCode, string> = {
   LOWER_BENCHMARK_COUNT: '비교 일관성',
   SEARCHES_PER_PLACE: '수요 압력',
   SUPPLY_PLACE_COUNT: '등록 공급',
-  SUPPLY_DENSITY_PER_100_KM2: '공급밀도',
+  SUPPLY_DENSITY_PER_100_KM2: '공급 밀도',
   UNKNOWN: '추가 지표',
 };
 

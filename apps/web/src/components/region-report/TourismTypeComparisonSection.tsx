@@ -77,7 +77,7 @@ function TourismTypeComparisonSection({
         <div>
           <h2>관광 콘텐츠 유형별 공급 현황</h2>
           <p className="mt-1 text-body-small text-muted-foreground">
-            관광 콘텐츠 유형별 공급밀도와 공급 압력을 유사 지역과 비교합니다.
+            관광 콘텐츠 유형별 공급 밀도와 공급 압력을 유사 지역과 비교합니다.
           </p>
         </div>
 
@@ -109,10 +109,10 @@ function TourismTypeComparisonSection({
           <article className="flex flex-col gap-1.5 rounded-xl border bg-card px-4.5 py-4">
             <p className="flex items-center gap-1 text-body-small text-primary">
               {referenceName
-                ? `${referenceName} 대비 공급밀도`
+                ? `${referenceName} 대비 공급 밀도`
                 : '비교 기준 지역 없음'}
               <MetricInfoIcon
-                label="공급밀도"
+                label="공급 밀도"
                 description={SUPPLY_DENSITY_DESCRIPTION}
               />
             </p>
@@ -138,11 +138,11 @@ function TourismTypeComparisonSection({
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ComparisonChartCard
-            title={`${TOURISM_CONTENT_LABEL[activeType]} 공급밀도`}
+            title={`${TOURISM_CONTENT_LABEL[activeType]} 공급 밀도`}
             unitLabel="100㎢당 등록 장소 수"
             rows={densityRows}
             formatValue={formatDecimal}
-            infoLabel="공급밀도"
+            infoLabel="공급 밀도"
             infoDescription={SUPPLY_DENSITY_DESCRIPTION}
           />
           <ComparisonChartCard
