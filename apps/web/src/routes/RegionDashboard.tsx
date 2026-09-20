@@ -131,7 +131,6 @@ function RegionDashboard() {
         target={report.target}
         analysisPeriod={report.analysis_period}
         summary={report.summary}
-        reportStatus={report.report_status}
         interestAction={{
           isInterested,
           isPending:
