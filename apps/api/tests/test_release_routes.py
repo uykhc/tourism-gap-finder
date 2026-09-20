@@ -12,7 +12,7 @@ from apps.api.app.main import app
 from apps.api.app.services import artifacts
 
 
-def test_release_endpoints_require_authentication() -> None:
+def test_release_endpoints_require_authentication_except_public_reports() -> None:
     override = app.dependency_overrides.pop(current_user)
     try:
         client = TestClient(app)
@@ -24,9 +24,11 @@ def test_release_endpoints_require_authentication() -> None:
             "/regions/47130/hubs",
             "/regions/47130/performance",
             "/regions/47130/gaps",
-            "/regions/47130/report",
         ]
         assert all(client.get(path).status_code == 401 for path in protected)
+        assert client.get("/regions/47130/report").status_code == 200
+        assert client.get("/api/v1/regions/47130/report").status_code == 200
+        assert client.get("/api/v1/regions/47130/tourism-report").status_code == 200
         assert client.get(
             "/compare", params=[("region_ids", "47130"), ("region_ids", "47110")]
         ).status_code == 401
