@@ -41,6 +41,10 @@ const caseTypeSchema = z
   .enum(['FACILITY', 'PROGRAM'])
   .or(unknownEnumValue('case_type'));
 
+const administrativeTypeSchema = z
+  .enum(ADMINISTRATIVE_TYPES)
+  .or(unknownEnumValue('administrative_type'));
+
 const knownMetricCodes = [
   'MIN_BENCHMARK_SUPPLY_RATIO',
   'LOWER_BENCHMARK_COUNT',
@@ -48,15 +52,6 @@ const knownMetricCodes = [
   'SUPPLY_PLACE_COUNT',
   'SUPPLY_DENSITY_PER_100_KM2',
 ] as const;
-
-const keyMetricCodeSchema = z
-  .enum(knownMetricCodes)
-  .or(unknownEnumValue('metric_code'));
-
-const keyMetricBaseShape = {
-  content_type: contentTypeSchema,
-  value: z.number().finite(),
-};
 
 const unknownMetricCodeSchema = z
   .string()
@@ -69,66 +64,57 @@ const unknownMetricCodeSchema = z
     return 'UNKNOWN' as const;
   });
 
-const keyMetricSchema = z.union([
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: z.literal('MIN_BENCHMARK_SUPPLY_RATIO'),
-    benchmark_region_id: z.string(),
-    benchmark_region_name: z.string(),
-  }),
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: z.literal('LOWER_BENCHMARK_COUNT'),
-    total_benchmark_count: z.number().int().nonnegative(),
-  }),
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: z.literal('SEARCHES_PER_PLACE'),
-    rank: z.number().int().positive(),
-    total_content_type_count: z.number().int().positive(),
-  }),
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: z.literal('SUPPLY_PLACE_COUNT'),
-  }),
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: z.literal('SUPPLY_DENSITY_PER_100_KM2'),
-  }),
-  z.object({
-    ...keyMetricBaseShape,
-    metric_code: unknownMetricCodeSchema,
-  }),
-]);
+const keyMetricCodeSchema = z
+  .enum(knownMetricCodes)
+  .or(unknownMetricCodeSchema);
 
-const regionMetricSchema = z.object({
-  region_id: z.string(),
-  region_name: z.string(),
-  value: z.number().finite(),
-  // The target itself has no comparison baseline, so the API represents its
-  // ratio as null. Benchmark rows contain a numeric ratio.
-  target_to_benchmark_ratio: z.number().finite().nullable().optional(),
-});
-
-const searchMetricSchema = z.object({
-  content_type: contentTypeSchema,
-  navigation_search_count: z.number().finite(),
-  supply_place_count: z.number().finite(),
-  searches_per_place: z.number().finite(),
+const priorityContentTypeSchema = z.object({
   rank: z.number().int().positive(),
-});
-
-const categoryOverviewSchema = z.object({
   content_type: contentTypeSchema,
   signal_level: signalLevelSchema,
-  supply_place_count: z.number().finite(),
-  composition_share: z.number().finite(),
-  supply_density_per_100_km2: z.number().finite(),
-  lower_benchmark_count: z.number().int().nonnegative(),
-  total_benchmark_count: z.number().int().nonnegative(),
-  lowest_benchmark_supply_ratio: z.number().finite().nullable(),
-  searches_per_place: z.number().finite(),
-  search_rank: z.number().int().positive(),
+});
+
+const similarRegionSchema = z.object({
+  region_id: z.string().regex(/^\d{5}$/),
+  province_name: z.string(),
+  region_name: z.string(),
+  administrative_type: administrativeTypeSchema,
+  rank: z.number().int().positive(),
+  similarity: z.number().min(0).max(1),
+});
+
+const comparisonRegionRefSchema = z.object({
+  region_id: z.string().regex(/^\d{5}$/),
+  region_name: z.string(),
+});
+
+const regionComparisonMetricSchema = z.object({
+  region_id: z.string().regex(/^\d{5}$/),
+  region_name: z.string(),
+  // 아직 산출되지 않은 값은 0이 아니라 null로 내려온다. 0으로 채우면
+  // '자료 없음'이 '공급 없음'으로 보여 순위가 뒤집힌다.
+  value: z.number().finite().nullable(),
+});
+
+const supplyDensityComparisonSchema = z.object({
+  unit: z.literal('PLACES_PER_100_KM2'),
+  target: regionComparisonMetricSchema,
+  benchmarks: z.array(regionComparisonMetricSchema),
+  target_to_reference_ratio: z.number().finite().nullable(),
+});
+
+const searchesPerPlaceComparisonSchema = z.object({
+  unit: z.literal('SEARCHES_PER_PLACE'),
+  target: regionComparisonMetricSchema,
+  benchmarks: z.array(regionComparisonMetricSchema),
+  target_to_reference_ratio: z.number().finite().nullable(),
+});
+
+const tourismTypeComparisonSchema = z.object({
+  content_type: contentTypeSchema,
+  reference_region: comparisonRegionRefSchema.nullable(),
+  supply_density: supplyDensityComparisonSchema,
+  searches_per_place: searchesPerPlaceComparisonSchema,
 });
 
 const quantitativeEvidenceSchema = z.object({
@@ -154,9 +140,7 @@ const regionReportSchema = z.object({
     region_id: z.string().regex(/^\d{5}$/),
     province_name: z.string(),
     region_name: z.string(),
-    administrative_type: z
-      .enum(ADMINISTRATIVE_TYPES)
-      .or(unknownEnumValue('administrative_type')),
+    administrative_type: administrativeTypeSchema,
   }),
   analysis_period: z.object({
     start_ym: z.string().regex(/^\d{6}$/),
@@ -167,12 +151,12 @@ const regionReportSchema = z.object({
     .object({
       diagnosis_status: diagnosisStatusSchema,
       primary_gap_type: contentTypeSchema.nullable(),
+      priority_content_types: z.array(priorityContentTypeSchema),
       one_line_review: z.object({
         text: z.string(),
         source: oneLineReviewSourceSchema,
         generated_at: z.string().nullable(),
       }),
-      key_metrics: z.array(keyMetricSchema),
     })
     .superRefine((summary, context) => {
       if (
@@ -197,18 +181,8 @@ const regionReportSchema = z.object({
         });
       }
     }),
-  evidence: z.object({
-    supply_density: z.object({
-      content_type: contentTypeSchema,
-      target: regionMetricSchema,
-      benchmarks: z.array(regionMetricSchema),
-    }),
-    searches_per_place: z.object({
-      metric_definition: z.string(),
-      items: z.array(searchMetricSchema),
-    }),
-  }),
-  category_overview: z.array(categoryOverviewSchema),
+  similar_regions: z.array(similarRegionSchema),
+  tourism_type_comparisons: z.array(tourismTypeComparisonSchema),
   detailed_diagnoses: z.array(
     z.object({
       content_type: contentTypeSchema,

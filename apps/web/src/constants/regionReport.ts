@@ -31,13 +31,6 @@ export const CASE_TYPE_LABEL: Record<BenchmarkCaseType, string> = {
   UNKNOWN: '유형 미상',
 };
 
-export const SIGNAL_LEVEL_LABEL: Record<GapSignalLevel, string> = {
-  STRONG_GAP_CANDIDATE: '우선 검증',
-  NEEDS_REVIEW: '추가 확인',
-  NO_CLEAR_GAP: '상대적 부족 아님',
-  UNKNOWN: '확인 필요',
-};
-
 export const DETAIL_SIGNAL_LABEL: Record<GapSignalLevel, string> = {
   STRONG_GAP_CANDIDATE: '강한 빈칸 후보',
   NEEDS_REVIEW: '추가 확인 필요',

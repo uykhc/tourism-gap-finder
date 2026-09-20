@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import CasesAndMethodologySection from '../components/region-report/CasesAndMethodologySection';
-import CategoryOverviewSection from '../components/region-report/CategoryOverviewSection';
 import DetailedDiagnosisSection from '../components/region-report/DetailedDiagnosisSection';
-import DiagnosticEvidenceSection from '../components/region-report/DiagnosticEvidenceSection';
-import KeyMetricSection from '../components/region-report/KeyMetricSection';
+import RecommendedActionSection from '../components/region-report/RecommendedActionSection';
 import RegionChangeDialog from '../components/region-report/RegionChangeDialog';
 import RegionReportEmptyState from '../components/region-report/RegionReportEmptyState';
 import RegionReportError from '../components/region-report/RegionReportError';
 import RegionReportLoading from '../components/region-report/RegionReportLoading';
 import ReportHero from '../components/region-report/ReportHero';
+import SimilarRegionsSection from '../components/region-report/SimilarRegionsSection';
+import TourismTypeComparisonSection from '../components/region-report/TourismTypeComparisonSection';
 import useAccessToken from '../hooks/useAccessToken';
 import useCurrentUserQuery from '../hooks/useCurrentUserQuery';
 import useRegionReportQuery from '../hooks/useRegionReportQuery';
@@ -79,9 +79,6 @@ function RegionDashboard() {
   const report = reportQuery.data;
   const isInsufficient =
     report.summary.diagnosis_status === 'INSUFFICIENT_DATA';
-  const canShowEvidence =
-    report.summary.diagnosis_status === 'GAP_FOUND' &&
-    report.summary.primary_gap_type !== null;
   const isInterested =
     accessToken !== null &&
     currentUserQuery.data?.default_region?.region_id ===
@@ -149,22 +146,16 @@ function RegionDashboard() {
         <RegionReportEmptyState limitations={report.methodology.limitations} />
       ) : (
         <>
-          <KeyMetricSection metrics={report.summary.key_metrics} />
-          {canShowEvidence && report.summary.primary_gap_type && (
-            <DiagnosticEvidenceSection
-              evidence={report.evidence}
-              primaryGapType={report.summary.primary_gap_type}
-              keyMetrics={report.summary.key_metrics}
-              searchPressureDefinition={
-                report.methodology.search_pressure_definition
-              }
-            />
-          )}
-          <CategoryOverviewSection
-            items={report.category_overview}
+          <SimilarRegionsSection regions={report.similar_regions} />
+          <TourismTypeComparisonSection
+            comparisons={report.tourism_type_comparisons}
             primaryGapType={report.summary.primary_gap_type}
           />
           <DetailedDiagnosisSection diagnoses={report.detailed_diagnoses} />
+          <RecommendedActionSection
+            actions={report.recommended_actions}
+            cases={report.benchmark_cases}
+          />
         </>
       )}
 

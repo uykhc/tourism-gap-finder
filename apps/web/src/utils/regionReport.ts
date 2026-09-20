@@ -1,11 +1,4 @@
-import { TOURISM_CONTENT_ORDER } from '../constants/regionReport';
-import type {
-  CategoryOverviewItemDto,
-  ContentTypeSearchMetricDto,
-  RecommendedActionDto,
-  SourceDto,
-  TourismContentType,
-} from '../types/regionReport';
+import type { RecommendedActionDto, SourceDto } from '../types/regionReport';
 
 const countFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 0,
@@ -45,28 +38,8 @@ export const getNormalizedBarWidth = (value: number, values: number[]) => {
   return Math.min(100, (value / maximum) * 100);
 };
 
-export const sortSearchMetrics = (items: ContentTypeSearchMetricDto[]) =>
-  [...items].sort((left, right) => left.rank - right.rank);
-
 export const sortRecommendedActions = (items: RecommendedActionDto[]) =>
   [...items].sort((left, right) => left.order - right.order);
-
-export const sortCategoryOverview = (
-  items: CategoryOverviewItemDto[],
-  primaryGapType: TourismContentType | null
-) => {
-  const order = new Map(
-    TOURISM_CONTENT_ORDER.map((contentType, index) => [contentType, index])
-  );
-  return [...items].sort((left, right) => {
-    if (left.content_type === primaryGapType) return -1;
-    if (right.content_type === primaryGapType) return 1;
-    return (
-      (order.get(left.content_type) ?? Number.MAX_SAFE_INTEGER) -
-      (order.get(right.content_type) ?? Number.MAX_SAFE_INTEGER)
-    );
-  });
-};
 
 export const resolveSources = (sourceIds: string[], sources: SourceDto[]) => {
   const sourceById = new Map(
