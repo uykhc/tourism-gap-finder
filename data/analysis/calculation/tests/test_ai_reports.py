@@ -224,6 +224,7 @@ def _payload():
             "applicability_insight": "수원시 여건을 검토한다.",
         }],
         "recommended_actions": [{
+            "content_type": "CULTURE_TOURISM",
             "title": "시범 운영", "rationale": "정량 근거를 먼저 검증한다.",
             "evidence_texts": ["장소당 검색량 8516.021"], "case_titles": [],
         }],

@@ -291,6 +291,7 @@ class DetailedDiagnosis(BaseModel):
 
 class RecommendedAction(BaseModel):
     order: int = Field(ge=1, examples=[1])
+    content_type: ContentType | None = Field(default=None)
     title: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
     evidence_texts: list[str] = Field(default_factory=list)

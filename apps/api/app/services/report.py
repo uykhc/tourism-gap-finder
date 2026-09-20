@@ -79,7 +79,13 @@ def build_region_report(region_id: str) -> dict[str, Any]:
     primary = _primary_gap_type(pressure, signals) if status is DiagnosisStatus.GAP_FOUND else None
 
     limitations = _limitations(relative, target_report, ai_report, benchmarks, status)
-    diagnoses, cases = _diagnoses_and_cases(ai_report, signals, limitations)
+    priority_codes = [
+        str(item["content_type"])
+        for item in _priority_content_types(primary, status, signals)[:2]
+    ]
+    diagnoses, cases = _diagnoses_and_cases(
+        ai_report, signals, limitations, allowed_content_types=priority_codes
+    )
     actions = _recommended_actions(ai_report, cases)
 
     return {
@@ -95,7 +101,7 @@ def build_region_report(region_id: str) -> dict[str, Any]:
             "one_line_review": _one_line_review(region, ai_report, primary, status, signals),
             "key_metrics": _key_metrics(primary, status, signals),
         },
-        "similar_regions": _similar_regions(peers),
+        "similar_regions": _similar_regions(peers, relative),
         "tourism_type_comparisons": _tourism_type_comparisons(
             region, signals, target_report, pressure, benchmarks
         ),
@@ -327,14 +333,23 @@ def _priority_content_types(
     ]
 
 
-def _similar_regions(peers: dict[str, Any] | None) -> list[dict[str, Any]]:
-    """Expose the policy's structural top ten without UI-only status fields."""
+def _similar_regions(
+    peers: dict[str, Any] | None, relative: dict[str, Any] | None = None
+) -> list[dict[str, Any]]:
+    """Expose only the three selected high-performance similar regions."""
     items = (peers or {}).get("peers", [])
+    selected_ids = {
+        str(item.get("region_id"))
+        for item in (relative or {}).get("peer_regions", [])
+        if isinstance(item, dict) and item.get("region_id")
+    }
     result = []
     for item in sorted(
         (row for row in items if isinstance(row, dict)),
         key=lambda row: (int(row.get("rank", 10**9)), str(row.get("region_id", ""))),
-    )[:10]:
+    ):
+        if selected_ids and str(item.get("region_id")) not in selected_ids:
+            continue
         if not (
             isinstance(item.get("similarity"), (int, float))
             and str(item.get("region_id", "")).isdigit()
@@ -348,7 +363,7 @@ def _similar_regions(peers: dict[str, Any] | None) -> list[dict[str, Any]]:
             "rank": int(item["rank"]),
             "similarity": float(item["similarity"]),
         })
-    return result
+    return result[:3]
 
 
 def _tourism_type_comparisons(
@@ -399,13 +414,8 @@ def _tourism_type_comparisons(
             }
             for item in benchmarks.regions
         ]
-        reference = next(
-            (
-                item for item in benchmarks.regions
-                if _positive(density_by_id.get(item["region_id"]))
-                and _positive(pressure_by_peer_id.get(item["region_id"]))
-            ),
-            None,
+        reference = _largest_relative_supply_density_gap(
+            density_target, benchmarks.regions, density_by_id
         )
         reference_id = None if reference is None else reference["region_id"]
         density_reference = None if reference_id is None else density_by_id.get(reference_id)
@@ -448,6 +458,32 @@ def _positive(value: float | None) -> bool:
 
 def _ratio(numerator: float | None, denominator: float | None) -> float | None:
     return None if numerator is None or denominator is None or denominator == 0 else round(numerator / denominator, 1)
+
+
+def _largest_relative_supply_density_gap(
+    target_value: float | None,
+    regions: tuple[dict[str, Any], ...],
+    values_by_id: dict[str, float | None],
+) -> dict[str, Any] | None:
+    """Choose the selected similar region with the largest density ratio gap."""
+    if target_value is None or target_value <= 0:
+        return None
+    comparable = [
+        region for region in regions
+        if _positive(values_by_id.get(str(region["region_id"])))
+    ]
+    if not comparable:
+        return None
+    return max(
+        comparable,
+        key=lambda region: (
+            max(
+                target_value / float(values_by_id[str(region["region_id"])]),
+                float(values_by_id[str(region["region_id"])]) / target_value,
+            ),
+            str(region["region_id"]),
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -630,6 +666,8 @@ def _diagnoses_and_cases(
     ai_report: dict[str, Any] | None,
     signals: dict[str, dict[str, Any]],
     limitations: list[str],
+    *,
+    allowed_content_types: list[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     if ai_report is None:
         return [], []
@@ -645,10 +683,13 @@ def _diagnoses_and_cases(
     diagnoses: list[dict[str, Any]] = []
     cases: list[dict[str, Any]] = []
     case_ids_by_key: dict[tuple[str, str], str] = {}
+    allowed = set(allowed_content_types) if allowed_content_types is not None else None
     for gap_type in gap_types:
         if not isinstance(gap_type, dict):
             continue
         content_type = str(gap_type.get("content_type") or "")
+        if allowed is not None and content_type not in allowed:
+            continue
         signal = signals.get(content_type)
         if signal is None or signal["signal_level"] is GapSignalLevel.NO_CLEAR_GAP:
             continue
@@ -691,6 +732,8 @@ def _diagnoses_and_cases(
             "applicability_insight": str(gap_type.get("applicability_insight") or ""),
             "case_ids": case_ids,
         })
+    order = {content_type: index for index, content_type in enumerate(allowed_content_types or [])}
+    diagnoses.sort(key=lambda item: order.get(str(item["content_type"]), len(order)))
     return diagnoses, cases
 
 
@@ -707,6 +750,7 @@ def _recommended_actions(
             raise HTTPException(502, detail="AI 보고서의 recommended_actions 형식이 잘못됐습니다.")
         result.append({
             "order": order,
+            "content_type": action.get("content_type") if action.get("content_type") in CONTENT_TYPES else None,
             "title": str(action.get("title") or ""),
             "rationale": str(action.get("rationale") or ""),
             "evidence_texts": [str(item) for item in action.get("evidence_texts", [])],
